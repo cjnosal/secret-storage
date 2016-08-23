@@ -6,6 +6,21 @@ a user password, AndroidKeyStore, or both.
 
 # Usage
 
+## Gradle
+```
+allprojects {
+    repositories {
+        jcenter()
+        flatDir {
+            dirs 'libs'
+        }
+    }
+}
+dependencies {
+    compile(name:'secret-storage', ext:'aar')
+}
+```
+
 ## Setup
 
 ### Default key protection strategy with a user password
@@ -15,7 +30,7 @@ DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
 SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, dataStorage, "user's password");
 ```
 
-### Default key protection strategy without a user password **insecure below jelly bean**
+### Default key protection strategy without a user password (insecure below jelly bean)
 ```
 DataStorage configStorage = new FileStorage(context.getFilesDir() + "/config");
 DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
