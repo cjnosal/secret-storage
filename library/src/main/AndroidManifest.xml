@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.github.cjnosal.secret_storage">
+
+    <application>
+
+    </application>
+
+</manifest>
