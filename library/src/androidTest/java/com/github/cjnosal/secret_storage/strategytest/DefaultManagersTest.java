@@ -32,7 +32,6 @@ import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -101,28 +100,6 @@ public class DefaultManagersTest {
         ((PasswordKeyManager)manager).unlock("user secret");
         byte[] e1 = manager.encrypt("a", "1".getBytes());
         assertEquals(new String(manager.decrypt("a", e1)), "1");
-    }
-
-    @Test
-    @Ignore // TODO allow reused config file, or have SecretStorage setup storeId/config and storeId/data?
-    public void config_interference() throws GeneralSecurityException, IOException {
-        KeyManager manager1 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.M, configStorage, "id1", null);
-        KeyManager manager2 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, "id2", null);
-        KeyManager manager3 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, "id3", null);
-        KeyManager manager4 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, "id4", "user secret");
-        KeyManager manager5 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, "id5", "other user secret");
-
-        byte[] e1 = manager1.encrypt("a", "1".getBytes());
-        byte[] e2 = manager2.encrypt("a", "2".getBytes());
-        byte[] e3 = manager3.encrypt("a", "3".getBytes());
-        byte[] e4 =  manager4.encrypt("a", "4".getBytes());
-        byte[] e5 = manager5.encrypt("a", "5".getBytes());
-
-        assertEquals(new String(manager1.decrypt("a", e1)), "1");
-        assertEquals(new String(manager2.decrypt("a", e2)), "2");
-        assertEquals(new String(manager3.decrypt("a", e3)), "3");
-        assertEquals(new String(manager4.decrypt("a", e4)), "4");
-        assertEquals(new String(manager5.decrypt("a", e5)), "5");
     }
 
     @Test

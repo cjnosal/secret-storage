@@ -114,31 +114,6 @@ public class Crypto {
         return g.generateKeyPair();
     }
 
-//    public KeyPair generateKeyPair(@SecurityAlgorithms.KeyFactory String algorithm, KeySpec spec) throws GeneralSecurityException {
-//        KeyFactory f = KeyFactory.getInstance(algorithm);
-//        PrivateKey pri = f.generatePrivate(spec);
-//        PublicKey pub = null;
-////        PublicKey pub = f.generatePublic(spec);
-//        try {
-//            pub = generatePublicKey(pri);
-//        } catch (Exception e) {
-//            // private key doesn't contain enough information to generate public key
-//        }
-//        return new KeyPair(pub, pri);
-//    }
-//
-//    public byte[] encrypt(PublicKey key, AlgorithmParameterSpec spec, @SecurityAlgorithms.Cipher String cipherAlgorithm, byte[] plainBytes) throws GeneralSecurityException {
-//        Cipher cipher = Cipher.getInstance(cipherAlgorithm);
-//        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-//        return cipher.doFinal(plainBytes);
-//    }
-//
-//    public byte[] decrypt(PrivateKey key, AlgorithmParameterSpec spec, @SecurityAlgorithms.Cipher String cipherAlgorithm, byte[] cipherBytes) throws GeneralSecurityException {
-//        Cipher cipher = Cipher.getInstance(cipherAlgorithm);
-//        cipher.init(Cipher.DECRYPT_MODE, key, spec);
-//        return cipher.doFinal(cipherBytes);
-//    }
-
     public byte[] sign(SecretKey key, @SecurityAlgorithms.Mac String macAlgorithm, byte[] cipherText) throws GeneralSecurityException {
         Mac mac = Mac.getInstance(macAlgorithm);
         mac.init(key);
