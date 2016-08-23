@@ -23,10 +23,9 @@ import android.os.Build;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
@@ -45,21 +44,18 @@ public class SignedPasswordKeyManager extends PasswordKeyManager {
     private final Context context;
     private final String storeId;
     private final AndroidCrypto androidCrypto;
-    private final IntegritySpec derivationSignatureSpec;
+    private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyManager(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationSignatureSpec, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
+    public SignedPasswordKeyManager(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
         super(crypto, dataProtectionStrategy, keyDerivationSpec, keyProtectionStrategy, keyStorage, configStorage);
         this.context = context;
         this.storeId = storeId;
         this.androidCrypto = androidCrypto;
-        this.derivationSignatureSpec = derivationSignatureSpec;
+        this.derivationIntegrityStrategy = derivationIntegrityStrategy;
 
-        if (keyProtectionStrategy.getCipherStrategy() instanceof AsymmetricCipherStrategy ||
-                keyProtectionStrategy.getIntegrityStrategy() instanceof SignatureStrategy) {
-            throw new IllegalArgumentException("PasswordKeyManager needs symmetric strategy for key protection");
+        if (derivationIntegrityStrategy instanceof MacStrategy) { // TODO allow HMAC on M+
+            throw new IllegalArgumentException("SignedPasswordKeyManager needs asymmetric strategy for binding derived key to device");
         }
-
-        // TODO check if derivationSignatureSpec is asymmetric
     }
 
     protected void generateKek(String password) throws IOException, GeneralSecurityException {
@@ -76,24 +72,22 @@ public class SignedPasswordKeyManager extends PasswordKeyManager {
             sigSalt = crypto.generateBytes(derivationSpec.getKeySize() / 8);
             configStorage.store(ENC_SALT, encSalt);
             configStorage.store(SIG_SALT, sigSalt);
-            signingKey = androidCrypto.generateKeyPair(context, storeId + "D", derivationSignatureSpec.getKeygenAlgorithm()).getPrivate();
+            signingKey = androidCrypto.generateKeyPair(context, storeId + "D", derivationIntegrityStrategy.getSpec().getKeygenAlgorithm()).getPrivate();
         }
 
         byte[] firstHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, encSalt, derivationSpec.getRounds()).getEncoded();
-        byte[] signature = crypto.sign(signingKey, derivationSignatureSpec.getIntegrityTransformation(), firstHash);
+        byte[] signature = derivationIntegrityStrategy.sign(signingKey, firstHash);
         String signatureString = Encoding.base64Encode(signature);
 
         Key secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, encSalt, derivationSpec.getRounds());
         derivedEncKey = new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
 
         firstHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, sigSalt, derivationSpec.getRounds()).getEncoded();
-        signature = crypto.sign(signingKey, derivationSignatureSpec.getIntegrityTransformation(), firstHash); // TODO HMAC on M+
+        signature = derivationIntegrityStrategy.sign(signingKey, firstHash);
         signatureString = Encoding.base64Encode(signature);
 
         secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, sigSalt, derivationSpec.getRounds());
         derivedSigKey = new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
-
-        // TODO allow (and verify) user password
     }
 
 }

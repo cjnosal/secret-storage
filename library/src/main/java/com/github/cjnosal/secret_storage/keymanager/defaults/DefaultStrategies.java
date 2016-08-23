@@ -50,4 +50,8 @@ public class DefaultStrategies {
         IntegrityStrategy integrity = new MacStrategy(crypto, DefaultSpecs.getKeyStoreHmacShaIntegritySpec());
         return new ProtectionStrategy(cipher, integrity);
     }
+
+    public static IntegrityStrategy getPasswordDeviceBindingStragegy(Crypto crypto) {
+        return new SignatureStrategy(crypto, DefaultSpecs.getShaRsaIntegritySpec());
+    }
 }

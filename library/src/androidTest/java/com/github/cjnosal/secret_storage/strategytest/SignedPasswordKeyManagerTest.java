@@ -65,12 +65,13 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testSSSS() throws Exception {
+    public void testSSSSA() throws Exception {
         KeyManager strat = createManager(
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
         byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
@@ -80,13 +81,14 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testSSSA() throws Exception {
+    public void testSSSAA() throws Exception {
         try {
             KeyManager strat = createManager(
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec()),
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                    new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
+                    new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
+                    new SignatureStrategy(crypto, getDerivationIntegritySpec())
             );
             fail("Expecting exception for asymmetric key protection");
         } catch (IllegalArgumentException e) {
@@ -95,13 +97,14 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testSSAS() throws Exception {
+    public void testSSASA() throws Exception {
         try {
             KeyManager strat = createManager(
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec()),
                     new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                    new MacStrategy(crypto, getSymmetricIntegritySpec())
+                    new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                    new SignatureStrategy(crypto, getDerivationIntegritySpec())
             );
             fail("Expecting exception for asymmetric key protection");
         } catch (IllegalArgumentException e) {
@@ -110,12 +113,13 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testSASS() throws Exception {
+    public void testSASSA() throws Exception {
         KeyManager strat = createManager(
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
         byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
@@ -125,12 +129,13 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testASSS() throws Exception {
+    public void testASSSA() throws Exception {
         KeyManager strat = createManager(
                 new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
         byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
@@ -140,12 +145,13 @@ public class SignedPasswordKeyManagerTest {
     }
 
     @Test
-    public void testAASS() throws Exception {
+    public void testAASSA() throws Exception {
         KeyManager strat = createManager(
                 new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
         byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
@@ -154,7 +160,24 @@ public class SignedPasswordKeyManagerTest {
         assertEquals(plain, "Hello world");
     }
 
-    private SignedPasswordKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
+    @Test
+    public void testAASSS() throws Exception {
+        try {
+            KeyManager strat = createManager(
+                    new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
+                    new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
+                    new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                    new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                    new MacStrategy(crypto, getSymmetricIntegritySpec())
+            );
+
+            fail("Expecting exception for symmetric derivation binding");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+    }
+
+    private SignedPasswordKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy) throws IOException, GeneralSecurityException {
 
         SignedPasswordKeyManager testStore = new SignedPasswordKeyManager(
                 context,
@@ -166,7 +189,7 @@ public class SignedPasswordKeyManagerTest {
                         dataIntegrity
                 ),
                 getDerivationSpec(),
-                getDerivationIntegritySpec(),
+                derivationIntegrityStrategy,
                 new ProtectionStrategy(
                         keyCipher,
                         keyIntegrity

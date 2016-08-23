@@ -38,7 +38,7 @@ public class DefaultManagers {
         if (userPassword != null) {
             if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 PasswordKeyManager manager = new SignedPasswordKeyManager(
-                        context, storeId, crypto, new AndroidCrypto(), DefaultStrategies.getDataProtectionStrategy(crypto), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getShaRsaIntegritySpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto), new PreferenceStorage(context, storeId + "keys"), configStorage);
+                        context, storeId, crypto, new AndroidCrypto(), DefaultStrategies.getDataProtectionStrategy(crypto), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordDeviceBindingStragegy(crypto), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto), new PreferenceStorage(context, storeId + "keys"), configStorage);
                 manager.unlock(userPassword);
                 return manager;
             } else {
