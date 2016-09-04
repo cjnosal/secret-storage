@@ -17,10 +17,13 @@
 package com.github.cjnosal.secret_storage.storage;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.StringDef;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 public interface DataStorage {
     void store(@NonNull String id, @NonNull byte[] bytes) throws IOException;
@@ -35,4 +38,17 @@ public interface DataStorage {
     boolean exists(@NonNull String id) throws IOException;
     void delete(@NonNull String id) throws IOException;
     void clear() throws IOException;
+
+    @Retention(RetentionPolicy.SOURCE)
+    @StringDef({
+            TYPE_DATA,
+            TYPE_KEYS,
+            TYPE_CONF
+    })
+    @interface Type {
+    }
+
+    String TYPE_DATA = "data";
+    String TYPE_KEYS = "keys";
+    String TYPE_CONF = "conf";
 }

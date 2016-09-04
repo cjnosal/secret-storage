@@ -60,14 +60,14 @@ public class SecretStorageTest {
 
     @Test
     public void createWithPassword() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage = new SecretStorage(context, "id", configStorage, dataStorage, "password");
+        SecretStorage secretStorage = new SecretStorage(context, "id", "password");
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
 
     @Test
     public void createWithoutPassword() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage = new SecretStorage(context, "id", configStorage, dataStorage, null);
+        SecretStorage secretStorage = new SecretStorage(context, "id", null);
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
@@ -82,7 +82,7 @@ public class SecretStorageTest {
                 configStorage);
         manager.unlock("password");
 
-        SecretStorage secretStorage = new SecretStorage(context, "id", configStorage, manager, dataStorage);
+        SecretStorage secretStorage = new SecretStorage(context, "id", configStorage, dataStorage, manager);
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }

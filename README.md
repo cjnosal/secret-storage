@@ -23,24 +23,20 @@ dependencies {
 
 ## Setup
 
-### Default key protection strategy with a user password
+### Default key protection strategy and storage with a user password
 ```
-DataStorage configStorage = new FileStorage(context.getFilesDir() + "/config");
-DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
-SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, dataStorage, "user's password");
+SecretStorage secretStorage = new SecretStorage(context, "storageId", "user's password");
 ```
 
-### Default key protection strategy without a user password (insecure below jelly bean)
+### Default key protection strategy and storage without a user password (insecure below jelly bean)
 ```
-DataStorage configStorage = new FileStorage(context.getFilesDir() + "/config");
-DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
-SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, dataStorage, null);
+SecretStorage secretStorage = new SecretStorage(context, "storageId", null);
 ```
 
-### Overridden key protection strategy
+### Overridden key protection strategy and storage
 ```
 KeyManager myCustomKeyManager = ...;
-DataStorage configStorage = new FileStorage(context.getFilesDir() + "/config");
+DataStorage configStorage = new PreferenceStorage(context, "conf");
 DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
 SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, myCustomKeyManager, dataStorage);
 ```

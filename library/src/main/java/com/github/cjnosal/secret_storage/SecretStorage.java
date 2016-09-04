@@ -23,6 +23,7 @@ import android.support.annotation.Nullable;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
 
 import java.io.IOException;
@@ -33,25 +34,25 @@ public class SecretStorage {
     private Context context;
     private String storeId;
     private DataStorage configStorage;
-    private KeyManager keyManager;
     private DataStorage dataStorage;
+    private KeyManager keyManager;
 
     // TODO test multiple instances of SecretStorage with same/different key managers to ensure no conflicts if different stores use same data ID
 
-    public SecretStorage(Context context, String storeId, DataStorage configStorage, KeyManager keyManager, DataStorage dataStorage) throws IOException, GeneralSecurityException {
+    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, KeyManager keyManager) throws IOException, GeneralSecurityException {
         this.context = context;
         this.storeId = storeId;
         this.configStorage = configStorage;
-        this.keyManager = keyManager;
         this.dataStorage = dataStorage;
+        this.keyManager = keyManager;
     }
 
-    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, @Nullable String userPassword) throws IOException, GeneralSecurityException {
+    public SecretStorage(Context context, String storeId, @Nullable String userPassword) throws IOException, GeneralSecurityException {
         this.context = context;
         this.storeId = storeId;
-        this.configStorage = configStorage;
+        this.configStorage = createStorage(DataStorage.TYPE_CONF);
+        this.dataStorage = createStorage(DataStorage.TYPE_DATA);
         this.keyManager = selectKeyManager(userPassword);
-        this.dataStorage = dataStorage;
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
@@ -73,6 +74,10 @@ public class SecretStorage {
             configStorage.store(storeId + "Version", DataEncoding.encode(osVersion));
         }
 
-        return new DefaultManagers().selectDefaultManager(context, osVersion, configStorage, storeId, userPassword);
+        return new DefaultManagers().selectDefaultManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId, userPassword);
+    }
+
+    private DataStorage createStorage(@DataStorage.Type String type) {
+        return new DefaultStorage().createStorage(context, storeId, type);
     }
 }
