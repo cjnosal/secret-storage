@@ -16,6 +16,7 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ public abstract class KeyManager {
 
     public KeyManager(ProtectionStrategy dataProtectionStrategy) {
         this.dataProtectionStrategy = dataProtectionStrategy;
+        PRNGFixes.apply();
     }
 
     public byte[] encrypt(String id, byte[] plainText) throws GeneralSecurityException, IOException {
