@@ -38,7 +38,7 @@ SecretStorage secretStorage = new SecretStorage(context, "storageId", null);
 KeyManager myCustomKeyManager = ...;
 DataStorage configStorage = new PreferenceStorage(context, "conf");
 DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
-SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, myCustomKeyManager, dataStorage);
+SecretStorage secretStorage = new SecretStorage(context, "storageId", configStorage, dataStorage, myCustomKeyManager);
 ```
 
 ## Store/Load Data
