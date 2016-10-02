@@ -16,6 +16,8 @@
 
 package com.github.cjnosal.secret_storage.keymanager.defaults;
 
+import android.os.Build;
+
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
@@ -29,14 +31,21 @@ public class DefaultStrategies {
 
     // TODO strongest supported ciphers for the device/os
 
-    public static ProtectionStrategy getDataProtectionStrategy(Crypto crypto) {
-        CipherStrategy cipher = new SymmetricCipherStrategy(crypto, DefaultSpecs.getAesCbcPkcs5CipherSpec());
+    public static ProtectionStrategy getDataProtectionStrategy(Crypto crypto, int osVersion) {
+        CipherStrategy cipher;
+        if (osVersion >= Build.VERSION_CODES.LOLLIPOP) {
+            // Use authenticated-encryption primitive when available
+            // MacStrategy is redundant but avoids special handling for particular strategies
+            cipher = new SymmetricCipherStrategy(crypto, DefaultSpecs.getAesGcmCipherSpec());
+        } else {
+            cipher = new SymmetricCipherStrategy(crypto, DefaultSpecs.getAesCbcPkcs5CipherSpec());
+        }
         IntegrityStrategy integrity = new MacStrategy(crypto, DefaultSpecs.getHmacShaIntegritySpec());
         return new ProtectionStrategy(cipher, integrity);
     }
 
-    public static ProtectionStrategy getPasswordBasedKeyProtectionStrategy(Crypto crypto) {
-        return getDataProtectionStrategy(crypto);
+    public static ProtectionStrategy getPasswordBasedKeyProtectionStrategy(Crypto crypto, int osVersion) {
+        return getDataProtectionStrategy(crypto, osVersion);
     }
 
     public static ProtectionStrategy getAsymmetricKeyProtectionStrategy(Crypto crypto) {

@@ -38,6 +38,15 @@ public class DefaultSpecs {
         );
     }
 
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public static CipherSpec getAesGcmCipherSpec() {
+        return new CipherSpec(
+                SecurityAlgorithms.Cipher_AES_GCM_NoPadding,
+                SecurityAlgorithms.KEY_SIZE_AES_256,
+                SecurityAlgorithms.KeyGenerator_AES
+        );
+    }
+
     public static CipherSpec getRsaPKCS1CipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding,

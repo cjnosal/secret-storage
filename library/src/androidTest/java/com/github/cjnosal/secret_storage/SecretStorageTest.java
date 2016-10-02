@@ -17,6 +17,7 @@
 package com.github.cjnosal.secret_storage;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyManager;
@@ -75,9 +76,9 @@ public class SecretStorageTest {
     @Test
     public void createWithManager() throws IOException, GeneralSecurityException {
         PasswordKeyManager manager = new PasswordKeyManager(crypto,
-                DefaultStrategies.getDataProtectionStrategy(crypto),
+                DefaultStrategies.getDataProtectionStrategy(crypto, Build.VERSION_CODES.KITKAT),
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto),
+                DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 configStorage);
         manager.unlock("password");
