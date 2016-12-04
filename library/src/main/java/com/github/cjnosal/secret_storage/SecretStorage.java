@@ -28,6 +28,7 @@ import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Set;
 
 public class SecretStorage {
 
@@ -63,6 +64,14 @@ public class SecretStorage {
     public byte[] load(String id) throws GeneralSecurityException, IOException {
         byte[] cipherText = dataStorage.load(id);
         return keyManager.decrypt(id, cipherText);
+    }
+
+    // decrypt and copy all data to another SecretStorage instance
+    public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
+        Set<String> entries = dataStorage.entries();
+        for(String s : entries) {
+            other.store(s, load(s));
+        }
     }
 
     private KeyManager selectKeyManager(@Nullable String userPassword) throws IOException, GeneralSecurityException {

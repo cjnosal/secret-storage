@@ -88,4 +88,17 @@ public class SecretStorageTest {
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
 
+    @Test
+    public void copyTo() throws IOException, GeneralSecurityException {
+        SecretStorage secretStorage1 = new SecretStorage(context, "id", "password");
+        secretStorage1.store("mysecret1", "message1".getBytes());
+        secretStorage1.store("mysecret2", "message2".getBytes());
+
+        SecretStorage secretStorage2 = new SecretStorage(context, "id2", null);
+        secretStorage1.copyTo(secretStorage2);
+
+        assertEquals(new String(secretStorage2.load("mysecret1")), "message1");
+        assertEquals(new String(secretStorage2.load("mysecret2")), "message2");
+    }
+
 }

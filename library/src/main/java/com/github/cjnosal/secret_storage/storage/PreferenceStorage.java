@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Set;
 
 public class PreferenceStorage implements DataStorage {
 
@@ -99,5 +100,10 @@ public class PreferenceStorage implements DataStorage {
         if (!success) {
             throw new IOException("Failed to clear preferences");
         }
+    }
+
+    @Override
+    public Set<String> entries() throws IOException {
+        return preferences.getAll().keySet();
     }
 }

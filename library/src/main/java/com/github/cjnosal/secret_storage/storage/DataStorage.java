@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Set;
 
 public interface DataStorage {
     void store(@NonNull String id, @NonNull byte[] bytes) throws IOException;
@@ -38,6 +39,7 @@ public interface DataStorage {
     boolean exists(@NonNull String id) throws IOException;
     void delete(@NonNull String id) throws IOException;
     void clear() throws IOException;
+    Set<String> entries() throws IOException;
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({

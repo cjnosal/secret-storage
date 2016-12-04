@@ -25,6 +25,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FileStorage implements DataStorage {
 
@@ -136,5 +139,18 @@ public class FileStorage implements DataStorage {
                 throw new IOException("Failed to clear " + directory.getName());
             }
         }
+    }
+
+    @Override
+    public Set<String> entries() throws IOException {
+        if (directory.exists()) {
+            String[] fileNames = directory.list();
+            if (fileNames != null) {
+                Set<String> fileSet = new HashSet<>(fileNames.length);
+                Collections.addAll(fileSet, fileNames);
+                return fileSet;
+            }
+        }
+        return new HashSet<>();
     }
 }
