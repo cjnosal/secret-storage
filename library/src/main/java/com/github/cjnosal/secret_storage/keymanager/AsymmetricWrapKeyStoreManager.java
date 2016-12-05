@@ -45,7 +45,6 @@ public class AsymmetricWrapKeyStoreManager extends KeyManager {
     private Context context;
     private AndroidCrypto androidCrypto;
     private Crypto crypto;
-    private String storeId;
     private DataStorage keyStorage;
     private ProtectionStrategy keyProtectionStrategy;
     private KeyEncoding keyEncoding = new KeyEncoding();
@@ -57,11 +56,10 @@ public class AsymmetricWrapKeyStoreManager extends KeyManager {
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
     public AsymmetricWrapKeyStoreManager(Context context, Crypto crypto, AndroidCrypto androidCrypto, String storeId, ProtectionStrategy dataProtectionStrategy, DataStorage keyStorage, ProtectionStrategy keyProtectionStrategy) throws GeneralSecurityException, IOException {
-        super(dataProtectionStrategy);
+        super(storeId, dataProtectionStrategy);
         this.context = context;
         this.crypto = crypto;
         this.androidCrypto = androidCrypto;
-        this.storeId = storeId;
         this.keyStorage = keyStorage;
         this.keyProtectionStrategy = keyProtectionStrategy;
 
@@ -84,6 +82,16 @@ public class AsymmetricWrapKeyStoreManager extends KeyManager {
     }
 
     @Override
+    public Key loadEncryptionKey(String keyId) throws GeneralSecurityException, IOException {
+        return loadEncryptionKey(dataProtectionStrategy.getCipherStrategy(), keyId);
+    }
+
+    @Override
+    public Key loadSigningKey(String keyId) throws GeneralSecurityException, IOException {
+        return loadSigningKey(dataProtectionStrategy.getIntegrityStrategy(), keyId);
+    }
+
+    @Override
     public Key loadDecryptionKey(String keyId) throws GeneralSecurityException, IOException {
         return loadDecryptionKey(dataProtectionStrategy.getCipherStrategy(), keyId);
     }
@@ -93,15 +101,20 @@ public class AsymmetricWrapKeyStoreManager extends KeyManager {
         return loadVerificationKey(dataProtectionStrategy.getIntegrityStrategy(), keyId);
     }
 
+    @Override
+    protected boolean keysExist(String keyId) throws GeneralSecurityException, IOException {
+        return androidCrypto.hasEntry(storeId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + "E") && keyStorage.exists(keyId + ":" + "S") && keyStorage.exists(keyId + ":" + "E");
+    }
+
     private Key generateEncryptionKey(CipherStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
         CipherSpec cipherSpec = strategy.getSpec();
         if (strategy instanceof SymmetricCipherStrategy) {
             SecretKey encryptionKey = crypto.generateSecretKey(cipherSpec.getKeygenAlgorithm(), cipherSpec.getKeySize());
             byte[] wrappedDecKey = keyProtectionStrategy.encryptAndSign(encryptionKeys.getPublic(), signingKeys.getPrivate(), keyEncoding.encodeKey(encryptionKey));
-            keyStorage.store(keyId + "E", wrappedDecKey);
+            keyStorage.store(keyId + ":" + "E", wrappedDecKey);
             return encryptionKey;
         } else {
-            KeyPair encryptionKey = androidCrypto.generateKeyPair(context, keyId + "E", cipherSpec.getKeygenAlgorithm());
+            KeyPair encryptionKey = androidCrypto.generateKeyPair(context, keyId + ":" + "E", cipherSpec.getKeygenAlgorithm());
             return encryptionKey.getPublic();
         }
     }
@@ -111,45 +124,69 @@ public class AsymmetricWrapKeyStoreManager extends KeyManager {
         if (strategy instanceof MacStrategy) {
             SecretKey signingKey = crypto.generateSecretKey(integritySpec.getKeygenAlgorithm(), integritySpec.getKeySize());
             byte[] wrappedVerKey = keyProtectionStrategy.encryptAndSign(encryptionKeys.getPublic(), signingKeys.getPrivate(), keyEncoding.encodeKey(signingKey));
-            keyStorage.store(keyId + "S", wrappedVerKey);
+            keyStorage.store(keyId + ":" + "S", wrappedVerKey);
             return signingKey;
         } else {
-            KeyPair signingKey = androidCrypto.generateKeyPair(context, keyId + "S", integritySpec.getKeygenAlgorithm());
+            KeyPair signingKey = androidCrypto.generateKeyPair(context, keyId + ":" + "S", integritySpec.getKeygenAlgorithm());
             return signingKey.getPrivate();
+        }
+    }
+
+    private Key loadEncryptionKey(CipherStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
+        if (strategy instanceof SymmetricCipherStrategy) {
+            byte[] wrappedDecKey = keyStorage.load(keyId + ":" + "E");
+            Key kek = encryptionKeys.getPrivate();
+            Key ksk = signingKeys.getPublic();
+            return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(kek, ksk, wrappedDecKey));
+        } else {
+            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + ":" + "E");
+            return encryptionKey.getPublic();
+        }
+    }
+
+    private Key loadSigningKey(IntegrityStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
+        if (strategy instanceof MacStrategy) {
+            byte[] wrappedDecKey = keyStorage.load(keyId + ":" + "S");
+            Key kek = encryptionKeys.getPrivate();
+            Key ksk = signingKeys.getPublic();
+            return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(kek, ksk, wrappedDecKey));
+        } else {
+            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + ":" + "S");
+            return encryptionKey.getPrivate();
         }
     }
 
     private Key loadDecryptionKey(CipherStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
         if (strategy instanceof SymmetricCipherStrategy) {
-            byte[] wrappedDecKey = keyStorage.load(keyId + "E");
+            byte[] wrappedDecKey = keyStorage.load(keyId + ":" + "E");
             Key kek = encryptionKeys.getPrivate();
             Key ksk = signingKeys.getPublic();
             return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(kek, ksk, wrappedDecKey));
         } else {
-            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + "E");
+            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + ":" + "E");
             return encryptionKey.getPrivate();
         }
     }
 
     private Key loadVerificationKey(IntegrityStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
         if (strategy instanceof MacStrategy) {
-            byte[] wrappedDecKey = keyStorage.load(keyId + "S");
+            byte[] wrappedDecKey = keyStorage.load(keyId + ":" + "S");
             Key kek = encryptionKeys.getPrivate();
             Key ksk = signingKeys.getPublic();
             return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(kek, ksk, wrappedDecKey));
         } else {
-            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + "S");
+            KeyPair encryptionKey = androidCrypto.loadKeyPair(keyId + ":" + "S");
             return encryptionKey.getPublic();
         }
     }
 
     private void initWrappingKeys() throws GeneralSecurityException, IOException {
-        if (androidCrypto.hasEntry(storeId + "E") && androidCrypto.hasEntry(storeId + "S")) {
-            encryptionKeys = androidCrypto.loadKeyPair(storeId + "E");
-            signingKeys = androidCrypto.loadKeyPair(storeId + "S");
+        if (androidCrypto.hasEntry(storeId + ":" + "WE") && androidCrypto.hasEntry(storeId + ":" + "WS")) {
+            encryptionKeys = androidCrypto.loadKeyPair(storeId + ":" + "WE");
+            signingKeys = androidCrypto.loadKeyPair(storeId + ":" + "WS");
         } else {
-            encryptionKeys = androidCrypto.generateKeyPair(context, storeId + "E", keyProtectionStrategy.getCipherStrategy().getSpec().getKeygenAlgorithm());
-            signingKeys = androidCrypto.generateKeyPair(context, storeId + "S", keyProtectionStrategy.getIntegrityStrategy().getSpec().getKeygenAlgorithm());
+            encryptionKeys = androidCrypto.generateKeyPair(context, storeId + ":" + "WE", keyProtectionStrategy.getCipherStrategy().getSpec().getKeygenAlgorithm());
+            signingKeys = androidCrypto.generateKeyPair(context, storeId + ":" + "WS", keyProtectionStrategy.getIntegrityStrategy().getSpec().getKeygenAlgorithm());
         }
     }
 }

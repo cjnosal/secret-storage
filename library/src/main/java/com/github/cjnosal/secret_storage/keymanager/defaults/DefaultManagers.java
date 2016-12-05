@@ -38,12 +38,20 @@ public class DefaultManagers {
             if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 PasswordKeyManager manager = new SignedPasswordKeyManager(
                         context, storeId, crypto, new AndroidCrypto(), DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordDeviceBindingStragegy(crypto), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), keyStorage, configStorage);
-                manager.unlock(userPassword);
+                if (manager.isPasswordSet()) {
+                    manager.unlock(userPassword);
+                } else {
+                    manager.setPassword(userPassword);
+                }
                 return manager;
             } else {
                 PasswordKeyManager manager = new PasswordKeyManager(
-                        crypto, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), keyStorage, configStorage);
-                manager.unlock(userPassword);
+                        crypto, storeId, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), keyStorage, configStorage);
+                if (manager.isPasswordSet()) {
+                    manager.unlock(userPassword);
+                } else {
+                    manager.setPassword(userPassword);
+                }
                 return manager;
             }
         } else {
@@ -54,8 +62,12 @@ public class DefaultManagers {
                         context, crypto, new AndroidCrypto(), storeId, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), keyStorage, DefaultStrategies.getAsymmetricKeyProtectionStrategy(crypto));
             } else {
                 PasswordKeyManager manager = new PasswordKeyManager(
-                        crypto, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), keyStorage, configStorage);
-                manager.unlock("default_password");
+                        crypto, storeId, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), keyStorage, configStorage);
+                if (manager.isPasswordSet()) {
+                    manager.unlock("default_password");
+                } else {
+                    manager.setPassword("default_password");
+                }
                 return manager;
             }
         }

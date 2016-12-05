@@ -39,21 +39,19 @@ public class KeyStoreManager extends KeyManager {
     // TODO unlock with fingerprint
 
     private AndroidCrypto androidCrypto;
-    private String storeId;
 
     public KeyStoreManager(AndroidCrypto androidCrypto, String storeId, ProtectionStrategy dataProtectionStrategy) {
-        super(dataProtectionStrategy);
+        super(storeId, dataProtectionStrategy);
         this.androidCrypto = androidCrypto;
-        this.storeId = storeId;
     }
 
     @Override
     public Key generateEncryptionKey(String keyId) throws GeneralSecurityException, IOException {
         KeyStoreCipherSpec spec = (KeyStoreCipherSpec) dataProtectionStrategy.getCipherStrategy().getSpec();
         if (dataProtectionStrategy.getCipherStrategy() instanceof SymmetricCipherStrategy) {
-            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + keyId + "E"));
+            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + keyId + ":" + "E"));
         } else {
-            return androidCrypto.generateKeyPair(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + keyId + "E")).getPublic();
+            return androidCrypto.generateKeyPair(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + keyId + ":" + "E")).getPublic();
         }
     }
 
@@ -61,27 +59,50 @@ public class KeyStoreManager extends KeyManager {
     public Key generateSigningKey(String keyId) throws GeneralSecurityException, IOException {
         KeyStoreIntegritySpec spec = (KeyStoreIntegritySpec) dataProtectionStrategy.getIntegrityStrategy().getSpec();
         if (dataProtectionStrategy.getIntegrityStrategy() instanceof MacStrategy) {
-            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + keyId + "S"));
+            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + keyId + ":" + "S"));
         } else {
-            return androidCrypto.generateKeyPair(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + keyId + "S")).getPrivate();
+            return androidCrypto.generateKeyPair(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + keyId + ":" + "S")).getPrivate();
+        }
+    }
+
+    @Override
+    public Key loadEncryptionKey(String keyId) throws GeneralSecurityException, IOException {
+        if (dataProtectionStrategy.getCipherStrategy() instanceof SymmetricCipherStrategy) {
+            return androidCrypto.loadSecretKey(storeId + ":" + keyId + ":" + "E");
+        } else {
+            return androidCrypto.loadPublicKey(storeId + ":" + keyId + ":" + "E");
+        }
+    }
+
+    @Override
+    public Key loadSigningKey(String keyId) throws GeneralSecurityException, IOException {
+        if (dataProtectionStrategy.getIntegrityStrategy() instanceof MacStrategy) {
+            return androidCrypto.loadSecretKey(storeId + ":" + keyId + ":" + "S");
+        } else {
+            return androidCrypto.loadPrivateKey(storeId + ":" + keyId + ":" + "S");
         }
     }
 
     @Override
     public Key loadDecryptionKey(String keyId) throws GeneralSecurityException, IOException {
         if (dataProtectionStrategy.getCipherStrategy() instanceof SymmetricCipherStrategy) {
-            return androidCrypto.loadSecretKey(storeId + keyId + "E");
+            return androidCrypto.loadSecretKey(storeId + ":" + keyId + ":" + "E");
         } else {
-            return androidCrypto.loadKeyPair(storeId + keyId + "E").getPrivate();
+            return androidCrypto.loadPrivateKey(storeId + ":" + keyId + ":" + "E");
         }
     }
 
     @Override
     public Key loadVerificationKey(String keyId) throws GeneralSecurityException, IOException {
         if (dataProtectionStrategy.getIntegrityStrategy() instanceof MacStrategy) {
-            return androidCrypto.loadSecretKey(storeId + keyId + "S");
+            return androidCrypto.loadSecretKey(storeId + ":" + keyId + ":" + "S");
         } else {
-            return androidCrypto.loadPublicKey(storeId + keyId + "S");
+            return androidCrypto.loadPublicKey(storeId + ":" + keyId + ":" + "S");
         }
+    }
+
+    @Override
+    protected boolean keysExist(String keyId) throws GeneralSecurityException, IOException {
+        return androidCrypto.hasEntry(storeId + ":" + keyId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + keyId + ":" + "E");
     }
 }

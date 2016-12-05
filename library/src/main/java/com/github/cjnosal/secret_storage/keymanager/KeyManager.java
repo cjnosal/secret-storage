@@ -26,21 +26,31 @@ import java.security.Key;
 public abstract class KeyManager {
 
     protected final ProtectionStrategy dataProtectionStrategy;
+    protected final String storeId;
 
-    public KeyManager(ProtectionStrategy dataProtectionStrategy) {
+    public KeyManager(String storeId, ProtectionStrategy dataProtectionStrategy) {
+        this.storeId = storeId;
         this.dataProtectionStrategy = dataProtectionStrategy;
         PRNGFixes.apply();
     }
 
-    public byte[] encrypt(String id, byte[] plainText) throws GeneralSecurityException, IOException {
-        Key encryptionKey = generateEncryptionKey(id);
-        Key signingKey = generateSigningKey(id);
+    public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+        Key encryptionKey;
+        Key signingKey;
+        if (keysExist(storeId)) {
+            encryptionKey = loadEncryptionKey(storeId);
+            signingKey = loadSigningKey(storeId);
+        }
+        else {
+            encryptionKey = generateEncryptionKey(storeId);
+            signingKey = generateSigningKey(storeId);
+        }
         return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, plainText);
     }
 
-    public byte[] decrypt(String id, byte[] cipherText) throws GeneralSecurityException, IOException {
-        Key decryptionKey = loadDecryptionKey(id);
-        Key verificationKey = loadVerificationKey(id);
+    public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+        Key decryptionKey = loadDecryptionKey(storeId);
+        Key verificationKey = loadVerificationKey(storeId);
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, cipherText);
     }
 
@@ -48,9 +58,13 @@ public abstract class KeyManager {
 
     protected abstract Key generateSigningKey(String keyId) throws GeneralSecurityException, IOException;
 
-    // TODO load encryption/signing key to allow reuse
+    protected abstract Key loadEncryptionKey(String keyId) throws GeneralSecurityException, IOException;
+
+    protected abstract Key loadSigningKey(String keyId) throws GeneralSecurityException, IOException;
 
     protected abstract Key loadDecryptionKey(String keyId) throws GeneralSecurityException, IOException;
 
     protected abstract Key loadVerificationKey(String keyId) throws GeneralSecurityException, IOException;
+
+    protected abstract boolean keysExist(String keyId) throws GeneralSecurityException, IOException;
 }

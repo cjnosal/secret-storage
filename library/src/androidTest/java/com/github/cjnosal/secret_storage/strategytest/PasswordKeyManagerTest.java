@@ -61,6 +61,7 @@ public class PasswordKeyManagerTest {
         configStorage = new FileStorage(context.getFilesDir() + "/testConfig");
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
         configStorage.clear();
+        keyStorage.clear();
     }
 
     @Test
@@ -72,8 +73,8 @@ public class PasswordKeyManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -117,8 +118,8 @@ public class PasswordKeyManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -132,8 +133,8 @@ public class PasswordKeyManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -147,8 +148,8 @@ public class PasswordKeyManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -181,7 +182,7 @@ public class PasswordKeyManagerTest {
             );
             strat.lock();
 
-            strat.encrypt("t", "Hello world".getBytes());
+            strat.encrypt("Hello world".getBytes());
 
             fail("Expecting exception for locked manager");
         } catch (LoginException e) {
@@ -200,7 +201,7 @@ public class PasswordKeyManagerTest {
             );
             strat.lock();
 
-            strat.decrypt("t", "Hello world".getBytes());
+            strat.decrypt("Hello world".getBytes());
 
             fail("Expecting exception for locked manager");
         } catch (LoginException e) {
@@ -208,10 +209,34 @@ public class PasswordKeyManagerTest {
         }
     }
 
+    @Test
+    public void testChangePassword() throws Exception {
+        PasswordKeyManager strat = createManager(
+                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
+                new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec())
+        );
+
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+
+        strat.changePassword("default_password", "new_password");
+
+        String plain = new String(strat.decrypt(cipher));
+        assertEquals(plain, "Hello world");
+
+        strat.lock();
+        strat.unlock("new_password");
+
+        plain = new String(strat.decrypt(cipher));
+        assertEquals(plain, "Hello world");
+    }
+
     private PasswordKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
 
         PasswordKeyManager passwordKeyManager = new PasswordKeyManager(
                 crypto,
+                "id",
                 new ProtectionStrategy(
                         dataCipher,
                         dataIntegrity
@@ -224,7 +249,7 @@ public class PasswordKeyManagerTest {
                 keyStorage,
                 configStorage
         );
-        passwordKeyManager.unlock("default_password");
+        passwordKeyManager.setPassword("default_password");
         return passwordKeyManager;
     }
 

@@ -57,30 +57,36 @@ public class SecretStorage {
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
-        byte[] cipherText = keyManager.encrypt(id, plainText);
-        dataStorage.store(id, cipherText);
+        byte[] cipherText = keyManager.encrypt(plainText);
+        dataStorage.store(storeId + ":" + id, cipherText);
     }
 
     public byte[] load(String id) throws GeneralSecurityException, IOException {
-        byte[] cipherText = dataStorage.load(id);
-        return keyManager.decrypt(id, cipherText);
+        byte[] cipherText = dataStorage.load(storeId + ":" + id);
+        return keyManager.decrypt(cipherText);
     }
 
     // decrypt and copy all data to another SecretStorage instance
     public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
         Set<String> entries = dataStorage.entries();
         for(String s : entries) {
-            other.store(s, load(s));
+            int index = s.indexOf(":");
+            String key = s.substring(index + 1);
+            other.store(key, load(key));
         }
+    }
+
+    public void replaceKeyManager(KeyManager other) {
+        // TODO refactor update key protection in place without copying data
     }
 
     private KeyManager selectKeyManager(@Nullable String userPassword) throws IOException, GeneralSecurityException {
         int osVersion; // OS Version when store was created // TODO migrations
-        if (configStorage.exists(storeId + "Version")) {
-            osVersion = DataEncoding.decodeInt(configStorage.load(storeId + "Version"));
+        if (configStorage.exists(storeId + ":" + "Version")) {
+            osVersion = DataEncoding.decodeInt(configStorage.load(storeId + ":" + "Version"));
         } else {
             osVersion = Build.VERSION.SDK_INT;
-            configStorage.store(storeId + "Version", DataEncoding.encode(osVersion));
+            configStorage.store(storeId + ":" + "Version", DataEncoding.encode(osVersion));
         }
 
         return new DefaultManagers().selectDefaultManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId, userPassword);

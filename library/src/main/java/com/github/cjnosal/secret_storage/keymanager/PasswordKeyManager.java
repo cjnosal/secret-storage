@@ -17,20 +17,18 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
-import com.github.cjnosal.secret_storage.storage.encoding.KeyEncoding;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
-import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.encoding.KeyEncoding;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -46,6 +44,7 @@ public class PasswordKeyManager extends KeyManager {
 
     private static final String ENC_SALT = "ENC_SALT";
     private static final String SIG_SALT = "SIG_SALT";
+    private static final String VER_SALT = "VER_SALT";
     private static final String VERIFICATION = "VERIFICATION";
 
     protected final Crypto crypto;
@@ -58,8 +57,8 @@ public class PasswordKeyManager extends KeyManager {
     protected Key derivedEncKey;
     protected Key derivedSigKey;
 
-    public PasswordKeyManager(Crypto crypto, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec derivationSpec, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
-        super(dataProtectionStrategy);
+    public PasswordKeyManager(Crypto crypto, String storeId, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec derivationSpec, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
+        super(storeId, dataProtectionStrategy);
         this.crypto = crypto;
         this.derivationSpec = derivationSpec;
         this.keyProtectionStrategy = keyProtectionStrategy;
@@ -72,8 +71,51 @@ public class PasswordKeyManager extends KeyManager {
         }
     }
 
+    public void setPassword(String password) throws IOException, GeneralSecurityException {
+        if (isPasswordSet()) {
+            throw new LoginException("Password already set. Use unlock or changePassword.");
+        }
+        deriveAndStoreKeys(password);
+    }
+
+    protected void deriveAndStoreKeys(String password) throws IOException, GeneralSecurityException {
+        byte[] encSalt = generateSalt();
+        byte[] sigSalt = generateSalt();
+        byte[] verSalt = generateSalt();
+        derivedEncKey = generateKek(password, encSalt);
+        derivedSigKey = generateKek(password, sigSalt);
+
+        configStorage.store(storeId + ":" + VERIFICATION, generateKek(password, verSalt).getEncoded());
+        configStorage.store(storeId + ":" + ENC_SALT, encSalt);
+        configStorage.store(storeId + ":" + SIG_SALT, sigSalt);
+        configStorage.store(storeId + ":" + VER_SALT, verSalt);
+    }
+
     public void unlock(String password) throws IOException, GeneralSecurityException {
-        generateKek(password);
+        if (!isPasswordSet()) {
+            throw new LoginException("No password set. Use setPassword.");
+        }
+        if (!verifyPassword(password)) {
+            throw new LoginException("Wrong password");
+        }
+        byte[] encSalt = configStorage.load(storeId + ":" + ENC_SALT);
+        byte[] sigSalt = configStorage.load(storeId + ":" + SIG_SALT);
+        derivedEncKey = generateKek(password, encSalt);
+        derivedSigKey = generateKek(password, sigSalt);
+    }
+
+    public void changePassword(String oldPassword, String newPassword) throws IOException, GeneralSecurityException {
+        unlock(oldPassword);
+        Key encryptionKey = loadEncryptionKey(storeId);
+        Key signingKey = loadSigningKey(storeId);
+        Key decryptionKey = loadDecryptionKey(storeId);
+        Key verificationKey = loadVerificationKey(storeId);
+
+        deriveAndStoreKeys(newPassword);
+        wrapAndStoreKey(storeId, encryptionKey, "E");
+        wrapAndStoreKey(storeId, decryptionKey, "D");
+        wrapAndStoreKey(storeId, signingKey, "S");
+        wrapAndStoreKey(storeId, verificationKey, "V");
     }
 
     public void lock() {
@@ -87,107 +129,105 @@ public class PasswordKeyManager extends KeyManager {
 
     @Override
     public Key generateEncryptionKey(String keyId) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
         return generateEncryptionKey(dataProtectionStrategy.getCipherStrategy(), keyId);
     }
 
     @Override
     public Key generateSigningKey(String keyId) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
         return generateSigningKey(dataProtectionStrategy.getIntegrityStrategy(), keyId);
     }
 
     @Override
+    protected Key loadEncryptionKey(String keyId) throws GeneralSecurityException, IOException {
+        return loadAndUnwrapKey(keyId, "E");
+    }
+
+    @Override
+    protected Key loadSigningKey(String keyId) throws GeneralSecurityException, IOException {
+        return loadAndUnwrapKey(keyId, "S");
+    }
+
+    @Override
     public Key loadDecryptionKey(String keyId) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
-        byte[] wrappedDecKey = keyStorage.load(keyId + "E");
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, wrappedDecKey));
+        return loadAndUnwrapKey(keyId, "D");
     }
 
     @Override
     public Key loadVerificationKey(String keyId) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
-        byte[] wrappedVerKey = keyStorage.load(keyId + "S");
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, wrappedVerKey));
+        return loadAndUnwrapKey(keyId, "V");
     }
 
     private Key generateEncryptionKey(CipherStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
         CipherSpec cipherSpec = strategy.getSpec();
         if (strategy instanceof SymmetricCipherStrategy) {
             SecretKey encryptionKey = crypto.generateSecretKey(cipherSpec.getKeygenAlgorithm(), cipherSpec.getKeySize());
-            byte[] wrappedDecKey = keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(encryptionKey));
-            keyStorage.store(keyId + "E", wrappedDecKey);
+            wrapAndStoreKey(keyId, encryptionKey, "E");
+            wrapAndStoreKey(keyId, encryptionKey, "D");
             return encryptionKey;
         } else {
             KeyPair encryptionKey = crypto.generateKeyPair(cipherSpec.getKeygenAlgorithm(), cipherSpec.getKeySize());
-            byte[] wrappedDecKey = keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(encryptionKey.getPrivate()));
-            keyStorage.store(keyId + "E", wrappedDecKey);
+            wrapAndStoreKey(keyId, encryptionKey.getPublic(), "E");
+            wrapAndStoreKey(keyId, encryptionKey.getPrivate(), "D");
             return encryptionKey.getPublic();
         }
+    }
+
+    private void wrapAndStoreKey(String keyId, Key key, String suffix) throws GeneralSecurityException, IOException {
+        if (!isUnlocked()) {
+            throw new LoginException("Not unlocked");
+        }
+        byte[] wrappedDecKey = keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(key));
+        keyStorage.store(keyId + ":" + suffix, wrappedDecKey);
+    }
+
+    private Key loadAndUnwrapKey(String keyId, String suffix) throws GeneralSecurityException, IOException {
+        if (!isUnlocked()) {
+            throw new LoginException("Not unlocked");
+        }
+        byte[] wrappedVerKey = keyStorage.load(keyId + ":" + suffix);
+        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, wrappedVerKey));
     }
 
     private Key generateSigningKey(IntegrityStrategy strategy, String keyId) throws GeneralSecurityException, IOException {
         IntegritySpec integritySpec = strategy.getSpec();
         if (strategy instanceof MacStrategy) {
             SecretKey signingKey = crypto.generateSecretKey(integritySpec.getKeygenAlgorithm(), integritySpec.getKeySize());
-            byte[] wrappedVerKey = keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(signingKey));
-            keyStorage.store(keyId + "S", wrappedVerKey);
+            wrapAndStoreKey(keyId, signingKey, "S");
+            wrapAndStoreKey(keyId, signingKey, "V");
             return signingKey;
         } else {
             KeyPair signingKey = crypto.generateKeyPair(integritySpec.getKeygenAlgorithm(), integritySpec.getKeySize());
-            byte[] wrappedVerKey = keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(signingKey.getPublic()));
-            keyStorage.store(keyId + "S", wrappedVerKey);
+            wrapAndStoreKey(keyId, signingKey.getPrivate(), "S");
+            wrapAndStoreKey(keyId, signingKey.getPublic(), "V");
             return signingKey.getPrivate();
         }
     }
 
-    protected void generateKek(String password) throws IOException, GeneralSecurityException {
-
-        byte[] encSalt;
-        byte[] sigSalt;
-        byte[] verification = null;
-
-        // TODO explicitly distinguish between creating and unlocking a store instead of automatic recreation
-        if (configStorage.exists(ENC_SALT) && configStorage.exists(SIG_SALT) && configStorage.exists(VERIFICATION)) {
-            encSalt = configStorage.load(ENC_SALT);
-            sigSalt = configStorage.load(SIG_SALT);
-            verification = configStorage.load(VERIFICATION);
-        } else {
-            // TODO bit/byte conveniences
-            encSalt = crypto.generateBytes(derivationSpec.getKeySize() / 8);
-            sigSalt = crypto.generateBytes(derivationSpec.getKeySize() / 8);
-            configStorage.store(ENC_SALT, encSalt);
-            configStorage.store(SIG_SALT, sigSalt);
-        }
-        Key tmp = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, encSalt, derivationSpec.getRounds());
-        derivedEncKey = new SecretKeySpec(tmp.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
-
-        tmp = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, sigSalt, derivationSpec.getRounds());
-        derivedSigKey = new SecretKeySpec(tmp.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
-
-        byte[] checkPassword = generateVerification(derivedEncKey, derivedSigKey, encSalt, sigSalt);
-        if (verification == null) {
-            configStorage.store(VERIFICATION, checkPassword);
-        } else {
-            boolean correctPasword = MessageDigest.isEqual(checkPassword, verification);
-            if (!correctPasword) {
-                throw new LoginException("Wrong password");
-            }
-        }
+    protected byte[] generateSalt() {
+        return crypto.generateBytes(derivationSpec.getKeySize() / 8);
     }
 
-    protected byte[] generateVerification(Key enc, Key sig, byte[] encSalt, byte[] sigSalt) throws GeneralSecurityException {
-        String keyBytes = Encoding.base64Encode(ByteArrayUtil.join(enc.getEncoded(), sig.getEncoded()));
-        byte[]  saltBytes = ByteArrayUtil.join(encSalt, sigSalt);
-        Key tmp = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), keyBytes, saltBytes, derivationSpec.getRounds());
-        return tmp.getEncoded();
+    protected Key generateKek(String password, byte[] salt) throws IOException, GeneralSecurityException {
+        Key tmp = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, salt, derivationSpec.getRounds());
+        return new SecretKeySpec(tmp.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
+    }
+
+    public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet()) {
+            throw new LoginException("No password set. Use setPassword.");
+        }
+        byte[] verSalt = configStorage.load(storeId + ":" + VER_SALT);
+        byte[] verification = configStorage.load(storeId + ":" + VERIFICATION);
+        Key key = generateKek(password, verSalt);
+        return MessageDigest.isEqual(key.getEncoded(), verification);
+    }
+
+    public boolean isPasswordSet() throws IOException {
+        return configStorage.exists(storeId + ":" + VER_SALT) && configStorage.exists(storeId + ":" + VERIFICATION);
+    }
+
+    @Override
+    protected boolean keysExist(String keyId) throws GeneralSecurityException, IOException {
+        return keyStorage.exists(keyId + ":" + "E") && keyStorage.exists(keyId + ":" + "D") && keyStorage.exists(keyId + ":" + "S") && keyStorage.exists(keyId + ":" + "V");
     }
 }

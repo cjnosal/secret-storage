@@ -55,11 +55,13 @@ public class KeyStoreManagerTest {
     DataStorage keyStorage;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         crypto = new Crypto();
         androidCrypto = new AndroidCrypto();
+        androidCrypto.clear();
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
+        keyStorage.clear();
     }
 
     @Test
@@ -69,8 +71,8 @@ public class KeyStoreManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -82,8 +84,8 @@ public class KeyStoreManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -95,8 +97,8 @@ public class KeyStoreManagerTest {
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -108,8 +110,8 @@ public class KeyStoreManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }

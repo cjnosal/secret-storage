@@ -38,18 +38,14 @@ import javax.crypto.spec.SecretKeySpec;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class SignedPasswordKeyManager extends PasswordKeyManager {
-    private static final String ENC_SALT = "ENC_SALT";
-    private static final String SIG_SALT = "SIG_SALT";
 
     private final Context context;
-    private final String storeId;
     private final AndroidCrypto androidCrypto;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
     public SignedPasswordKeyManager(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
-        super(crypto, dataProtectionStrategy, keyDerivationSpec, keyProtectionStrategy, keyStorage, configStorage);
+        super(crypto, storeId, dataProtectionStrategy, keyDerivationSpec, keyProtectionStrategy, keyStorage, configStorage);
         this.context = context;
-        this.storeId = storeId;
         this.androidCrypto = androidCrypto;
         this.derivationIntegrityStrategy = derivationIntegrityStrategy;
 
@@ -58,36 +54,21 @@ public class SignedPasswordKeyManager extends PasswordKeyManager {
         }
     }
 
-    protected void generateKek(String password) throws IOException, GeneralSecurityException {
+    @Override
+    protected void deriveAndStoreKeys(String password) throws IOException, GeneralSecurityException {
+        androidCrypto.generateKeyPair(context, storeId + ":" + "D", derivationIntegrityStrategy.getSpec().getKeygenAlgorithm()).getPrivate();
+        super.deriveAndStoreKeys(password);
+    }
 
-        byte[] encSalt;
-        byte[] sigSalt;
-        PrivateKey signingKey;
-        if (configStorage.exists(ENC_SALT) && configStorage.exists(SIG_SALT) && androidCrypto.hasEntry(storeId + "D")) {
-            encSalt = configStorage.load(ENC_SALT);
-            sigSalt = configStorage.load(SIG_SALT);
-            signingKey = androidCrypto.loadPrivateKey(storeId + "D");
-        } else {
-            encSalt = crypto.generateBytes(derivationSpec.getKeySize() / 8);
-            sigSalt = crypto.generateBytes(derivationSpec.getKeySize() / 8);
-            configStorage.store(ENC_SALT, encSalt);
-            configStorage.store(SIG_SALT, sigSalt);
-            signingKey = androidCrypto.generateKeyPair(context, storeId + "D", derivationIntegrityStrategy.getSpec().getKeygenAlgorithm()).getPrivate();
-        }
+    protected Key generateKek(String password, byte[] salt) throws IOException, GeneralSecurityException {
+        PrivateKey signingKey = androidCrypto.loadPrivateKey(storeId + ":" + "D");
 
-        byte[] firstHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, encSalt, derivationSpec.getRounds()).getEncoded();
+        byte[] firstHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, salt, derivationSpec.getRounds() / 2).getEncoded();
         byte[] signature = derivationIntegrityStrategy.sign(signingKey, firstHash);
         String signatureString = Encoding.base64Encode(signature);
 
-        Key secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, encSalt, derivationSpec.getRounds());
-        derivedEncKey = new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
-
-        firstHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, sigSalt, derivationSpec.getRounds()).getEncoded();
-        signature = derivationIntegrityStrategy.sign(signingKey, firstHash);
-        signatureString = Encoding.base64Encode(signature);
-
-        secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, sigSalt, derivationSpec.getRounds());
-        derivedSigKey = new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
+        Key secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, salt, derivationSpec.getRounds() / 2);
+        return new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
     }
 
 }

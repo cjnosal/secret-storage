@@ -19,22 +19,22 @@ package com.github.cjnosal.secret_storage.strategytest;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
+import com.github.cjnosal.secret_storage.keymanager.AsymmetricWrapKeyStoreManager;
+import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.FileStorage;
+import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
-import com.github.cjnosal.secret_storage.keymanager.AsymmetricWrapKeyStoreManager;
-import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.FileStorage;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -53,11 +53,13 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
     DataStorage keyStorage;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         crypto = new Crypto();
         androidCrypto = new AndroidCrypto();
+        androidCrypto.clear();
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
+        keyStorage.clear();
     }
 
     @Test
@@ -69,8 +71,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -114,8 +116,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -129,8 +131,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -144,8 +146,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }

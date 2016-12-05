@@ -19,23 +19,23 @@ package com.github.cjnosal.secret_storage.strategytest;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
+import com.github.cjnosal.secret_storage.keymanager.KeyManager;
+import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.FileStorage;
+import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
-import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyManager;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.FileStorage;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -55,13 +55,15 @@ public class SignedPasswordKeyManagerTest {
     DataStorage keyStorage;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         crypto = new Crypto();
         androidCrypto = new AndroidCrypto();
         configStorage = new FileStorage(context.getFilesDir() + "/testConfig");
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
         keyStorage.clear();
+        configStorage.clear();
+        androidCrypto.clear();
     }
 
     @Test
@@ -74,8 +76,8 @@ public class SignedPasswordKeyManagerTest {
                 new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -122,8 +124,8 @@ public class SignedPasswordKeyManagerTest {
                 new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -138,8 +140,8 @@ public class SignedPasswordKeyManagerTest {
                 new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -154,8 +156,8 @@ public class SignedPasswordKeyManagerTest {
                 new SignatureStrategy(crypto, getDerivationIntegritySpec())
         );
 
-        byte[] cipher = strat.encrypt("t", "Hello world".getBytes());
-        String plain = new String(strat.decrypt("t", cipher));
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+        String plain = new String(strat.decrypt(cipher));
 
         assertEquals(plain, "Hello world");
     }
@@ -175,6 +177,30 @@ public class SignedPasswordKeyManagerTest {
         } catch (IllegalArgumentException e) {
             // expected
         }
+    }
+
+    @Test
+    public void testChangePassword() throws Exception {
+        SignedPasswordKeyManager strat = createManager(
+                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
+                new SignatureStrategy(crypto, getDerivationIntegritySpec())
+        );
+
+        byte[] cipher = strat.encrypt("Hello world".getBytes());
+
+        strat.changePassword("default_password", "new_password");
+
+        String plain = new String(strat.decrypt(cipher));
+        assertEquals(plain, "Hello world");
+
+        strat.lock();
+        strat.unlock("new_password");
+
+        plain = new String(strat.decrypt(cipher));
+        assertEquals(plain, "Hello world");
     }
 
     private SignedPasswordKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy) throws IOException, GeneralSecurityException {
@@ -197,7 +223,7 @@ public class SignedPasswordKeyManagerTest {
                 keyStorage,
                 configStorage
         );
-        testStore.unlock("default_password");
+        testStore.setPassword("default_password");
         return testStore;
     }
 
