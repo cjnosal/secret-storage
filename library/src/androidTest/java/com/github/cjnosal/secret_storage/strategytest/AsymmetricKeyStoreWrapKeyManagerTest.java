@@ -19,8 +19,9 @@ package com.github.cjnosal.secret_storage.strategytest;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
-import com.github.cjnosal.secret_storage.keymanager.AsymmetricWrapKeyStoreManager;
+import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
+import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
@@ -43,7 +44,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class AsymmetricKeyStoreWrapKeyManagerTest {
 
@@ -77,97 +77,26 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         assertEquals(plain, "Hello world");
     }
 
-    @Test
-    public void testSSSA() throws Exception {
-        try {
-            KeyManager strat = createManager(
-                    new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                    new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                    new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                    new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-            );
-            fail("Expecting exception for symmetric key protection");
-        } catch (IllegalArgumentException e) {
-            // expected
-        }
-    }
+    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
 
-    @Test
-    public void testSSAS() throws Exception {
-        try {
-            KeyManager strat = createManager(
-                    new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                    new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                    new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                    new MacStrategy(crypto, getSymmetricIntegritySpec())
-            );
-            fail("Expecting exception for symmetric key protection");
-        } catch (IllegalArgumentException e) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testSAAA() throws Exception {
-        KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    @Test
-    public void testASAA() throws Exception {
-        KeyManager strat = createManager(
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    @Test
-    public void testAAAA() throws Exception {
-        KeyManager strat = createManager(
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    private AsymmetricWrapKeyStoreManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
-
-        return new AsymmetricWrapKeyStoreManager(
+        KeyWrapper wrapper = new AsymmetricKeyStoreWrapper(
                 context,
-                crypto,
                 androidCrypto,
+                "testStore",
+                new ProtectionStrategy(
+                        keyCipher,
+                        keyIntegrity
+                )
+        );
+        return new KeyManager(
                 "testStore",
                 new ProtectionStrategy(
                         dataCipher,
                         dataIntegrity
                 ),
+                crypto,
                 keyStorage,
-                new ProtectionStrategy(
-                        keyCipher,
-                        keyIntegrity
-                )
+                wrapper
         );
     }
 

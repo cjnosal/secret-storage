@@ -16,55 +16,120 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
-public abstract class KeyManager {
+public class KeyManager {
 
-    protected final ProtectionStrategy dataProtectionStrategy;
-    protected final String storeId;
+    private final ProtectionStrategy dataProtectionStrategy;
+    private final Crypto crypto;
+    private final DataStorage keyStorage;
+    private KeyWrapper keyWrapper;
+    private final String storeId;
 
-    public KeyManager(String storeId, ProtectionStrategy dataProtectionStrategy) {
+    public KeyManager(String storeId, ProtectionStrategy dataProtectionStrategy, Crypto crypto, DataStorage keyStorage, KeyWrapper keyWrapper) throws GeneralSecurityException, IOException {
         this.storeId = storeId;
         this.dataProtectionStrategy = dataProtectionStrategy;
+        this.crypto = crypto;
+        this.keyStorage = keyStorage;
+        this.keyWrapper = keyWrapper;
         PRNGFixes.apply();
+
+        if (dataProtectionStrategy.getCipherStrategy() instanceof AsymmetricCipherStrategy) {
+            throw new IllegalArgumentException("Must provide SymmetricCipherStrategy for data secrecy");
+        }
+        if (dataProtectionStrategy.getIntegrityStrategy() instanceof SignatureStrategy) {
+            throw new IllegalArgumentException("Must provide MacStrategy for data integrity");
+        }
+
+        keyWrapper.attach();
+    }
+
+    public KeyWrapper getKeyWrapper() {
+        return keyWrapper;
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
-        Key encryptionKey;
-        Key signingKey;
-        if (keysExist(storeId)) {
-            encryptionKey = loadEncryptionKey(storeId);
-            signingKey = loadSigningKey(storeId);
+        @KeyPurpose.DataSecrecy Key encryptionKey;
+        @KeyPurpose.DataIntegrity Key signingKey;
+        if (dataKeysExist()) {
+            encryptionKey = loadDataEncryptionKey();
+            signingKey = loadDataSigningKey();
         }
         else {
-            encryptionKey = generateEncryptionKey(storeId);
-            signingKey = generateSigningKey(storeId);
+            encryptionKey = generateDataEncryptionKey();
+            signingKey = generateDataSigningKey();
+            storeDataEncryptionKey(encryptionKey);
+            storeDataSigningKey(signingKey);
         }
         return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, plainText);
     }
 
     public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
-        Key decryptionKey = loadDecryptionKey(storeId);
-        Key verificationKey = loadVerificationKey(storeId);
+        @KeyPurpose.DataSecrecy Key decryptionKey = loadDataEncryptionKey();
+        @KeyPurpose.DataIntegrity Key verificationKey = loadDataSigningKey();
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, cipherText);
     }
 
-    protected abstract Key generateEncryptionKey(String keyId) throws GeneralSecurityException, IOException;
+    public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
+        if (dataKeysExist()) {
+            @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
+            @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
+            keyWrapper.clear();
+            keyWrapper = newWrapper;
+            keyWrapper.attach();
+            storeDataEncryptionKey(encryptionKey);
+            storeDataSigningKey(signingKey);
+        } else {
+            keyWrapper = newWrapper;
+            keyWrapper.attach();
+        }
+    }
 
-    protected abstract Key generateSigningKey(String keyId) throws GeneralSecurityException, IOException;
+    private @KeyPurpose.DataSecrecy Key generateDataEncryptionKey() throws GeneralSecurityException, IOException {
+        CipherSpec spec = dataProtectionStrategy.getCipherStrategy().getSpec();
+        return crypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeySize());
+    }
 
-    protected abstract Key loadEncryptionKey(String keyId) throws GeneralSecurityException, IOException;
+    private @KeyPurpose.DataIntegrity Key generateDataSigningKey() throws GeneralSecurityException, IOException {
+        IntegritySpec spec = dataProtectionStrategy.getIntegrityStrategy().getSpec();
+        return crypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeySize());
+    }
 
-    protected abstract Key loadSigningKey(String keyId) throws GeneralSecurityException, IOException;
+    private @KeyPurpose.DataSecrecy Key loadDataEncryptionKey() throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(storeId + ":DS");
+        return keyWrapper.unwrap(wrappedKey);
+    }
 
-    protected abstract Key loadDecryptionKey(String keyId) throws GeneralSecurityException, IOException;
+    private @KeyPurpose.DataIntegrity Key loadDataSigningKey() throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(storeId + ":DI");
+        return keyWrapper.unwrap(wrappedKey);
+    }
 
-    protected abstract Key loadVerificationKey(String keyId) throws GeneralSecurityException, IOException;
+    private void storeDataEncryptionKey(@KeyPurpose.DataSecrecy Key key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyWrapper.wrap(key);
+        keyStorage.store(storeId + ":DS", wrappedKey);
+    }
 
-    protected abstract boolean keysExist(String keyId) throws GeneralSecurityException, IOException;
+    private void storeDataSigningKey(@KeyPurpose.DataIntegrity Key key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyWrapper.wrap(key);
+        keyStorage.store(storeId + ":DI", wrappedKey);
+    }
+
+    private boolean dataKeysExist() throws GeneralSecurityException, IOException {
+        return keyStorage.exists(storeId + ":DS") && keyStorage.exists(storeId + ":DI");
+    }
+
+
 }

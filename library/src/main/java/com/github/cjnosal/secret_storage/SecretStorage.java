@@ -21,6 +21,7 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
+import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
@@ -76,8 +77,8 @@ public class SecretStorage {
         }
     }
 
-    public void replaceKeyManager(KeyManager other) {
-        // TODO refactor update key protection in place without copying data
+    public void rewrap(KeyWrapper other) throws IOException, GeneralSecurityException {
+        keyManager.rewrap(other);
     }
 
     private KeyManager selectKeyManager(@Nullable String userPassword) throws IOException, GeneralSecurityException {

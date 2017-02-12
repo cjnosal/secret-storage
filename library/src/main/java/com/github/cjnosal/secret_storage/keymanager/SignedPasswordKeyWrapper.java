@@ -37,20 +37,20 @@ import java.security.PrivateKey;
 import javax.crypto.spec.SecretKeySpec;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class SignedPasswordKeyManager extends PasswordKeyManager {
+public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
     private final Context context;
     private final AndroidCrypto androidCrypto;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyManager(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, ProtectionStrategy dataProtectionStrategy, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage keyStorage, DataStorage configStorage) throws GeneralSecurityException, IOException {
-        super(crypto, storeId, dataProtectionStrategy, keyDerivationSpec, keyProtectionStrategy, keyStorage, configStorage);
+    public SignedPasswordKeyWrapper(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) throws GeneralSecurityException, IOException {
+        super(crypto, storeId, keyDerivationSpec, keyProtectionStrategy, configStorage);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.derivationIntegrityStrategy = derivationIntegrityStrategy;
 
         if (derivationIntegrityStrategy instanceof MacStrategy) { // TODO allow HMAC on M+
-            throw new IllegalArgumentException("SignedPasswordKeyManager needs asymmetric strategy for binding derived key to device");
+            throw new IllegalArgumentException("SignedPasswordKeyWrapper needs asymmetric strategy for binding derived key to device");
         }
     }
 
@@ -69,6 +69,12 @@ public class SignedPasswordKeyManager extends PasswordKeyManager {
 
         Key secondHash = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), signatureString, salt, derivationSpec.getRounds() / 2);
         return new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
+    }
+
+    @Override
+    public void clear() throws GeneralSecurityException, IOException {
+        super.clear();
+        androidCrypto.deleteEntry(storeId + ":" + "D");
     }
 
 }

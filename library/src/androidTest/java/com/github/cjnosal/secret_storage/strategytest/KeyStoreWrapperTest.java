@@ -21,22 +21,23 @@ import android.content.Context;
 import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 
+import com.github.cjnosal.secret_storage.keymanager.KeyManager;
+import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
+import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.FileStorage;
+import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
-import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.KeyStoreManager;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.FileStorage;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +48,7 @@ import java.security.GeneralSecurityException;
 import static org.junit.Assert.assertEquals;
 
 @TargetApi(Build.VERSION_CODES.M)
-public class KeyStoreManagerTest {
+public class KeyStoreWrapperTest {
 
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
     Crypto crypto;
@@ -65,8 +66,10 @@ public class KeyStoreManagerTest {
     }
 
     @Test
-    public void testSS() throws Exception {
+    public void testSSSS() throws Exception {
         KeyManager strat = createManager(
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
@@ -78,8 +81,10 @@ public class KeyStoreManagerTest {
     }
 
     @Test
-    public void testSA() throws Exception {
+    public void testSSSA() throws Exception {
         KeyManager strat = createManager(
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
@@ -91,8 +96,10 @@ public class KeyStoreManagerTest {
     }
 
     @Test
-    public void testAS() throws Exception {
+    public void testSSAS() throws Exception {
         KeyManager strat = createManager(
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
@@ -104,8 +111,10 @@ public class KeyStoreManagerTest {
     }
 
     @Test
-    public void testAA() throws Exception {
+    public void testSSAA() throws Exception {
         KeyManager strat = createManager(
+                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
+                new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
                 new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
         );
@@ -116,15 +125,26 @@ public class KeyStoreManagerTest {
         assertEquals(plain, "Hello world");
     }
 
-    private KeyStoreManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity) throws IOException, GeneralSecurityException {
+    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity,
+                                     CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
 
-        return new KeyStoreManager(
+        KeyWrapper wrapper =  new KeyStoreWrapper(
                 androidCrypto,
+                "test",
+                new ProtectionStrategy(
+                        keyCipher,
+                        keyIntegrity
+                )
+        );
+        return new KeyManager(
                 "test",
                 new ProtectionStrategy(
                         dataCipher,
                         dataIntegrity
-                )
+                ),
+                crypto,
+                keyStorage,
+                wrapper
         );
     }
 
