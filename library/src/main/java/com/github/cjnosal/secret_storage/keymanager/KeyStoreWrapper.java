@@ -52,10 +52,6 @@ public class KeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public void attach() throws IOException, GeneralSecurityException {
-    }
-
-    @Override
     public byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException {
         @KeyPurpose.KeySecrecy Key encryptionKey;
         @KeyPurpose.KeyIntegrity Key signingKey;

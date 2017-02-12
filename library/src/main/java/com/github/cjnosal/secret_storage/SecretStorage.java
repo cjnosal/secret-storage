@@ -18,10 +18,8 @@ package com.github.cjnosal.secret_storage;
 
 import android.content.Context;
 import android.os.Build;
-import android.support.annotation.Nullable;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
@@ -33,13 +31,11 @@ import java.util.Set;
 
 public class SecretStorage {
 
-    private Context context;
-    private String storeId;
-    private DataStorage configStorage;
-    private DataStorage dataStorage;
-    private KeyManager keyManager;
-
-    // TODO test multiple instances of SecretStorage with same/different key managers to ensure no conflicts if different stores use same data ID
+    protected Context context;
+    protected String storeId;
+    protected DataStorage configStorage;
+    protected DataStorage dataStorage;
+    protected KeyManager keyManager;
 
     public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, KeyManager keyManager) throws IOException, GeneralSecurityException {
         this.context = context;
@@ -49,12 +45,12 @@ public class SecretStorage {
         this.keyManager = keyManager;
     }
 
-    public SecretStorage(Context context, String storeId, @Nullable String userPassword) throws IOException, GeneralSecurityException {
+    public SecretStorage(Context context, String storeId) throws IOException, GeneralSecurityException {
         this.context = context;
         this.storeId = storeId;
         this.configStorage = createStorage(DataStorage.TYPE_CONF);
         this.dataStorage = createStorage(DataStorage.TYPE_DATA);
-        this.keyManager = selectKeyManager(userPassword);
+        this.keyManager = selectKeyManager();
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
@@ -77,11 +73,18 @@ public class SecretStorage {
         }
     }
 
-    public void rewrap(KeyWrapper other) throws IOException, GeneralSecurityException {
-        keyManager.rewrap(other);
+    // TODO validate other uses same Data ProtectionStrategy
+    public void rewrap(KeyManager other) throws IOException, GeneralSecurityException {
+        keyManager.copyTo(other);
+        keyManager = other;
     }
 
-    private KeyManager selectKeyManager(@Nullable String userPassword) throws IOException, GeneralSecurityException {
+    protected KeyManager selectKeyManager() throws IOException, GeneralSecurityException {
+        int osVersion = getOsVersion();
+        return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+    }
+
+    protected int getOsVersion() throws IOException {
         int osVersion; // OS Version when store was created // TODO migrations
         if (configStorage.exists(storeId + ":" + "Version")) {
             osVersion = DataEncoding.decodeInt(configStorage.load(storeId + ":" + "Version"));
@@ -89,11 +92,10 @@ public class SecretStorage {
             osVersion = Build.VERSION.SDK_INT;
             configStorage.store(storeId + ":" + "Version", DataEncoding.encode(osVersion));
         }
-
-        return new DefaultManagers().selectDefaultManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId, userPassword);
+        return osVersion;
     }
 
-    private DataStorage createStorage(@DataStorage.Type String type) {
+    protected DataStorage createStorage(@DataStorage.Type String type) {
         return new DefaultStorage().createStorage(context, storeId, type);
     }
 }

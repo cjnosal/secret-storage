@@ -16,6 +16,8 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import android.support.annotation.NonNull;
+
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
@@ -50,10 +52,8 @@ public class PasswordKeyWrapper extends KeyWrapper {
     protected Key derivedEncKey;
     protected Key derivedSigKey;
     protected byte[] verification;
-    private String password;
-    private boolean attached;
 
-    public PasswordKeyWrapper(Crypto crypto, String storeId, KeyDerivationSpec derivationSpec, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) throws GeneralSecurityException, IOException {
+    public PasswordKeyWrapper(Crypto crypto, String storeId, KeyDerivationSpec derivationSpec, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) {
         this.crypto = crypto;
         this.storeId = storeId;
         this.derivationSpec = derivationSpec;
@@ -66,28 +66,20 @@ public class PasswordKeyWrapper extends KeyWrapper {
         }
     }
 
-    @Override
-    public void attach() throws IOException, GeneralSecurityException {
-        attached = true;
-        if (password != null) {
-            if (!isPasswordSet()) {
-                deriveAndStoreKeys(password);
-            } else {
-                unlock(password);
-            }
+    public void setPassword(@NonNull String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet()) {
+            deriveAndStoreKeys(password);
+        } else {
+            throw new LoginException("Password already set. Use unlock.");
         }
     }
 
-    public void setPassword(String password) throws IOException, GeneralSecurityException {
-        this.password = password;
-        if (attached) {
-            if (password != null) {
-                if (!isPasswordSet()) {
-                    deriveAndStoreKeys(password);
-                } else {
-                    unlock(password);
-                }
-            }
+    public void changePassword(@NonNull String oldPassword, @NonNull String newPassword) throws GeneralSecurityException, IOException {
+        if (verifyPassword(oldPassword)) {
+            clear();
+            setPassword(newPassword);
+        } else {
+            throw new LoginException("Wrong password");
         }
     }
 
@@ -161,7 +153,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
-        if (configStorage.entries().isEmpty()) {
+        if (!isPasswordSet()) {
             throw new LoginException("No password set. Use setPassword.");
         }
         byte[] verSalt = configStorage.load(storeId + ":" + VER_SALT);

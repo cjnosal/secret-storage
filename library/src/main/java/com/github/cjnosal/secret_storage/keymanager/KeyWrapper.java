@@ -26,5 +26,4 @@ public abstract class KeyWrapper {
     abstract byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException;
     abstract @KeyPurpose.Data Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;
-    abstract void attach() throws IOException, GeneralSecurityException;
 }

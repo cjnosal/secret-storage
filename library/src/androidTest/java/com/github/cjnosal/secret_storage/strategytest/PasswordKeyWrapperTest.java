@@ -22,6 +22,7 @@ import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
@@ -81,15 +82,14 @@ public class PasswordKeyWrapperTest {
     @Test
     public void testWrongPassword() throws Exception {
         try {
-            KeyManager strat = createManager(
+            PasswordProtectedKeyManager strat = createManager(
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec()),
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec())
             );
-            PasswordKeyWrapper wrapper = (PasswordKeyWrapper) strat.getKeyWrapper();
-            wrapper.lock();
-            wrapper.unlock("wild guess");
+            strat.lock();
+            strat.unlock("wild guess");
             fail("Expecting exception for wrong password");
         } catch (LoginException e) {
             // expected
@@ -99,14 +99,13 @@ public class PasswordKeyWrapperTest {
     @Test
     public void testEncryptWhileLocked() throws Exception {
         try {
-            KeyManager strat = createManager(
+            PasswordProtectedKeyManager strat = createManager(
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec()),
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec())
             );
-            PasswordKeyWrapper wrapper = (PasswordKeyWrapper) strat.getKeyWrapper();
-            wrapper.lock();
+            strat.lock();
 
             strat.encrypt("Hello world".getBytes());
 
@@ -119,15 +118,14 @@ public class PasswordKeyWrapperTest {
     @Test
     public void testDecryptWhileLocked() throws Exception {
         try {
-            KeyManager strat = createManager(
+            PasswordProtectedKeyManager strat = createManager(
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec()),
                     new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                     new MacStrategy(crypto, getSymmetricIntegritySpec())
             );
-            PasswordKeyWrapper wrapper = (PasswordKeyWrapper) strat.getKeyWrapper();
             strat.encrypt("Hello world".getBytes());
-            wrapper.lock();
+            strat.lock();
 
             strat.decrypt("Hello world".getBytes());
 
@@ -139,32 +137,30 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void testChangePassword() throws Exception {
-        KeyManager strat = createManager(
+        PasswordProtectedKeyManager strat = createManager(
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec())
         );
-        PasswordKeyWrapper wrapper = getPasswordKeyManager(new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()), "new_password");
         byte[] cipher = strat.encrypt("Hello world".getBytes());
 
-        strat.rewrap(wrapper);
+        strat.changePassword("default_password", "new_password");
 
         String plain = new String(strat.decrypt(cipher));
         assertEquals(plain, "Hello world");
 
-        wrapper.lock();
-        wrapper.unlock("new_password");
+        strat.lock();
+        strat.unlock("new_password");
 
         plain = new String(strat.decrypt(cipher));
         assertEquals(plain, "Hello world");
     }
 
-    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
+    private PasswordProtectedKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
 
         PasswordKeyWrapper passwordKeyManager = getPasswordKeyManager(keyCipher, keyIntegrity, "default_password");
-        return new KeyManager(
+        return new PasswordProtectedKeyManager(
                 "test",
                 new ProtectionStrategy(
                         dataCipher,

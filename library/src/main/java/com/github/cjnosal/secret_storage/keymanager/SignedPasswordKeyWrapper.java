@@ -43,7 +43,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final AndroidCrypto androidCrypto;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) throws GeneralSecurityException, IOException {
+    public SignedPasswordKeyWrapper(Context context, String storeId, Crypto crypto, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegrityStrategy derivationIntegrityStrategy, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) {
         super(crypto, storeId, keyDerivationSpec, keyProtectionStrategy, configStorage);
         this.context = context;
         this.androidCrypto = androidCrypto;

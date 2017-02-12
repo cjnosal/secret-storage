@@ -24,6 +24,7 @@ import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
@@ -63,7 +64,7 @@ public class DefaultManagersTest {
 
     @Test
     public void M_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id", null);
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id");
         assert(manager.getKeyWrapper() instanceof KeyStoreWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -71,7 +72,7 @@ public class DefaultManagersTest {
 
     @Test
     public void JB_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id", null);
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id");
         assert(manager.getKeyWrapper() instanceof AsymmetricKeyStoreWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -79,7 +80,7 @@ public class DefaultManagersTest {
 
     @Test
     public void noKeyStore_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id", null);
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id");
         assert(manager.getKeyWrapper() instanceof PasswordKeyWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -87,32 +88,34 @@ public class DefaultManagersTest {
 
     @Test
     public void JB_Password() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id", "user secret");
+        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id");
         assert(manager.getKeyWrapper() instanceof SignedPasswordKeyWrapper);
-        ((PasswordKeyWrapper)manager.getKeyWrapper()).unlock("user secret");
+        manager.setPassword("user secret");
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
     }
 
     @Test
     public void noKeyStore_Password() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id", "user secret");
+        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id");
         assert(manager.getKeyWrapper() instanceof PasswordKeyWrapper);
-        ((PasswordKeyWrapper)manager.getKeyWrapper()).unlock("user secret");
+        manager.setPassword("user secret");
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
     }
 
     @Test
     public void keystore_interference() throws GeneralSecurityException, IOException {
-        KeyManager manager1 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id1", null);
-        KeyManager manager2 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id2", null);
+        KeyManager manager1 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id1");
+        KeyManager manager2 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id2");
 
-        KeyManager manager3 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id3", null);
-        KeyManager manager4 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id4", null);
+        KeyManager manager3 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id3");
+        KeyManager manager4 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id4");
 
-        KeyManager manager5 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id5", "user secret");
-        KeyManager manager6 = defaultManagers.selectDefaultManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id6", "user secret2");
+        PasswordProtectedKeyManager manager5 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id5");
+        PasswordProtectedKeyManager manager6 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id6");
+        manager5.setPassword("user password");
+        manager6.setPassword("user password2");
 
         byte[] e1 = manager1.encrypt("1".getBytes());
         byte[] e2 = manager2.encrypt("2".getBytes());

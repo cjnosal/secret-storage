@@ -21,7 +21,7 @@ import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
@@ -84,7 +84,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void testChangePassword() throws Exception {
-        KeyManager strat = createManager(
+        PasswordProtectedKeyManager strat = createManager(
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
                 new MacStrategy(crypto, getSymmetricIntegritySpec()),
                 new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
@@ -93,26 +93,23 @@ public class SignedPasswordKeyWrapperTest {
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
-        PasswordKeyWrapper wrapper = getSignedPasswordKeyManager(new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SignatureStrategy(crypto, getDerivationIntegritySpec()), "new_password");
 
-        strat.rewrap(wrapper);
+        strat.changePassword("default_password", "new_password");
 
         String plain = new String(strat.decrypt(cipher));
         assertEquals(plain, "Hello world");
 
-        wrapper.lock();
-        wrapper.unlock("new_password");
+        strat.lock();
+        strat.unlock("new_password");
 
         plain = new String(strat.decrypt(cipher));
         assertEquals(plain, "Hello world");
     }
 
-    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy) throws IOException, GeneralSecurityException {
+    private PasswordProtectedKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy) throws IOException, GeneralSecurityException {
 
         SignedPasswordKeyWrapper passwordKeyManager = getSignedPasswordKeyManager(keyCipher, keyIntegrity, derivationIntegrityStrategy, "default_password");
-        return new KeyManager(
+        return new PasswordProtectedKeyManager(
                 "test",
                 new ProtectionStrategy(
                         dataCipher,
