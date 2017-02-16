@@ -20,12 +20,19 @@ import android.annotation.TargetApi;
 import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 
+import java.security.spec.AlgorithmParameterSpec;
+
 @TargetApi(Build.VERSION_CODES.M)
 public abstract class KeyStoreCipherSpec extends CipherSpec {
     private final String keygenAlgorithm; // key or keypair generator
 
     public KeyStoreCipherSpec(String keygenAlgorithm, String cipherAlgorithm, String transformation) {
         super(transformation, cipherAlgorithm, 0, keygenAlgorithm);
+        this.keygenAlgorithm = keygenAlgorithm;
+    }
+
+    public KeyStoreCipherSpec(String keygenAlgorithm, String cipherAlgorithm, String transformation, AlgorithmParameterSpec algorithmParameterSpec) {
+        super(transformation, cipherAlgorithm, 0, keygenAlgorithm, algorithmParameterSpec);
         this.keygenAlgorithm = keygenAlgorithm;
     }
 

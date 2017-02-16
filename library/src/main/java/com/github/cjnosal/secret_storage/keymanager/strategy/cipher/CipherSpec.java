@@ -18,17 +18,29 @@ package com.github.cjnosal.secret_storage.keymanager.strategy.cipher;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 
+import java.security.spec.AlgorithmParameterSpec;
+
 public class CipherSpec {
     private final @SecurityAlgorithms.Cipher String cipherTransformation;
     private final @SecurityAlgorithms.AlgorithmParameters String cipherAlgorithm;
     private final @SecurityAlgorithms.KeySize int keySize;
     private final String keygenAlgorithm; // key or keypair generator
+    private AlgorithmParameterSpec algorithmParameterSpec;
 
     public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String cipherAlgorithm, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm) {
         this.cipherTransformation = cipherTransformation;
         this.cipherAlgorithm = cipherAlgorithm;
         this.keySize = keySize;
         this.keygenAlgorithm = keygenAlgorithm;
+        this.algorithmParameterSpec = null;
+    }
+
+    public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String cipherAlgorithm, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm, AlgorithmParameterSpec algorithmParameterSpec) {
+        this.cipherTransformation = cipherTransformation;
+        this.cipherAlgorithm = cipherAlgorithm;
+        this.keySize = keySize;
+        this.keygenAlgorithm = keygenAlgorithm;
+        this.algorithmParameterSpec = algorithmParameterSpec;
     }
 
     public @SecurityAlgorithms.Cipher String getCipherTransformation() {
@@ -45,5 +57,9 @@ public class CipherSpec {
 
     public String getKeygenAlgorithm() {
         return keygenAlgorithm;
+    }
+
+    public AlgorithmParameterSpec getAlgorithmParameterSpec() {
+        return algorithmParameterSpec;
     }
 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.spec.AlgorithmParameterSpec;
 
 import javax.crypto.Cipher;
 
@@ -41,7 +42,11 @@ public abstract class CipherStrategy {
 
     public byte[] encrypt(Key key, byte[] plainBytes) throws GeneralSecurityException, IOException {
         Cipher cipher = Cipher.getInstance(spec.getCipherTransformation());
-        cipher.init(Cipher.ENCRYPT_MODE, key, Cipher.getMaxAllowedParameterSpec(spec.getCipherTransformation()));
+        AlgorithmParameterSpec algorithmParameterSpec = spec.getAlgorithmParameterSpec();
+        if (algorithmParameterSpec == null) {
+            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(spec.getCipherTransformation());
+        }
+        cipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameterSpec);
         byte[] encryptedBytes = cipher.doFinal(plainBytes);
         byte[] paramBytes;
         if (cipher.getParameters() != null) {
