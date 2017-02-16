@@ -17,9 +17,14 @@
 package com.github.cjnosal.secret_storage.keymanager.strategy.cipher;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
+import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
+import java.io.IOException;
+import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+
+import javax.crypto.Cipher;
 
 public abstract class CipherStrategy {
     protected Crypto crypto;
@@ -34,7 +39,29 @@ public abstract class CipherStrategy {
         return spec;
     }
 
-    public abstract byte[] encrypt(Key key, byte[] plainBytes) throws GeneralSecurityException;
+    public byte[] encrypt(Key key, byte[] plainBytes) throws GeneralSecurityException, IOException {
+        Cipher cipher = Cipher.getInstance(spec.getCipherTransformation());
+        cipher.init(Cipher.ENCRYPT_MODE, key, Cipher.getMaxAllowedParameterSpec(spec.getCipherTransformation()));
+        byte[] encryptedBytes = cipher.doFinal(plainBytes);
+        byte[] paramBytes;
+        if (cipher.getParameters() != null) {
+            paramBytes = cipher.getParameters().getEncoded();
+        } else {
+            paramBytes = new byte[0];
+        }
+        return ByteArrayUtil.join(paramBytes, encryptedBytes);
+    }
 
-    public abstract byte[] decrypt(Key key, byte[] cipherText) throws GeneralSecurityException;
+    public byte[] decrypt(Key key, byte[] cipherText) throws GeneralSecurityException, IOException {
+        byte[][] splitBytes = ByteArrayUtil.split(cipherText);
+
+        Cipher cipher = Cipher.getInstance(spec.getCipherTransformation());
+        AlgorithmParameters params = null;
+        if (splitBytes[0].length != 0) {
+            params = AlgorithmParameters.getInstance(spec.getCipherAlgorithm());
+            params.init(splitBytes[0]);
+        }
+        cipher.init(Cipher.DECRYPT_MODE, key, params);
+        return cipher.doFinal(splitBytes[1]);
+    }
 }

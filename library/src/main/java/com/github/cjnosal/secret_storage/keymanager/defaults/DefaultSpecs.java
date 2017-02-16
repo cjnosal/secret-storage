@@ -33,6 +33,7 @@ public class DefaultSpecs {
     public static CipherSpec getAesCbcPkcs5CipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_AES_CBC_PKCS5Padding,
+                SecurityAlgorithms.AlgorithmParameters_AES,
                 SecurityAlgorithms.KEY_SIZE_AES_128,
                 SecurityAlgorithms.KeyGenerator_AES
         );
@@ -42,6 +43,7 @@ public class DefaultSpecs {
     public static CipherSpec getAesGcmCipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_AES_GCM_NoPadding,
+                SecurityAlgorithms.AlgorithmParameters_GCM,
                 SecurityAlgorithms.KEY_SIZE_AES_256,
                 SecurityAlgorithms.KeyGenerator_AES
         );
@@ -50,6 +52,7 @@ public class DefaultSpecs {
     public static CipherSpec getRsaPKCS1CipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding,
+                null,
                 SecurityAlgorithms.KEY_SIZE_RSA_2048,
                 SecurityAlgorithms.KeyPairGenerator_RSA
         );
@@ -82,7 +85,7 @@ public class DefaultSpecs {
 
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreCipherSpec getKeyStoreAesCbcPkcs7CipherSpec() {
-        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding) {
+        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.AlgorithmParameters_AES, SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
@@ -113,7 +116,7 @@ public class DefaultSpecs {
 
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreCipherSpec getKeyStoreRsaPkcs1CipherSpec() {
-        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyPairGenerator_RSA, SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding) {
+        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyPairGenerator_RSA, null, SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {

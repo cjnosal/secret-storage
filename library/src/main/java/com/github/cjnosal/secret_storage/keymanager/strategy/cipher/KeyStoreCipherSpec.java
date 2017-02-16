@@ -24,8 +24,8 @@ import android.security.keystore.KeyGenParameterSpec;
 public abstract class KeyStoreCipherSpec extends CipherSpec {
     private final String keygenAlgorithm; // key or keypair generator
 
-    public KeyStoreCipherSpec(String keygenAlgorithm, String transformation) {
-        super(transformation, 0, keygenAlgorithm);
+    public KeyStoreCipherSpec(String keygenAlgorithm, String cipherAlgorithm, String transformation) {
+        super(transformation, cipherAlgorithm, 0, keygenAlgorithm);
         this.keygenAlgorithm = keygenAlgorithm;
     }
 
