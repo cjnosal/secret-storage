@@ -21,13 +21,17 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
+import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Set;
+
+import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
 
 public class SecretStorage {
 
@@ -37,7 +41,7 @@ public class SecretStorage {
     protected DataStorage dataStorage;
     protected KeyManager keyManager;
 
-    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, KeyManager keyManager) throws IOException, GeneralSecurityException {
+    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, KeyManager keyManager) {
         this.context = context;
         this.storeId = storeId;
         this.configStorage = configStorage;
@@ -45,21 +49,13 @@ public class SecretStorage {
         this.keyManager = keyManager;
     }
 
-    public SecretStorage(Context context, String storeId) throws IOException, GeneralSecurityException {
-        this.context = context;
-        this.storeId = storeId;
-        this.configStorage = createStorage(DataStorage.TYPE_CONF);
-        this.dataStorage = createStorage(DataStorage.TYPE_DATA);
-        this.keyManager = selectKeyManager();
-    }
-
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
         byte[] cipherText = keyManager.encrypt(plainText);
-        dataStorage.store(storeId + ":" + id, cipherText);
+        dataStorage.store(getStorageField(storeId, id), cipherText);
     }
 
     public byte[] load(String id) throws GeneralSecurityException, IOException {
-        byte[] cipherText = dataStorage.load(storeId + ":" + id);
+        byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
         return keyManager.decrypt(cipherText);
     }
 
@@ -67,35 +63,112 @@ public class SecretStorage {
     public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
         Set<String> entries = dataStorage.entries();
         for(String s : entries) {
-            int index = s.indexOf(":");
-            String key = s.substring(index + 1);
+            String key = getField(s);
             other.store(key, load(key));
         }
     }
 
-    // TODO validate other uses same Data ProtectionStrategy
+    // decrypt and copy data encryption keys to another KeyManager instance
     public void rewrap(KeyManager other) throws IOException, GeneralSecurityException {
+        if (!getProtectionStrategyString(keyManager.getDataProtectionStrategy()).equals(getProtectionStrategyString(other.getDataProtectionStrategy()))) {
+            throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionStrategy() + " but was " + other.getDataProtectionStrategy());
+        }
         keyManager.copyTo(other);
         keyManager = other;
     }
 
-    protected KeyManager selectKeyManager() throws IOException, GeneralSecurityException {
-        int osVersion = getOsVersion();
-        return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
-    }
+    public static class Builder {
+        protected Context context;
+        protected String storeId;
+        protected DataStorage configStorage;
+        protected DataStorage dataStorage;
+        protected KeyManager keyManager;
 
-    protected int getOsVersion() throws IOException {
-        int osVersion; // OS Version when store was created // TODO migrations
-        if (configStorage.exists(storeId + ":" + "Version")) {
-            osVersion = DataEncoding.decodeInt(configStorage.load(storeId + ":" + "Version"));
-        } else {
-            osVersion = Build.VERSION.SDK_INT;
-            configStorage.store(storeId + ":" + "Version", DataEncoding.encode(osVersion));
+        public Builder(Context context, String storeId) {
+            this.context = context;
+            this.storeId = storeId;
         }
-        return osVersion;
+
+        public Builder configStorage(DataStorage configStorage) {
+            this.configStorage = configStorage;
+            return this;
+        }
+
+        public Builder dataStorage(DataStorage dataStorage) {
+            this.dataStorage = dataStorage;
+            return this;
+        }
+
+        public Builder keyManager(KeyManager keyManager) {
+            this.keyManager = keyManager;
+            return this;
+        }
+
+        public SecretStorage build() throws IOException, GeneralSecurityException {
+            validateArguments();
+            return new SecretStorage(context, storeId, configStorage, dataStorage, keyManager);
+        }
+
+        protected void validateArguments() throws IOException, GeneralSecurityException {
+            if (context == null) {
+                throw new IllegalArgumentException("Non-null Context required");
+            }
+            if (storeId == null || storeId.isEmpty()) {
+                throw new IllegalArgumentException("Non-empty store ID required");
+            }
+            if (configStorage == null) {
+                configStorage = createStorage(DataStorage.TYPE_CONF);
+            }
+            if (dataStorage == null) {
+                dataStorage = createStorage(DataStorage.TYPE_DATA);
+            }
+            if (keyManager == null) {
+                int osVersion; // OS Version when store was created // TODO migrations
+                if (configStorage.exists(getStorageField(storeId, OS_VERSION))) {
+                    osVersion = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, OS_VERSION)));
+                } else {
+                    osVersion = Build.VERSION.SDK_INT;
+                    configStorage.store(getStorageField(storeId, OS_VERSION), DataEncoding.encode(osVersion));
+                }
+                keyManager = selectKeyManager(osVersion);
+            }
+            if (configStorage.exists(getStorageField(storeId, DATA_PROTECTION))) {
+                String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, DATA_PROTECTION)));
+                String stragegy = getProtectionStrategyString(keyManager.getDataProtectionStrategy());
+                if (!stragegy.equals(storedStrategy)) {
+                    throw new IllegalArgumentException("Wrong cipher strategy (expected " + storedStrategy + " but was " + stragegy);
+                }
+            } else {
+                configStorage.store(getStorageField(storeId, DATA_PROTECTION), utf8Decode(getProtectionStrategyString(keyManager.getDataProtectionStrategy())));
+            }
+            // TODO validate key ProtectionStrategy
+        }
+
+        protected KeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
+            // TODO refactor KeyManager to take storeId as a parameter instead of a field
+            return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+        }
+
+        protected DataStorage createStorage(@DataStorage.Type String type) {
+            return new DefaultStorage().createStorage(context, storeId, type);
+        }
+    }
+  
+    private static final String OS_VERSION = "OS_VERSION";
+    private static final String DATA_PROTECTION = "DATA_PROTECTION";
+    private static final String DELIMITER = "::";
+    
+    private static String getStorageField(String storeId, String field) {
+        return storeId + DELIMITER + field;
     }
 
-    protected DataStorage createStorage(@DataStorage.Type String type) {
-        return new DefaultStorage().createStorage(context, storeId, type);
+    private static String getField(String storageField) {
+        return storageField.substring(storageField.indexOf(DELIMITER) + DELIMITER.length());
+    }
+
+    private static String getProtectionStrategyString(ProtectionStrategy protectionStrategy) {
+        // TODO refactor strategies to take specs as parameters instead of fields
+        // TODO equals/hashcode/toString for specs
+        return protectionStrategy.getCipherStrategy().getSpec().getCipherTransformation() + DELIMITER + protectionStrategy.getIntegrityStrategy().getSpec().getIntegrityTransformation();
     }
 }

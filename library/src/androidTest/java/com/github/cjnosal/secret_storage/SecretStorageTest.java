@@ -80,7 +80,7 @@ public class SecretStorageTest {
 
     @Test
     public void createWithPassword() throws IOException, GeneralSecurityException {
-        PasswordProtectedSecretStorage secretStorage = new PasswordProtectedSecretStorage(context, "id");
+        PasswordProtectedSecretStorage secretStorage = new PasswordProtectedSecretStorage.Builder(context, "id").build();
         secretStorage.setPassword("mysecret");
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
@@ -88,7 +88,7 @@ public class SecretStorageTest {
 
     @Test
     public void createWithoutPassword() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage = new SecretStorage(context, "id");
+        SecretStorage secretStorage = new SecretStorage.Builder(context, "id").build();
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
@@ -116,12 +116,12 @@ public class SecretStorageTest {
 
     @Test
     public void copyTo() throws IOException, GeneralSecurityException {
-        PasswordProtectedSecretStorage secretStorage1 = new PasswordProtectedSecretStorage(context, "id");
+        PasswordProtectedSecretStorage secretStorage1 = new PasswordProtectedSecretStorage.Builder(context, "id").build();
         secretStorage1.setPassword("password");
         secretStorage1.store("mysecret1", "message1".getBytes());
         secretStorage1.store("mysecret2", "message2".getBytes());
 
-        SecretStorage secretStorage2 = new SecretStorage(context, "id2");
+        SecretStorage secretStorage2 = new SecretStorage.Builder(context, "id2").build();
         secretStorage1.copyTo(secretStorage2);
 
         assertEquals(new String(secretStorage2.load("mysecret1")), "message1");

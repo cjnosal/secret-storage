@@ -28,12 +28,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 public class PasswordProtectedSecretStorage extends SecretStorage {
-    public PasswordProtectedSecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, PasswordProtectedKeyManager keyManager) throws IOException, GeneralSecurityException {
+    public PasswordProtectedSecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, PasswordProtectedKeyManager keyManager) {
         super(context, storeId, configStorage, dataStorage, keyManager);
-    }
-
-    public PasswordProtectedSecretStorage(Context context, String storeId) throws IOException, GeneralSecurityException {
-        super(context, storeId);
     }
 
     public void setPassword(@NonNull String password) throws GeneralSecurityException, IOException {
@@ -52,8 +48,34 @@ public class PasswordProtectedSecretStorage extends SecretStorage {
         ((PasswordProtectedKeyManager) keyManager).lock();
     }
 
-    protected KeyManager selectKeyManager() throws IOException, GeneralSecurityException {
-        int osVersion = getOsVersion();
-        return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+    public static class Builder extends SecretStorage.Builder {
+
+        public Builder(Context context, String storeId) {
+            super(context, storeId);
+        }
+
+        public PasswordProtectedSecretStorage.Builder configStorage(DataStorage configStorage) {
+            this.configStorage = configStorage;
+            return this;
+        }
+
+        public PasswordProtectedSecretStorage.Builder dataStorage(DataStorage dataStorage) {
+            this.dataStorage = dataStorage;
+            return this;
+        }
+
+        public PasswordProtectedSecretStorage.Builder keyManager(KeyManager keyManager) {
+            this.keyManager = keyManager;
+            return this;
+        }
+
+        public PasswordProtectedSecretStorage build() throws IOException, GeneralSecurityException {
+            validateArguments();
+            return new PasswordProtectedSecretStorage(context, storeId, configStorage, dataStorage, (PasswordProtectedKeyManager) keyManager);
+        }
+
+        protected PasswordProtectedKeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
+            return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+        }
     }
 }

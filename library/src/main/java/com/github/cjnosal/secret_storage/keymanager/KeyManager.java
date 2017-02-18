@@ -58,6 +58,10 @@ public class KeyManager {
         return keyWrapper;
     }
 
+    public ProtectionStrategy getDataProtectionStrategy() {
+        return dataProtectionStrategy;
+    }
+
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy Key encryptionKey;
         @KeyPurpose.DataIntegrity Key signingKey;
