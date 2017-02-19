@@ -40,6 +40,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
+    
+    private static final String DEVICE_BINDING = "DEVICE_BINDINNG";
 
     private final Context context;
     private final AndroidCrypto androidCrypto;
@@ -56,12 +58,12 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
     @Override
     protected void deriveAndStoreKeys(String password) throws IOException, GeneralSecurityException {
-        androidCrypto.generateKeyPair(context, storeId + ":" + "D", derivationIntegritySpec.getKeygenAlgorithm()).getPrivate();
+        androidCrypto.generateKeyPair(context, getStorageField(storeId, DEVICE_BINDING), derivationIntegritySpec.getKeygenAlgorithm()).getPrivate();
         super.deriveAndStoreKeys(password);
     }
 
     protected Key generateKek(String password, byte[] salt) throws IOException, GeneralSecurityException {
-        PrivateKey signingKey = androidCrypto.loadPrivateKey(storeId + ":" + "D");
+        PrivateKey signingKey = androidCrypto.loadPrivateKey(getStorageField(storeId, DEVICE_BINDING));
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
 
         PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds() / 2, derivationSpec.getKeySize());
@@ -78,7 +80,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     @Override
     public void clear() throws GeneralSecurityException, IOException {
         super.clear();
-        androidCrypto.deleteEntry(storeId + ":" + "D");
+        androidCrypto.deleteEntry(getStorageField(storeId, DEVICE_BINDING));
     }
 
 }

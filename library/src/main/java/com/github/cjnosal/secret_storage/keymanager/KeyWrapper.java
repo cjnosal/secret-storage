@@ -42,4 +42,12 @@ public abstract class KeyWrapper {
     public void setStoreId(String storeId) {
         this.storeId = storeId;
     }
+
+    protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
+    protected static final String SIGNING_KEY = "SIGNING_KEY";
+    protected static final String DELIMITER = "::";
+
+    protected static String getStorageField(String storeId, String field) {
+        return storeId + DELIMITER + field;
+    }
 }

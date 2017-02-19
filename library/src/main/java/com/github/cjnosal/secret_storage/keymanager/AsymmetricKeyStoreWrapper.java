@@ -77,43 +77,43 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
 
     @Override
     public void clear() throws GeneralSecurityException, IOException {
-        androidCrypto.deleteEntry(storeId + ":" + "S");
-        androidCrypto.deleteEntry(storeId + ":" + "E");
+        androidCrypto.deleteEntry(getStorageField(storeId, SIGNING_KEY));
+        androidCrypto.deleteEntry(getStorageField(storeId, ENCRYPTION_KEY));
     }
 
     private Key generateEncryptionKey() throws GeneralSecurityException, IOException {
         CipherSpec cipherSpec = keyProtectionSpec.getCipherSpec();
-        KeyPair encryptionKey = androidCrypto.generateKeyPair(context, storeId + ":" + "E", cipherSpec.getKeygenAlgorithm());
+        KeyPair encryptionKey = androidCrypto.generateKeyPair(context, getStorageField(storeId, ENCRYPTION_KEY), cipherSpec.getKeygenAlgorithm());
         return encryptionKey.getPublic();
     }
 
     private Key generateSigningKey() throws GeneralSecurityException, IOException {
         IntegritySpec integritySpec = keyProtectionSpec.getIntegritySpec();
-        KeyPair signingKey = androidCrypto.generateKeyPair(context, storeId + ":" + "S", integritySpec.getKeygenAlgorithm());
+        KeyPair signingKey = androidCrypto.generateKeyPair(context, getStorageField(storeId, SIGNING_KEY), integritySpec.getKeygenAlgorithm());
         return signingKey.getPrivate();
     }
 
     private boolean keysExist() throws GeneralSecurityException, IOException {
-        return androidCrypto.hasEntry(storeId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + "E");
+        return androidCrypto.hasEntry(getStorageField(storeId, SIGNING_KEY)) && androidCrypto.hasEntry(getStorageField(storeId, ENCRYPTION_KEY));
     }
 
     private Key loadEncryptionKey() throws GeneralSecurityException, IOException {
-        KeyPair encryptionKey = androidCrypto.loadKeyPair(storeId + ":" + "E");
+        KeyPair encryptionKey = androidCrypto.loadKeyPair(getStorageField(storeId, ENCRYPTION_KEY));
         return encryptionKey.getPublic();
     }
 
     private Key loadSigningKey() throws GeneralSecurityException, IOException {
-        KeyPair encryptionKey = androidCrypto.loadKeyPair(storeId + ":" + "S");
+        KeyPair encryptionKey = androidCrypto.loadKeyPair(getStorageField(storeId, SIGNING_KEY));
         return encryptionKey.getPrivate();
     }
 
     private Key loadDecryptionKey() throws GeneralSecurityException, IOException {
-        KeyPair encryptionKey = androidCrypto.loadKeyPair(storeId + ":" + "E");
+        KeyPair encryptionKey = androidCrypto.loadKeyPair(getStorageField(storeId, ENCRYPTION_KEY));
         return encryptionKey.getPrivate();
     }
 
     private Key loadVerificationKey() throws GeneralSecurityException, IOException {
-        KeyPair encryptionKey = androidCrypto.loadKeyPair(storeId + ":" + "S");
+        KeyPair encryptionKey = androidCrypto.loadKeyPair(getStorageField(storeId, SIGNING_KEY));
         return encryptionKey.getPublic();
     }
 }

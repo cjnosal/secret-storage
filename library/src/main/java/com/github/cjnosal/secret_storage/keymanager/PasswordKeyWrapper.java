@@ -87,10 +87,10 @@ public class PasswordKeyWrapper extends KeyWrapper {
         derivedSigKey = generateKek(password, sigSalt);
         verification = generateKek(password, verSalt).getEncoded();
 
-        configStorage.store(storeId + ":" + VERIFICATION, verification);
-        configStorage.store(storeId + ":" + ENC_SALT, encSalt);
-        configStorage.store(storeId + ":" + SIG_SALT, sigSalt);
-        configStorage.store(storeId + ":" + VER_SALT, verSalt);
+        configStorage.store(getStorageField(storeId, VERIFICATION), verification);
+        configStorage.store(getStorageField(storeId, ENC_SALT), encSalt);
+        configStorage.store(getStorageField(storeId, SIG_SALT), sigSalt);
+        configStorage.store(getStorageField(storeId, VER_SALT), verSalt);
     }
 
     public void unlock(String password) throws IOException, GeneralSecurityException {
@@ -100,8 +100,8 @@ public class PasswordKeyWrapper extends KeyWrapper {
         if (!verifyPassword(password)) {
             throw new LoginException("Wrong password");
         }
-        byte[] encSalt = configStorage.load(storeId + ":" + ENC_SALT);
-        byte[] sigSalt = configStorage.load(storeId + ":" + SIG_SALT);
+        byte[] encSalt = configStorage.load(getStorageField(storeId, ENC_SALT));
+        byte[] sigSalt = configStorage.load(getStorageField(storeId, SIG_SALT));
         derivedEncKey = generateKek(password, encSalt);
         derivedSigKey = generateKek(password, sigSalt);
     }
@@ -133,10 +133,10 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     @Override
     public void clear() throws GeneralSecurityException, IOException {
-        configStorage.delete(storeId + ":" + VERIFICATION);
-        configStorage.delete(storeId + ":" + ENC_SALT);
-        configStorage.delete(storeId + ":" + SIG_SALT);
-        configStorage.delete(storeId + ":" + VER_SALT);
+        configStorage.delete(getStorageField(storeId, VERIFICATION));
+        configStorage.delete(getStorageField(storeId, ENC_SALT));
+        configStorage.delete(getStorageField(storeId, SIG_SALT));
+        configStorage.delete(getStorageField(storeId, VER_SALT));
     }
 
     protected byte[] generateSalt() {
@@ -155,13 +155,13 @@ public class PasswordKeyWrapper extends KeyWrapper {
         if (!isPasswordSet()) {
             throw new LoginException("No password set. Use setPassword.");
         }
-        byte[] verSalt = configStorage.load(storeId + ":" + VER_SALT);
-        byte[] verification = configStorage.load(storeId + ":" + VERIFICATION);
+        byte[] verSalt = configStorage.load(getStorageField(storeId, VER_SALT));
+        byte[] verification = configStorage.load(getStorageField(storeId, VERIFICATION));
         Key key = generateKek(password, verSalt);
         return MessageDigest.isEqual(key.getEncoded(), verification);
     }
 
     public boolean isPasswordSet() throws IOException {
-        return configStorage.exists(storeId + ":" + VER_SALT) && configStorage.exists(storeId + ":" + VERIFICATION);
+        return configStorage.exists(getStorageField(storeId, VER_SALT)) && configStorage.exists(getStorageField(storeId, VERIFICATION));
     }
 }

@@ -127,27 +127,35 @@ public class KeyManager {
     }
 
     protected @KeyPurpose.DataSecrecy Key loadDataEncryptionKey() throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyStorage.load(storeId + ":DS");
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
         return keyWrapper.unwrap(wrappedKey);
     }
 
     protected @KeyPurpose.DataIntegrity Key loadDataSigningKey() throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyStorage.load(storeId + ":DI");
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
         return keyWrapper.unwrap(wrappedKey);
     }
 
     protected void storeDataEncryptionKey(@KeyPurpose.DataSecrecy Key key) throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyWrapper.wrap(key);
-        keyStorage.store(storeId + ":DS", wrappedKey);
+        keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
     }
 
     protected void storeDataSigningKey(@KeyPurpose.DataIntegrity Key key) throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyWrapper.wrap(key);
-        keyStorage.store(storeId + ":DI", wrappedKey);
+        keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
     }
 
     protected boolean dataKeysExist() throws GeneralSecurityException, IOException {
-        return keyStorage.exists(storeId + ":DS") && keyStorage.exists(storeId + ":DI");
+        return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+    }
+    
+    protected static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
+    protected static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
+    protected static final String DELIMITER = "::";
+
+    protected static String getStorageField(String storeId, String field) {
+        return storeId + DELIMITER + field;
     }
 
     public static class Builder {

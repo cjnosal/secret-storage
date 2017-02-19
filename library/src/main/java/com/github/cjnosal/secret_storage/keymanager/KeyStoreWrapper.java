@@ -75,37 +75,37 @@ public class KeyStoreWrapper extends KeyWrapper {
 
     @Override
     public void clear() throws GeneralSecurityException, IOException {
-        androidCrypto.deleteEntry(storeId + ":" + "S");
-        androidCrypto.deleteEntry(storeId + ":" + "E");
+        androidCrypto.deleteEntry(getStorageField(storeId, SIGNING_KEY));
+        androidCrypto.deleteEntry(getStorageField(storeId, ENCRYPTION_KEY));
     }
 
     private Key generateEncryptionKey() throws GeneralSecurityException, IOException {
         KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec.getCipherSpec();
-        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + "E"));
+        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(getStorageField(storeId, ENCRYPTION_KEY)));
     }
 
     private Key generateSigningKey() throws GeneralSecurityException, IOException {
         KeyStoreIntegritySpec spec = (KeyStoreIntegritySpec) keyProtectionSpec.getIntegritySpec();
-        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storeId + ":" + "S"));
+        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(getStorageField(storeId, SIGNING_KEY)));
     }
 
     private Key loadEncryptionKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(storeId + ":" + "E");
+        return androidCrypto.loadSecretKey(getStorageField(storeId, ENCRYPTION_KEY));
     }
 
     private Key loadSigningKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(storeId + ":" + "S");
+        return androidCrypto.loadSecretKey(getStorageField(storeId, SIGNING_KEY));
     }
 
     private Key loadDecryptionKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(storeId + ":" + "E");
+        return androidCrypto.loadSecretKey(getStorageField(storeId, ENCRYPTION_KEY));
     }
 
     private Key loadVerificationKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(storeId + ":" + "S");
+        return androidCrypto.loadSecretKey(getStorageField(storeId, SIGNING_KEY));
     }
 
     private boolean keysExist() throws GeneralSecurityException, IOException {
-        return androidCrypto.hasEntry(storeId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + "E");
+        return androidCrypto.hasEntry(getStorageField(storeId, SIGNING_KEY)) && androidCrypto.hasEntry(getStorageField(storeId, ENCRYPTION_KEY));
     }
 }
