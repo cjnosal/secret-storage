@@ -25,7 +25,6 @@ import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
@@ -47,14 +46,12 @@ import static org.junit.Assert.assertEquals;
 public class KeyStoreWrapperTest {
 
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-    Crypto crypto;
     AndroidCrypto androidCrypto;
     DataStorage keyStorage;
 
     @Before
     public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        crypto = new Crypto();
         androidCrypto = new AndroidCrypto();
         androidCrypto.clear();
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
