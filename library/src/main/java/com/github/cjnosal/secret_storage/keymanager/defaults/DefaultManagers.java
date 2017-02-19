@@ -23,18 +23,16 @@ import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 public class DefaultManagers {
 
-    public KeyManager selectKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) throws GeneralSecurityException, IOException {
+    public KeyManager selectKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) {
         KeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.M) {
@@ -43,19 +41,14 @@ public class DefaultManagers {
             keyWrapper = new AsymmetricKeyStoreWrapper(
                     context, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec());
         } else {
-            PasswordKeyWrapper manager = new PasswordKeyWrapper(
+            PasswordKeyWrapper passwordKeyWrapper = new PasswordKeyWrapper(
                     DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
-            if (manager.isPasswordSet()) {
-                manager.unlock("default_password");
-            } else {
-                manager.setPassword("default_password");
-            }
-            keyWrapper = manager;
+            return new ObfuscationKeyManager(DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, passwordKeyWrapper);
         }
         return new KeyManager(DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
     }
 
-    public PasswordProtectedKeyManager selectPasswordProtectedKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) throws GeneralSecurityException, IOException {
+    public PasswordProtectedKeyManager selectPasswordProtectedKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) {
         PasswordKeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {

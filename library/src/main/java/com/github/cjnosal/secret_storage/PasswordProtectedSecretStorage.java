@@ -69,12 +69,12 @@ public class PasswordProtectedSecretStorage extends SecretStorage {
             return this;
         }
 
-        public PasswordProtectedSecretStorage build() throws IOException, GeneralSecurityException {
+        public PasswordProtectedSecretStorage build() throws IOException {
             validateArguments();
             return new PasswordProtectedSecretStorage(context, storeId, configStorage, dataStorage, (PasswordProtectedKeyManager) keyManager);
         }
 
-        protected PasswordProtectedKeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
+        protected PasswordProtectedKeyManager selectKeyManager(int osVersion) {
             return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
         }
     }

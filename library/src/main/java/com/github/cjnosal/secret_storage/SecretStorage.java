@@ -105,12 +105,12 @@ public class SecretStorage {
             return this;
         }
 
-        public SecretStorage build() throws IOException, GeneralSecurityException {
+        public SecretStorage build() throws IOException {
             validateArguments();
             return new SecretStorage(context, storeId, configStorage, dataStorage, keyManager);
         }
 
-        protected void validateArguments() throws IOException, GeneralSecurityException {
+        protected void validateArguments() throws IOException {
             if (context == null) {
                 throw new IllegalArgumentException("Non-null Context required");
             }
@@ -153,7 +153,7 @@ public class SecretStorage {
             }
         }
 
-        protected KeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
+        protected KeyManager selectKeyManager(int osVersion) {
             // TODO refactor KeyManager to take storeId as a parameter instead of a field
             return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
         }
