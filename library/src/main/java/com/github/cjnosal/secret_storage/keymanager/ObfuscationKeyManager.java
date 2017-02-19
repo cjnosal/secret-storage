@@ -16,8 +16,12 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import android.content.Context;
+
+import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -60,6 +64,70 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
             } else {
                 keyWrapper.setPassword("default_password");
             }
+        }
+    }
+
+    public static class Builder extends KeyManager.Builder {
+
+        private DataStorage configStorage;
+
+        public Builder() {}
+
+        public Builder defaultDataProtection(int osVersion) {
+            this.defaultDataProtection = osVersion;
+            return this;
+        }
+
+        public Builder dataProtection(ProtectionSpec dataProtection) {
+            this.dataProtection = dataProtection;
+            return this;
+        }
+
+        public Builder keyWrapper(KeyWrapper keyWrapper) {
+            this.keyWrapper = keyWrapper;
+            return this;
+        }
+
+        public Builder defaultKeyStorage(Context context, String storeId) {
+            this.keyStorageContext = context;
+            this.storeId = storeId;
+            return this;
+        }
+
+        public Builder keyStorage(DataStorage keyStorage) {
+            this.keyStorage = keyStorage;
+            return this;
+        }
+
+        public Builder configStorage(DataStorage configStorage) {
+            this.configStorage = configStorage;
+            return this;
+        }
+
+        public ObfuscationKeyManager build() {
+            validate();
+            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            if (configStorage == null) {
+                if (storeId != null && keyStorageContext != null) {
+                    configStorage = new PreferenceStorage(keyStorageContext, storeId);
+                }
+                else {
+                    throw new IllegalArgumentException("Must provide either a DataStorage or a Context and storeId");
+                }
+            }
+            if (!(keyWrapper instanceof PasswordKeyWrapper)) {
+                throw new IllegalArgumentException("ObfuscationKeyManager requires a PasswordKeyWrapper or descendant");
+            }
+        }
+
+        @Override
+        protected void selectKeyWrapper() {
+            keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection), configStorage);
         }
     }
 }

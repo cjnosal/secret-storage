@@ -21,7 +21,6 @@ import android.support.annotation.NonNull;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -75,7 +74,12 @@ public class PasswordProtectedSecretStorage extends SecretStorage {
         }
 
         protected PasswordProtectedKeyManager selectKeyManager(int osVersion) {
-            return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
+            return new PasswordProtectedKeyManager.Builder()
+                    .configStorage(configStorage)
+                    .keyStorage(createStorage(DataStorage.TYPE_KEYS))
+                    .defaultKeyWrapper(context, osVersion)
+                    .defaultDataProtection(osVersion)
+                    .build();
         }
     }
 }

@@ -23,15 +23,16 @@ import android.support.test.InstrumentationRegistry;
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
+import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
+import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +51,6 @@ public class SecretStorageTest {
     DataStorage configStorage;
     DataStorage keyStorage;
     DataStorage dataStorage;
-    DefaultManagers defaultManagers;
 
     @Before
     public void setup() throws Exception {
@@ -59,7 +59,6 @@ public class SecretStorageTest {
         configStorage = new FileStorage(context.getFilesDir() + "/testConfig");
         keyStorage = new FileStorage(context.getFilesDir() + "/testKeys");
         dataStorage = new FileStorage(context.getFilesDir() + "/testData");
-        defaultManagers = new DefaultManagers();
         configStorage.clear();
         keyStorage.clear();
         dataStorage.clear();
@@ -124,8 +123,15 @@ public class SecretStorageTest {
 
     @Test
     public void rewrap() throws IOException, GeneralSecurityException {
+        KeyManager obfuscationKeyManager = new ObfuscationKeyManager.Builder()
+                .configStorage(configStorage)
+                .defaultKeyWrapper(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+                .defaultDataProtection(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+                .keyStorage(keyStorage)
+                .build();
         SecretStorage secretStorage1 = new SecretStorage(context, "id", configStorage, dataStorage,
-                new DefaultManagers().selectKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage));
+                obfuscationKeyManager);
+
         secretStorage1.store("mysecret1", "message1".getBytes());
         secretStorage1.store("mysecret2", "message2".getBytes());
 
@@ -144,8 +150,7 @@ public class SecretStorageTest {
         assertEquals(new String(secretStorage2.load("mysecret1")), "message1");
         assertEquals(new String(secretStorage2.load("mysecret2")), "message2");
 
-        SecretStorage secretStorage3 = new SecretStorage(context, "id", configStorage, dataStorage,
-                new DefaultManagers().selectKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage));
+        SecretStorage secretStorage3 = new SecretStorage(context, "id", configStorage, dataStorage, obfuscationKeyManager);
         try {
             assertEquals(new String(secretStorage3.load("mysecret1")), "message1");
             fail("Expected decryption failure as data keys were rewrapped");
@@ -245,6 +250,29 @@ public class SecretStorageTest {
         assertEquals("message6", new String(s6.load("secret1")));
         assertEquals("message7", new String(s7.load("secret1")));
         assertEquals("message8", new String(s8.load("secret1")));
+    }
+
+    @Test
+    public void defaultBuilders() throws IOException {
+        configStorage.store("id::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1));
+        SecretStorage storage = new SecretStorage.Builder(context, "id").build();
+        assert(storage.keyManager instanceof ObfuscationKeyManager);
+
+        configStorage.store("id2::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR2));
+        storage = new SecretStorage.Builder(context, "id2").build();
+        assert(storage.keyManager instanceof KeyManager);
+
+        configStorage.store("id3::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.M));
+        storage = new SecretStorage.Builder(context, "id3").build();
+        assert(storage.keyManager instanceof KeyManager);
+
+        configStorage.store("id4::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1));
+        storage = new PasswordProtectedSecretStorage.Builder(context, "id4").build();
+        assert(storage.keyManager instanceof PasswordProtectedKeyManager);
+
+        configStorage.store("id5::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR2));
+        storage = new PasswordProtectedSecretStorage.Builder(context, "id5").build();
+        assert(storage.keyManager instanceof PasswordProtectedKeyManager);
     }
 
 }

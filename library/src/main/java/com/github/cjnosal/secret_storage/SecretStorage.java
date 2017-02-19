@@ -20,7 +20,7 @@ import android.content.Context;
 import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
-import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
+import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyManager;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
@@ -154,8 +154,18 @@ public class SecretStorage {
         }
 
         protected KeyManager selectKeyManager(int osVersion) {
-            // TODO refactor KeyManager to take storeId as a parameter instead of a field
-            return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
+            KeyManager.Builder builder;
+            if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                builder = new KeyManager.Builder()
+                        .defaultKeyWrapper(osVersion);
+            } else {
+                builder = new ObfuscationKeyManager.Builder()
+                        .configStorage(configStorage);
+            }
+            return builder
+                    .defaultDataProtection(osVersion)
+                    .keyStorage(createStorage(DataStorage.TYPE_KEYS))
+                    .build();
         }
 
         protected DataStorage createStorage(@DataStorage.Type String type) {
