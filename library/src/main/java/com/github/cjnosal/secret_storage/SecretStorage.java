@@ -21,7 +21,6 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultManagers;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
@@ -70,8 +69,8 @@ public class SecretStorage {
 
     // decrypt and copy data encryption keys to another KeyManager instance
     public void rewrap(KeyManager other) throws IOException, GeneralSecurityException {
-        if (!getProtectionStrategyString(keyManager.getDataProtectionStrategy()).equals(getProtectionStrategyString(other.getDataProtectionStrategy()))) {
-            throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionStrategy() + " but was " + other.getDataProtectionStrategy());
+        if (!keyManager.getDataProtectionSpec().equals(other.getDataProtectionSpec())) {
+            throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionSpec() + " but was " + other.getDataProtectionSpec());
         }
         keyManager.copyTo(other);
         keyManager = other;
@@ -134,14 +133,22 @@ public class SecretStorage {
             }
             if (configStorage.exists(getStorageField(storeId, DATA_PROTECTION))) {
                 String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, DATA_PROTECTION)));
-                String stragegy = getProtectionStrategyString(keyManager.getDataProtectionStrategy());
-                if (!stragegy.equals(storedStrategy)) {
-                    throw new IllegalArgumentException("Wrong cipher strategy (expected " + storedStrategy + " but was " + stragegy);
+                String strategy = keyManager.getDataProtectionSpec().toString();
+                if (!strategy.equals(storedStrategy)) {
+                    throw new IllegalArgumentException("Wrong data protection strategy (expected " + storedStrategy + " but was " + strategy);
                 }
             } else {
-                configStorage.store(getStorageField(storeId, DATA_PROTECTION), utf8Decode(getProtectionStrategyString(keyManager.getDataProtectionStrategy())));
+                configStorage.store(getStorageField(storeId, DATA_PROTECTION), utf8Decode(keyManager.getDataProtectionSpec().toString()));
             }
-            // TODO validate key ProtectionStrategy
+            if (configStorage.exists(getStorageField(storeId, KEY_PROTECTION))) {
+                String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, KEY_PROTECTION)));
+                String strategy = keyManager.getKeyWrapper().getKeyProtectionSpec().toString();
+                if (!strategy.equals(storedStrategy)) {
+                    throw new IllegalArgumentException("Wrong key protection strategy (expected " + storedStrategy + " but was " + strategy);
+                }
+            } else {
+                configStorage.store(getStorageField(storeId, KEY_PROTECTION), utf8Decode(keyManager.getKeyWrapper().getKeyProtectionSpec().toString()));
+            }
         }
 
         protected KeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
@@ -156,6 +163,7 @@ public class SecretStorage {
   
     private static final String OS_VERSION = "OS_VERSION";
     private static final String DATA_PROTECTION = "DATA_PROTECTION";
+    private static final String KEY_PROTECTION = "KEY_PROTECTION";
     private static final String DELIMITER = "::";
     
     private static String getStorageField(String storeId, String field) {
@@ -164,11 +172,5 @@ public class SecretStorage {
 
     private static String getField(String storageField) {
         return storageField.substring(storageField.indexOf(DELIMITER) + DELIMITER.length());
-    }
-
-    private static String getProtectionStrategyString(ProtectionStrategy protectionStrategy) {
-        // TODO refactor strategies to take specs as parameters instead of fields
-        // TODO equals/hashcode/toString for specs
-        return protectionStrategy.getCipherStrategy().getSpec().getCipherTransformation() + DELIMITER + protectionStrategy.getIntegrityStrategy().getSpec().getIntegrityTransformation();
     }
 }

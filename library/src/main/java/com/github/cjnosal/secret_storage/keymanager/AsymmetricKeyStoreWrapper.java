@@ -22,13 +22,12 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
 import com.github.cjnosal.secret_storage.storage.encoding.KeyEncoding;
 
 import java.io.IOException;
@@ -48,16 +47,12 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, String storeId, ProtectionStrategy keyProtectionStrategy) {
+    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, String storeId, ProtectionSpec keyProtectionSpec) {
+        super(keyProtectionSpec);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.storeId = storeId;
-        this.keyProtectionStrategy = keyProtectionStrategy;
-
-        if (keyProtectionStrategy.getCipherStrategy() instanceof SymmetricCipherStrategy ||
-                keyProtectionStrategy.getIntegrityStrategy() instanceof MacStrategy) {
-            throw new IllegalArgumentException("AsymmetricKeyStoreWrapper needs asymmetric strategy for key protection");
-        }
+        this.keyProtectionStrategy = new ProtectionStrategy(new AsymmetricCipherStrategy(), new SignatureStrategy());
     }
 
     @Override
@@ -72,14 +67,14 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
             encryptionKey = generateEncryptionKey();
             signingKey = generateSigningKey();
         }
-        return keyProtectionStrategy.encryptAndSign(encryptionKey, signingKey, keyEncoding.encodeKey(key));
+        return keyProtectionStrategy.encryptAndSign(encryptionKey, signingKey, keyProtectionSpec, keyEncoding.encodeKey(key));
     }
 
     @Override
     public Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException {
         @KeyPurpose.KeySecrecy Key decryptionKey = loadDecryptionKey();
         @KeyPurpose.KeyIntegrity Key verificationKey = loadVerificationKey();
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, wrappedKey));
+        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, keyProtectionSpec, wrappedKey));
     }
 
     @Override
@@ -89,27 +84,19 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     private Key generateEncryptionKey() throws GeneralSecurityException, IOException {
-        return generateEncryptionKey(keyProtectionStrategy.getCipherStrategy());
-    }
-
-    private Key generateSigningKey() throws GeneralSecurityException, IOException {
-        return generateSigningKey(keyProtectionStrategy.getIntegrityStrategy());
-    }
-
-    private boolean keysExist() throws GeneralSecurityException, IOException {
-        return androidCrypto.hasEntry(storeId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + "E");
-    }
-
-    private Key generateEncryptionKey(CipherStrategy strategy) throws GeneralSecurityException, IOException {
-        CipherSpec cipherSpec = strategy.getSpec();
+        CipherSpec cipherSpec = keyProtectionSpec.getCipherSpec();
         KeyPair encryptionKey = androidCrypto.generateKeyPair(context, storeId + ":" + "E", cipherSpec.getKeygenAlgorithm());
         return encryptionKey.getPublic();
     }
 
-    private Key generateSigningKey(IntegrityStrategy strategy) throws GeneralSecurityException, IOException {
-        IntegritySpec integritySpec = strategy.getSpec();
+    private Key generateSigningKey() throws GeneralSecurityException, IOException {
+        IntegritySpec integritySpec = keyProtectionSpec.getIntegritySpec();
         KeyPair signingKey = androidCrypto.generateKeyPair(context, storeId + ":" + "S", integritySpec.getKeygenAlgorithm());
         return signingKey.getPrivate();
+    }
+
+    private boolean keysExist() throws GeneralSecurityException, IOException {
+        return androidCrypto.hasEntry(storeId + ":" + "S") && androidCrypto.hasEntry(storeId + ":" + "E");
     }
 
     private Key loadEncryptionKey() throws GeneralSecurityException, IOException {

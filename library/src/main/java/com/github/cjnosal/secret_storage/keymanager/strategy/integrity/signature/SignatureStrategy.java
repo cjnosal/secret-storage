@@ -16,28 +16,33 @@
 
 package com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 
 public class SignatureStrategy extends IntegrityStrategy {
 
-    public SignatureStrategy(Crypto crypto, IntegritySpec spec) {
-        super(crypto, spec);
+    public SignatureStrategy() {
     }
 
     @Override
-    public byte[] sign(Key key, byte[] plainBytes) throws GeneralSecurityException {
-        return crypto.sign((PrivateKey)key, spec.getIntegrityTransformation(), plainBytes);
+    public byte[] sign(Key key, IntegritySpec integritySpec, byte[] plainBytes) throws GeneralSecurityException {
+        Signature sig = Signature.getInstance(integritySpec.getIntegrityTransformation());
+        sig.initSign((PrivateKey)key);
+        sig.update(plainBytes);
+        return sig.sign();
     }
 
     @Override
-    public boolean verify(Key key, byte[] cipherText, byte[] signature) throws GeneralSecurityException {
-        return crypto.verify((PublicKey)key, spec.getIntegrityTransformation(), cipherText, signature);
+    public boolean verify(Key key, IntegritySpec integritySpec, byte[] cipherText, byte[] signature) throws GeneralSecurityException {
+        Signature sig = Signature.getInstance(integritySpec.getIntegrityTransformation());
+        sig.initVerify((PublicKey)key);
+        sig.update(cipherText);
+        return sig.verify(signature);
     }
 }

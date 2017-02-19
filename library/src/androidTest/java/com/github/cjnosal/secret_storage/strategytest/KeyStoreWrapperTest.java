@@ -27,15 +27,11 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 
@@ -68,10 +64,10 @@ public class KeyStoreWrapperTest {
     @Test
     public void testSSSS() throws Exception {
         KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getHmacShaIntegritySpec(),
+                DefaultSpecs.getKeyStoreAesCbcPkcs7CipherSpec(),
+                DefaultSpecs.getKeyStoreHmacShaIntegritySpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -80,69 +76,22 @@ public class KeyStoreWrapperTest {
         assertEquals(plain, "Hello world");
     }
 
-    @Test
-    public void testSSSA() throws Exception {
-        KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    @Test
-    public void testSSAS() throws Exception {
-        KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    @Test
-    public void testSSAA() throws Exception {
-        KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
-        );
-
-        byte[] cipher = strat.encrypt("Hello world".getBytes());
-        String plain = new String(strat.decrypt(cipher));
-
-        assertEquals(plain, "Hello world");
-    }
-
-    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity,
-                                     CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
+    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
 
         KeyWrapper wrapper =  new KeyStoreWrapper(
                 androidCrypto,
                 "test",
-                new ProtectionStrategy(
+                new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
                 )
         );
         return new KeyManager(
                 "test",
-                new ProtectionStrategy(
+                new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
                 ),
-                crypto,
                 keyStorage,
                 wrapper
         );

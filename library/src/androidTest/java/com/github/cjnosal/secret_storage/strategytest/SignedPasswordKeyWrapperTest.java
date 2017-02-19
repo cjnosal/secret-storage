@@ -24,17 +24,11 @@ import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 
@@ -49,7 +43,6 @@ import static org.junit.Assert.assertEquals;
 public class SignedPasswordKeyWrapperTest {
 
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-    Crypto crypto;
     AndroidCrypto androidCrypto;
     DataStorage configStorage;
     DataStorage keyStorage;
@@ -57,7 +50,6 @@ public class SignedPasswordKeyWrapperTest {
     @Before
     public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        crypto = new Crypto();
         androidCrypto = new AndroidCrypto();
         configStorage = new FileStorage(context.getFilesDir() + "/testConfig");
         keyStorage = new FileStorage(context.getFilesDir() + "/testData");
@@ -69,11 +61,11 @@ public class SignedPasswordKeyWrapperTest {
     @Test
     public void testSSSSA() throws Exception {
         KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SignatureStrategy(crypto, getDerivationIntegritySpec())
+                getSymmetricCipherSpec(),
+                getSymmetricIntegritySpec(),
+                getSymmetricCipherSpec(),
+                getSymmetricIntegritySpec(),
+                getDerivationIntegritySpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -85,11 +77,11 @@ public class SignedPasswordKeyWrapperTest {
     @Test
     public void testChangePassword() throws Exception {
         PasswordProtectedKeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new SignatureStrategy(crypto, getDerivationIntegritySpec())
+                getSymmetricCipherSpec(),
+                getSymmetricIntegritySpec(),
+                getSymmetricCipherSpec(),
+                getSymmetricIntegritySpec(),
+                getDerivationIntegritySpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -106,31 +98,29 @@ public class SignedPasswordKeyWrapperTest {
         assertEquals(plain, "Hello world");
     }
 
-    private PasswordProtectedKeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy) throws IOException, GeneralSecurityException {
+    private PasswordProtectedKeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity) throws IOException, GeneralSecurityException {
 
-        SignedPasswordKeyWrapper passwordKeyManager = getSignedPasswordKeyManager(keyCipher, keyIntegrity, derivationIntegrityStrategy, "default_password");
+        SignedPasswordKeyWrapper passwordKeyManager = getSignedPasswordKeyManager(keyCipher, keyIntegrity, derivationIntegrity, "default_password");
         return new PasswordProtectedKeyManager(
                 "test",
-                new ProtectionStrategy(
+                new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
                 ),
-                crypto,
                 keyStorage,
                 passwordKeyManager
         );
     }
 
     @NonNull
-    private SignedPasswordKeyWrapper getSignedPasswordKeyManager(CipherStrategy keyCipher, IntegrityStrategy keyIntegrity, IntegrityStrategy derivationIntegrityStrategy, String password) throws GeneralSecurityException, IOException {
+    private SignedPasswordKeyWrapper getSignedPasswordKeyManager(CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity, String password) throws GeneralSecurityException, IOException {
         SignedPasswordKeyWrapper passwordKeyManager = new SignedPasswordKeyWrapper(
                 context,
                 "testStore",
-                crypto,
                 androidCrypto,
                 getDerivationSpec(),
-                derivationIntegrityStrategy,
-                new ProtectionStrategy(
+                derivationIntegrity,
+                new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
                 ),

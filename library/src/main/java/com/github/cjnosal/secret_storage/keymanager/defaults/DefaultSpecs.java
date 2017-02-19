@@ -22,6 +22,7 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
@@ -29,6 +30,35 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.Integrity
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
 
 public class DefaultSpecs {
+
+    public static ProtectionSpec getDataProtectionSpec(int osVersion) {
+        CipherSpec cipher;
+        if (osVersion >= Build.VERSION_CODES.LOLLIPOP) {
+            // Use authenticated-encryption primitive when available
+            // MacStrategy is redundant but avoids special handling for particular strategies
+            cipher = getAesGcmCipherSpec();
+        } else {
+            cipher = getAesCbcPkcs5CipherSpec();
+        }
+        IntegritySpec integrity = getHmacShaIntegritySpec();
+        return new ProtectionSpec(cipher, integrity);
+    }
+
+    public static ProtectionSpec getPasswordBasedKeyProtectionSpec(int osVersion) {
+        return getDataProtectionSpec(osVersion);
+    }
+
+    public static ProtectionSpec getAsymmetricKeyProtectionSpec() {
+        return new ProtectionSpec(getRsaPKCS1CipherSpec(), getShaRsaIntegritySpec());
+    }
+
+    public static ProtectionSpec getKeyStoreDataProtectionSpec() {
+        return new ProtectionSpec(getKeyStoreAesCbcPkcs7CipherSpec(), getKeyStoreHmacShaIntegritySpec());
+    }
+
+    public static IntegritySpec getPasswordDeviceBindingSpec() {
+        return getShaRsaIntegritySpec();
+    }
 
     public static CipherSpec getAesCbcPkcs5CipherSpec() {
         return new CipherSpec(

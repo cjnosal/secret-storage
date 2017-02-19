@@ -16,28 +16,31 @@
 
 package com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.MessageDigest;
 
-import javax.crypto.SecretKey;
+import javax.crypto.Mac;
 
 public class MacStrategy extends IntegrityStrategy {
 
-    public MacStrategy(Crypto crypto, IntegritySpec spec) {
-        super(crypto, spec);
+    public MacStrategy() {
     }
 
     @Override
-    public byte[] sign(Key key, byte[] plainBytes) throws GeneralSecurityException {
-        return crypto.sign((SecretKey) key, spec.getIntegrityTransformation(), plainBytes);
+    public byte[] sign(Key key, IntegritySpec integritySpec, byte[] plainBytes) throws GeneralSecurityException {
+        Mac mac = Mac.getInstance(integritySpec.getIntegrityTransformation());
+        mac.init(key);
+        mac.update(plainBytes);
+        return mac.doFinal();
     }
 
     @Override
-    public boolean verify(Key key, byte[] cipherText, byte[] mac) throws GeneralSecurityException {
-        return crypto.verify((SecretKey)key, spec.getIntegrityTransformation(), cipherText, mac);
+    public boolean verify(Key key, IntegritySpec integritySpec, byte[] cipherText, byte[] mac) throws GeneralSecurityException {
+        byte[] generatedMac = sign(key, integritySpec, cipherText);
+        return MessageDigest.isEqual(generatedMac, mac);
     }
 }

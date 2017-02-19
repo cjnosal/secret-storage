@@ -40,4 +40,35 @@ public class IntegritySpec {
     public @SecurityAlgorithms.KeyGenerator String getKeygenAlgorithm() {
         return keygenAlgorithm;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        IntegritySpec that = (IntegritySpec) o;
+
+        if (keySize != that.keySize) return false;
+        if (cipherTransformation != null ? !cipherTransformation.equals(that.cipherTransformation) : that.cipherTransformation != null)
+            return false;
+        return keygenAlgorithm != null ? keygenAlgorithm.equals(that.keygenAlgorithm) : that.keygenAlgorithm == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = cipherTransformation != null ? cipherTransformation.hashCode() : 0;
+        result = 31 * result + keySize;
+        result = 31 * result + (keygenAlgorithm != null ? keygenAlgorithm.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "IntegritySpec{" +
+                "cipherTransformation='" + cipherTransformation + '\'' +
+                ", keySize=" + keySize +
+                ", keygenAlgorithm='" + keygenAlgorithm + '\'' +
+                '}';
+    }
 }

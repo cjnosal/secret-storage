@@ -16,13 +16,7 @@
 
 package com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
 
 public class AsymmetricCipherStrategy extends CipherStrategy {
-
-    public AsymmetricCipherStrategy(Crypto crypto, CipherSpec spec) {
-        super(crypto, spec);
-    }
 }

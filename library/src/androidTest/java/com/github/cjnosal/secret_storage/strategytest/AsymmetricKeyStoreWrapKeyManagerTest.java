@@ -25,15 +25,9 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 
@@ -65,10 +59,10 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
     @Test
     public void testSSAA() throws Exception {
         KeyManager strat = createManager(
-                new SymmetricCipherStrategy(crypto, getSymmetricCipherSpec()),
-                new MacStrategy(crypto, getSymmetricIntegritySpec()),
-                new AsymmetricCipherStrategy(crypto, getAsymmetricCipherSpec()),
-                new SignatureStrategy(crypto, getAsymmetricIntegritySpec())
+                getSymmetricCipherSpec(),
+                getSymmetricIntegritySpec(),
+                getAsymmetricCipherSpec(),
+                getAsymmetricIntegritySpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -77,24 +71,23 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         assertEquals(plain, "Hello world");
     }
 
-    private KeyManager createManager(CipherStrategy dataCipher, IntegrityStrategy dataIntegrity, CipherStrategy keyCipher, IntegrityStrategy keyIntegrity) throws IOException, GeneralSecurityException {
+    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
 
         KeyWrapper wrapper = new AsymmetricKeyStoreWrapper(
                 context,
                 androidCrypto,
                 "testStore",
-                new ProtectionStrategy(
+                new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
                 )
         );
         return new KeyManager(
                 "testStore",
-                new ProtectionStrategy(
+                new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
                 ),
-                crypto,
                 keyStorage,
                 wrapper
         );

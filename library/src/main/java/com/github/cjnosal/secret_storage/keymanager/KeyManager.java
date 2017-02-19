@@ -17,49 +17,44 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
+import javax.crypto.KeyGenerator;
+
 public class KeyManager {
 
+    private ProtectionSpec dataProtectionSpec;
     private final ProtectionStrategy dataProtectionStrategy;
-    private final Crypto crypto;
     private final DataStorage keyStorage;
     protected KeyWrapper keyWrapper;
     private final String storeId;
 
-    public KeyManager(String storeId, ProtectionStrategy dataProtectionStrategy, Crypto crypto, DataStorage keyStorage, KeyWrapper keyWrapper) {
+    public KeyManager(String storeId, ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper) {
         this.storeId = storeId;
-        this.dataProtectionStrategy = dataProtectionStrategy;
-        this.crypto = crypto;
+        this.dataProtectionSpec = dataProtectionSpec;
+        this.dataProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.keyStorage = keyStorage;
         this.keyWrapper = keyWrapper;
         PRNGFixes.apply();
-
-        if (dataProtectionStrategy.getCipherStrategy() instanceof AsymmetricCipherStrategy) {
-            throw new IllegalArgumentException("Must provide SymmetricCipherStrategy for data secrecy");
-        }
-        if (dataProtectionStrategy.getIntegrityStrategy() instanceof SignatureStrategy) {
-            throw new IllegalArgumentException("Must provide MacStrategy for data integrity");
-        }
     }
 
     public KeyWrapper getKeyWrapper() {
         return keyWrapper;
     }
 
-    public ProtectionStrategy getDataProtectionStrategy() {
-        return dataProtectionStrategy;
+    public ProtectionSpec getDataProtectionSpec() {
+        return dataProtectionSpec;
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
@@ -75,13 +70,13 @@ public class KeyManager {
             storeDataEncryptionKey(encryptionKey);
             storeDataSigningKey(signingKey);
         }
-        return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, plainText);
+        return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
     }
 
     public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy Key decryptionKey = loadDataEncryptionKey();
         @KeyPurpose.DataIntegrity Key verificationKey = loadDataSigningKey();
-        return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, cipherText);
+        return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
     }
 
     public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
@@ -107,13 +102,17 @@ public class KeyManager {
     }
 
     protected @KeyPurpose.DataSecrecy Key generateDataEncryptionKey() throws GeneralSecurityException, IOException {
-        CipherSpec spec = dataProtectionStrategy.getCipherStrategy().getSpec();
-        return crypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeySize());
+        CipherSpec spec = dataProtectionSpec.getCipherSpec();
+        KeyGenerator g = KeyGenerator.getInstance(spec.getKeygenAlgorithm());
+        g.init(spec.getKeySize());
+        return g.generateKey();
     }
 
     protected @KeyPurpose.DataIntegrity Key generateDataSigningKey() throws GeneralSecurityException, IOException {
-        IntegritySpec spec = dataProtectionStrategy.getIntegrityStrategy().getSpec();
-        return crypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeySize());
+        IntegritySpec spec = dataProtectionSpec.getIntegritySpec();
+        KeyGenerator g = KeyGenerator.getInstance(spec.getKeygenAlgorithm());
+        g.init(spec.getKeySize());
+        return g.generateKey();
     }
 
     protected @KeyPurpose.DataSecrecy Key loadDataEncryptionKey() throws GeneralSecurityException, IOException {

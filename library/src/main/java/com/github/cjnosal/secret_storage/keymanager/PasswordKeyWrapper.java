@@ -19,11 +19,11 @@ package com.github.cjnosal.secret_storage.keymanager;
 import android.support.annotation.NonNull;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.asymmetric.AsymmetricCipherStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.KeyEncoding;
 
@@ -31,8 +31,10 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 import javax.security.auth.login.LoginException;
 
 public class PasswordKeyWrapper extends KeyWrapper {
@@ -42,7 +44,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
     private static final String VER_SALT = "VER_SALT";
     private static final String VERIFICATION = "VERIFICATION";
 
-    protected final Crypto crypto;
+    protected final SecureRandom secureRandom;
     protected final String storeId;
     protected final KeyDerivationSpec derivationSpec;
     protected final ProtectionStrategy keyProtectionStrategy;
@@ -53,17 +55,13 @@ public class PasswordKeyWrapper extends KeyWrapper {
     protected Key derivedSigKey;
     protected byte[] verification;
 
-    public PasswordKeyWrapper(Crypto crypto, String storeId, KeyDerivationSpec derivationSpec, ProtectionStrategy keyProtectionStrategy, DataStorage configStorage) {
-        this.crypto = crypto;
+    public PasswordKeyWrapper(String storeId, KeyDerivationSpec derivationSpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
+        super(keyProtectionSpec);
+        this.secureRandom = new SecureRandom();
         this.storeId = storeId;
         this.derivationSpec = derivationSpec;
-        this.keyProtectionStrategy = keyProtectionStrategy;
+        this.keyProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.configStorage = configStorage;
-
-        if (keyProtectionStrategy.getCipherStrategy() instanceof AsymmetricCipherStrategy ||
-                keyProtectionStrategy.getIntegrityStrategy() instanceof SignatureStrategy) {
-            throw new IllegalArgumentException("PasswordKeyWrapper needs symmetric strategy for key protection");
-        }
     }
 
     public void setPassword(@NonNull String password) throws IOException, GeneralSecurityException {
@@ -124,7 +122,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
         if (!isUnlocked()) {
             throw new LoginException("Not unlocked");
         }
-        return keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyEncoding.encodeKey(key));
+        return keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyProtectionSpec, keyEncoding.encodeKey(key));
     }
 
     @Override
@@ -132,7 +130,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
         if (!isUnlocked()) {
             throw new LoginException("Not unlocked");
         }
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, wrappedKey));
+        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, keyProtectionSpec, wrappedKey));
     }
 
     @Override
@@ -144,12 +142,15 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     protected byte[] generateSalt() {
-        return crypto.generateBytes(derivationSpec.getKeySize() / 8);
+        byte[] random = new byte[derivationSpec.getKeySize() / 8];
+        secureRandom.nextBytes(random);
+        return random;
     }
 
     protected Key generateKek(String password, byte[] salt) throws IOException, GeneralSecurityException {
-        Key tmp = crypto.deriveKey(derivationSpec.getKeygenAlgorithm(), derivationSpec.getKeySize(), password, salt, derivationSpec.getRounds());
-        return new SecretKeySpec(tmp.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
+        SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds(), derivationSpec.getKeySize());
+        return factory.generateSecret(spec);
     }
 
     public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {

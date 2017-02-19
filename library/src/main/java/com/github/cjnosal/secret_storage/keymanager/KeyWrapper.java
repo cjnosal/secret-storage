@@ -17,13 +17,25 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
 public abstract class KeyWrapper {
+    protected final ProtectionSpec keyProtectionSpec;
+
+    public KeyWrapper(ProtectionSpec keyProtectionSpec) {
+        this.keyProtectionSpec = keyProtectionSpec;
+    }
+
+    public ProtectionSpec getKeyProtectionSpec() {
+        return keyProtectionSpec;
+    }
+
     abstract byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException;
     abstract @KeyPurpose.Data Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;
+
 }

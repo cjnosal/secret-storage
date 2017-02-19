@@ -27,7 +27,6 @@ import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -36,17 +35,16 @@ import java.security.GeneralSecurityException;
 public class DefaultManagers {
 
     public KeyManager selectKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage, String storeId) throws GeneralSecurityException, IOException {
-        Crypto crypto = new Crypto();
         KeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.M) {
-            keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), storeId, DefaultStrategies.getKeyStoreDataProtectionStrategy(crypto));
+            keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), storeId, DefaultSpecs.getKeyStoreDataProtectionSpec());
         } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             keyWrapper = new AsymmetricKeyStoreWrapper(
-                    context, new AndroidCrypto(), storeId, DefaultStrategies.getAsymmetricKeyProtectionStrategy(crypto));
+                    context, new AndroidCrypto(), storeId, DefaultSpecs.getAsymmetricKeyProtectionSpec());
         } else {
             PasswordKeyWrapper manager = new PasswordKeyWrapper(
-                    crypto, storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), configStorage);
+                    storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
             if (manager.isPasswordSet()) {
                 manager.unlock("default_password");
             } else {
@@ -54,21 +52,20 @@ public class DefaultManagers {
             }
             keyWrapper = manager;
         }
-        return new KeyManager(storeId, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), crypto, keyStorage, keyWrapper);
+        return new KeyManager(storeId, DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
     }
 
     public PasswordProtectedKeyManager selectPasswordProtectedKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage, String storeId) throws GeneralSecurityException, IOException {
-        Crypto crypto = new Crypto();
         PasswordKeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             keyWrapper = new SignedPasswordKeyWrapper(
-                    context, storeId, crypto, new AndroidCrypto(), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordDeviceBindingStragegy(crypto), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), configStorage);
+                    context, storeId, new AndroidCrypto(), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
         } else {
             keyWrapper = new PasswordKeyWrapper(
-                    crypto, storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultStrategies.getPasswordBasedKeyProtectionStrategy(crypto, osVersion), configStorage);
+                    storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
         }
 
-        return new PasswordProtectedKeyManager(storeId, DefaultStrategies.getDataProtectionStrategy(crypto, osVersion), crypto, keyStorage, keyWrapper);
+        return new PasswordProtectedKeyManager(storeId, DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
     }
 }

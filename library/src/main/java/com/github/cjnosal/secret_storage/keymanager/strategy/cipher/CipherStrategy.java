@@ -16,7 +16,6 @@
 
 package com.github.cjnosal.secret_storage.keymanager.strategy.cipher;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.Crypto;
 import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
@@ -28,24 +27,13 @@ import java.security.spec.AlgorithmParameterSpec;
 import javax.crypto.Cipher;
 
 public abstract class CipherStrategy {
-    protected Crypto crypto;
-    protected CipherSpec spec;
 
-    public CipherStrategy(Crypto crypto, CipherSpec spec) {
-        this.crypto = crypto;
-        this.spec = spec;
+    public CipherStrategy() {
     }
 
-    public CipherSpec getSpec() {
-        return spec;
-    }
-
-    public byte[] encrypt(Key key, byte[] plainBytes) throws GeneralSecurityException, IOException {
-        Cipher cipher = Cipher.getInstance(spec.getCipherTransformation());
-        AlgorithmParameterSpec algorithmParameterSpec = spec.getAlgorithmParameterSpec();
-        if (algorithmParameterSpec == null) {
-            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(spec.getCipherTransformation());
-        }
+    public byte[] encrypt(Key key, CipherSpec cipherSpec, byte[] plainBytes) throws GeneralSecurityException, IOException {
+        Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
+        AlgorithmParameterSpec algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(cipherSpec.getCipherTransformation());
         cipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameterSpec);
         byte[] encryptedBytes = cipher.doFinal(plainBytes);
         byte[] paramBytes;
@@ -57,13 +45,13 @@ public abstract class CipherStrategy {
         return ByteArrayUtil.join(paramBytes, encryptedBytes);
     }
 
-    public byte[] decrypt(Key key, byte[] cipherText) throws GeneralSecurityException, IOException {
+    public byte[] decrypt(Key key, CipherSpec cipherSpec, byte[] cipherText) throws GeneralSecurityException, IOException {
         byte[][] splitBytes = ByteArrayUtil.split(cipherText);
 
-        Cipher cipher = Cipher.getInstance(spec.getCipherTransformation());
+        Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
         AlgorithmParameters params = null;
         if (splitBytes[0].length != 0) {
-            params = AlgorithmParameters.getInstance(spec.getCipherAlgorithm());
+            params = AlgorithmParameters.getInstance(cipherSpec.getCipherAlgorithm());
             params.init(splitBytes[0]);
         }
         cipher.init(Cipher.DECRYPT_MODE, key, params);
