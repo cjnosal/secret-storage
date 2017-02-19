@@ -25,6 +25,7 @@ import java.security.Key;
 
 public abstract class KeyWrapper {
     protected final ProtectionSpec keyProtectionSpec;
+    protected String storeId;
 
     public KeyWrapper(ProtectionSpec keyProtectionSpec) {
         this.keyProtectionSpec = keyProtectionSpec;
@@ -38,4 +39,7 @@ public abstract class KeyWrapper {
     abstract @KeyPurpose.Data Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;
 
+    public void setStoreId(String storeId) {
+        this.storeId = storeId;
+    }
 }

@@ -75,7 +75,7 @@ public class PasswordProtectedSecretStorage extends SecretStorage {
         }
 
         protected PasswordProtectedKeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
-            return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+            return new DefaultManagers().selectPasswordProtectedKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
         }
     }
 }

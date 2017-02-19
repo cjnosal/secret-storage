@@ -40,18 +40,16 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
 
     private Context context;
     private AndroidCrypto androidCrypto;
-    private String storeId;
     private ProtectionStrategy keyProtectionStrategy;
     private KeyEncoding keyEncoding = new KeyEncoding();
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, String storeId, ProtectionSpec keyProtectionSpec) {
+    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, ProtectionSpec keyProtectionSpec) {
         super(keyProtectionSpec);
         this.context = context;
         this.androidCrypto = androidCrypto;
-        this.storeId = storeId;
         this.keyProtectionStrategy = new ProtectionStrategy(new AsymmetricCipherStrategy(), new SignatureStrategy());
     }
 

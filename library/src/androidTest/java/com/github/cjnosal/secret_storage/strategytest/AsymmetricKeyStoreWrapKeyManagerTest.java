@@ -76,14 +76,12 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         KeyWrapper wrapper = new AsymmetricKeyStoreWrapper(
                 context,
                 androidCrypto,
-                "testStore",
                 new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
                 )
         );
-        return new KeyManager(
-                "testStore",
+        KeyManager manager = new KeyManager(
                 new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
@@ -91,6 +89,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                 keyStorage,
                 wrapper
         );
+        manager.setStoreId("testStore");
+        return manager;
     }
 
     private static CipherSpec getSymmetricCipherSpec() {

@@ -152,22 +152,23 @@ public class PasswordKeyWrapperTest {
 
     private PasswordProtectedKeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
 
-        PasswordKeyWrapper passwordKeyManager = getPasswordKeyManager(keyCipher, keyIntegrity, "default_password");
-        return new PasswordProtectedKeyManager(
-                "test",
+        PasswordKeyWrapper wrapper = getWrapper(keyCipher, keyIntegrity);
+        PasswordProtectedKeyManager manager = new PasswordProtectedKeyManager(
                 new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
                 ),
                 keyStorage,
-                passwordKeyManager
+                wrapper
         );
+        manager.setStoreId("test");
+        wrapper.setPassword("default_password");
+        return manager;
     }
 
     @NonNull
-    private PasswordKeyWrapper getPasswordKeyManager(CipherSpec keyCipher, IntegritySpec keyIntegrity, String password) throws GeneralSecurityException, IOException {
-        PasswordKeyWrapper passwordKeyManager = new PasswordKeyWrapper(
-                "id",
+    private PasswordKeyWrapper getWrapper(CipherSpec keyCipher, IntegritySpec keyIntegrity) throws GeneralSecurityException, IOException {
+        PasswordKeyWrapper wrapper = new PasswordKeyWrapper(
                 getDerivationSpec(),
                 new ProtectionSpec(
                         keyCipher,
@@ -175,8 +176,7 @@ public class PasswordKeyWrapperTest {
                 ),
                 configStorage
         );
-        passwordKeyManager.setPassword(password);
-        return passwordKeyManager;
+        return wrapper;
     }
 
     private static CipherSpec getSymmetricCipherSpec() {

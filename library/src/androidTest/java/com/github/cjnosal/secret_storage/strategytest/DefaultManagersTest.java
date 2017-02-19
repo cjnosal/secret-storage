@@ -64,7 +64,8 @@ public class DefaultManagersTest {
 
     @Test
     public void M_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id");
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage);
+        manager.setStoreId("id");
         assert(manager.getKeyWrapper() instanceof KeyStoreWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -72,7 +73,8 @@ public class DefaultManagersTest {
 
     @Test
     public void JB_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id");
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager.setStoreId("id");
         assert(manager.getKeyWrapper() instanceof AsymmetricKeyStoreWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -80,7 +82,8 @@ public class DefaultManagersTest {
 
     @Test
     public void noKeyStore_noPassword() throws GeneralSecurityException, IOException {
-        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id");
+        KeyManager manager = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage);
+        manager.setStoreId("id");
         assert(manager.getKeyWrapper() instanceof PasswordKeyWrapper);
         byte[] e1 = manager.encrypt("1".getBytes());
         assertEquals(new String(manager.decrypt(e1)), "1");
@@ -88,7 +91,8 @@ public class DefaultManagersTest {
 
     @Test
     public void JB_Password() throws GeneralSecurityException, IOException {
-        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id");
+        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager.setStoreId("id");
         assert(manager.getKeyWrapper() instanceof SignedPasswordKeyWrapper);
         manager.setPassword("user secret");
         byte[] e1 = manager.encrypt("1".getBytes());
@@ -97,7 +101,8 @@ public class DefaultManagersTest {
 
     @Test
     public void noKeyStore_Password() throws GeneralSecurityException, IOException {
-        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage, "id");
+        PasswordProtectedKeyManager manager = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH, configStorage, keyStorage);
+        manager.setStoreId("id");
         assert(manager.getKeyWrapper() instanceof PasswordKeyWrapper);
         manager.setPassword("user secret");
         byte[] e1 = manager.encrypt("1".getBytes());
@@ -106,14 +111,20 @@ public class DefaultManagersTest {
 
     @Test
     public void keystore_interference() throws GeneralSecurityException, IOException {
-        KeyManager manager1 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id1");
-        KeyManager manager2 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage, "id2");
+        KeyManager manager1 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage);
+        manager1.setStoreId("id1");
+        KeyManager manager2 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.M, configStorage, keyStorage);
+        manager2.setStoreId("id2");
 
-        KeyManager manager3 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id3");
-        KeyManager manager4 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id4");
+        KeyManager manager3 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager3.setStoreId("id3");
+        KeyManager manager4 = defaultManagers.selectKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager4.setStoreId("id4");
 
-        PasswordProtectedKeyManager manager5 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id5");
-        PasswordProtectedKeyManager manager6 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage, "id6");
+        PasswordProtectedKeyManager manager5 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager5.setStoreId("id5");
+        PasswordProtectedKeyManager manager6 = defaultManagers.selectPasswordProtectedKeyManager(context, Build.VERSION_CODES.JELLY_BEAN_MR2, configStorage, keyStorage);
+        manager6.setStoreId("id6");
         manager5.setPassword("user password");
         manager6.setPassword("user password2");
 

@@ -80,14 +80,12 @@ public class KeyStoreWrapperTest {
 
         KeyWrapper wrapper =  new KeyStoreWrapper(
                 androidCrypto,
-                "test",
                 new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
                 )
         );
-        return new KeyManager(
-                "test",
+        KeyManager manager = new KeyManager(
                 new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
@@ -95,6 +93,8 @@ public class KeyStoreWrapperTest {
                 keyStorage,
                 wrapper
         );
+        manager.setStoreId("test");
+        return manager;
     }
 
     private static KeyStoreCipherSpec getSymmetricCipherSpec() {

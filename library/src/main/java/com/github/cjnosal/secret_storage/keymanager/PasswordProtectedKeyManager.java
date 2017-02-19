@@ -27,8 +27,8 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 
 public class PasswordProtectedKeyManager extends KeyManager {
-    public PasswordProtectedKeyManager(String storeId, ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper) {
-        super(storeId, dataProtectionSpec, keyStorage, keyWrapper);
+    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper) {
+        super(dataProtectionSpec, keyStorage, keyWrapper);
     }
 
     public void setPassword(@NonNull String password) throws GeneralSecurityException, IOException {

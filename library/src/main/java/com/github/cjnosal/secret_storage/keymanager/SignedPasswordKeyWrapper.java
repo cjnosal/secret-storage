@@ -46,8 +46,8 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, String storeId, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
-        super(storeId, keyDerivationSpec, keyProtectionSpec, configStorage);
+    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
+        super(keyDerivationSpec, keyProtectionSpec, configStorage);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.derivationIntegritySpec = derivationIntegritySpec;

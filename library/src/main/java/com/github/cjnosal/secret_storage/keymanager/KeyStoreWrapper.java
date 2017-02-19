@@ -42,14 +42,12 @@ public class KeyStoreWrapper extends KeyWrapper {
     // TODO unlock with fingerprint
 
     private AndroidCrypto androidCrypto;
-    private String storeId;
     private ProtectionStrategy keyProtectionStrategy;
     private final KeyEncoding keyEncoding = new KeyEncoding();
 
-    public KeyStoreWrapper(AndroidCrypto androidCrypto, String storeId, ProtectionSpec keyProtectionSpec) {
+    public KeyStoreWrapper(AndroidCrypto androidCrypto, ProtectionSpec keyProtectionSpec) {
         super(keyProtectionSpec);
         this.androidCrypto = androidCrypto;
-        this.storeId = storeId;
         this.keyProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
     }
 

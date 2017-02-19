@@ -46,6 +46,7 @@ public class SecretStorage {
         this.configStorage = configStorage;
         this.dataStorage = dataStorage;
         this.keyManager = keyManager;
+        this.keyManager.setStoreId(storeId);
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
@@ -72,6 +73,7 @@ public class SecretStorage {
         if (!keyManager.getDataProtectionSpec().equals(other.getDataProtectionSpec())) {
             throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionSpec() + " but was " + other.getDataProtectionSpec());
         }
+        other.setStoreId(storeId);
         keyManager.copyTo(other);
         keyManager = other;
     }
@@ -153,7 +155,7 @@ public class SecretStorage {
 
         protected KeyManager selectKeyManager(int osVersion) throws GeneralSecurityException, IOException {
             // TODO refactor KeyManager to take storeId as a parameter instead of a field
-            return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS), storeId);
+            return new DefaultManagers().selectKeyManager(context, osVersion, configStorage, createStorage(DataStorage.TYPE_KEYS));
         }
 
         protected DataStorage createStorage(@DataStorage.Type String type) {

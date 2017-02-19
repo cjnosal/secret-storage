@@ -38,15 +38,19 @@ public class KeyManager {
     private final ProtectionStrategy dataProtectionStrategy;
     private final DataStorage keyStorage;
     protected KeyWrapper keyWrapper;
-    private final String storeId;
+    protected String storeId;
 
-    public KeyManager(String storeId, ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper) {
-        this.storeId = storeId;
+    public KeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper) {
         this.dataProtectionSpec = dataProtectionSpec;
         this.dataProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.keyStorage = keyStorage;
         this.keyWrapper = keyWrapper;
         PRNGFixes.apply();
+    }
+
+    public void setStoreId(String storeId) {
+        this.storeId = storeId;
+        this.keyWrapper.setStoreId(storeId);
     }
 
     public KeyWrapper getKeyWrapper() {
@@ -80,6 +84,7 @@ public class KeyManager {
     }
 
     public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
+        newWrapper.setStoreId(storeId);
         if (dataKeysExist()) {
             @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
             @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();

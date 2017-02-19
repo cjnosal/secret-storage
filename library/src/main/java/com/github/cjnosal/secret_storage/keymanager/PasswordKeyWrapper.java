@@ -45,7 +45,6 @@ public class PasswordKeyWrapper extends KeyWrapper {
     private static final String VERIFICATION = "VERIFICATION";
 
     protected final SecureRandom secureRandom;
-    protected final String storeId;
     protected final KeyDerivationSpec derivationSpec;
     protected final ProtectionStrategy keyProtectionStrategy;
     protected final DataStorage configStorage;
@@ -55,10 +54,9 @@ public class PasswordKeyWrapper extends KeyWrapper {
     protected Key derivedSigKey;
     protected byte[] verification;
 
-    public PasswordKeyWrapper(String storeId, KeyDerivationSpec derivationSpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
+    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
         super(keyProtectionSpec);
         this.secureRandom = new SecureRandom();
-        this.storeId = storeId;
         this.derivationSpec = derivationSpec;
         this.keyProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.configStorage = configStorage;

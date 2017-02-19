@@ -34,17 +34,17 @@ import java.security.GeneralSecurityException;
 
 public class DefaultManagers {
 
-    public KeyManager selectKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage, String storeId) throws GeneralSecurityException, IOException {
+    public KeyManager selectKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) throws GeneralSecurityException, IOException {
         KeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.M) {
-            keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), storeId, DefaultSpecs.getKeyStoreDataProtectionSpec());
+            keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec());
         } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             keyWrapper = new AsymmetricKeyStoreWrapper(
-                    context, new AndroidCrypto(), storeId, DefaultSpecs.getAsymmetricKeyProtectionSpec());
+                    context, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec());
         } else {
             PasswordKeyWrapper manager = new PasswordKeyWrapper(
-                    storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
+                    DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
             if (manager.isPasswordSet()) {
                 manager.unlock("default_password");
             } else {
@@ -52,20 +52,20 @@ public class DefaultManagers {
             }
             keyWrapper = manager;
         }
-        return new KeyManager(storeId, DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
+        return new KeyManager(DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
     }
 
-    public PasswordProtectedKeyManager selectPasswordProtectedKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage, String storeId) throws GeneralSecurityException, IOException {
+    public PasswordProtectedKeyManager selectPasswordProtectedKeyManager(Context context, int osVersion, DataStorage configStorage, DataStorage keyStorage) throws GeneralSecurityException, IOException {
         PasswordKeyWrapper keyWrapper;
 
         if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             keyWrapper = new SignedPasswordKeyWrapper(
-                    context, storeId, new AndroidCrypto(), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
+                    context, new AndroidCrypto(), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
         } else {
             keyWrapper = new PasswordKeyWrapper(
-                    storeId, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
+                    DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(osVersion), configStorage);
         }
 
-        return new PasswordProtectedKeyManager(storeId, DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
+        return new PasswordProtectedKeyManager(DefaultSpecs.getDataProtectionSpec(osVersion), keyStorage, keyWrapper);
     }
 }

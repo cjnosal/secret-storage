@@ -100,23 +100,24 @@ public class SignedPasswordKeyWrapperTest {
 
     private PasswordProtectedKeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity) throws IOException, GeneralSecurityException {
 
-        SignedPasswordKeyWrapper passwordKeyManager = getSignedPasswordKeyManager(keyCipher, keyIntegrity, derivationIntegrity, "default_password");
-        return new PasswordProtectedKeyManager(
-                "test",
+        SignedPasswordKeyWrapper wrapper = getWrapper(keyCipher, keyIntegrity, derivationIntegrity);
+        PasswordProtectedKeyManager manager = new PasswordProtectedKeyManager(
                 new ProtectionSpec(
                         dataCipher,
                         dataIntegrity
                 ),
                 keyStorage,
-                passwordKeyManager
+                wrapper
         );
+        manager.setStoreId("test");
+        wrapper.setPassword("default_password");
+        return manager;
     }
 
     @NonNull
-    private SignedPasswordKeyWrapper getSignedPasswordKeyManager(CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity, String password) throws GeneralSecurityException, IOException {
-        SignedPasswordKeyWrapper passwordKeyManager = new SignedPasswordKeyWrapper(
+    private SignedPasswordKeyWrapper getWrapper(CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity) throws GeneralSecurityException, IOException {
+        SignedPasswordKeyWrapper wrapper = new SignedPasswordKeyWrapper(
                 context,
-                "testStore",
                 androidCrypto,
                 getDerivationSpec(),
                 derivationIntegrity,
@@ -126,8 +127,7 @@ public class SignedPasswordKeyWrapperTest {
                 ),
                 configStorage
         );
-        passwordKeyManager.setPassword(password);
-        return passwordKeyManager;
+        return wrapper;
     }
 
     private static CipherSpec getSymmetricCipherSpec() {
