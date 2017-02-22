@@ -23,7 +23,9 @@ import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
@@ -84,7 +86,9 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
                         dataIntegrity
                 ),
                 keyStorage,
-                wrapper
+                wrapper,
+                new DataKeyGenerator(),
+                new KeyWrap()
         );
         manager.setStoreId("testStore");
         return manager;

@@ -18,7 +18,7 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import android.support.annotation.NonNull;
 
-import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
@@ -60,6 +60,28 @@ public class PasswordKeyWrapper extends KeyWrapper {
         this.derivationSpec = derivationSpec;
         this.keyProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.configStorage = configStorage;
+    }
+
+    @Override
+    String getWrapAlgorithm() {
+        return SecurityAlgorithms.Cipher_AESWRAP;
+    }
+
+    @Override
+    String getWrapParamAlgorithm() {
+        return SecurityAlgorithms.AlgorithmParameters_AES;
+    }
+
+    public Key getKek() throws LoginException {
+        if (!isUnlocked()) {
+            throw new LoginException("Not unlocked");
+        }
+        return derivedEncKey;
+    }
+
+    @Override
+    Key getKdk() throws IOException, GeneralSecurityException {
+        return getKek();
     }
 
     public void setPassword(@NonNull String password) throws IOException, GeneralSecurityException {
@@ -113,22 +135,6 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     public boolean isUnlocked() {
         return derivedEncKey != null && derivedSigKey != null;
-    }
-
-    @Override
-    public byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
-        return keyProtectionStrategy.encryptAndSign(derivedEncKey, derivedSigKey, keyProtectionSpec, keyEncoding.encodeKey(key));
-    }
-
-    @Override
-    public @KeyPurpose.Data Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException {
-        if (!isUnlocked()) {
-            throw new LoginException("Not unlocked");
-        }
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(derivedEncKey, derivedSigKey, keyProtectionSpec, wrappedKey));
     }
 
     @Override

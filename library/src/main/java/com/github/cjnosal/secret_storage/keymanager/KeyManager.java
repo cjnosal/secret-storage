@@ -22,12 +22,12 @@ import android.os.Build;
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
@@ -36,18 +36,22 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
-import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 public class KeyManager {
 
     private ProtectionSpec dataProtectionSpec;
+    private DataKeyGenerator dataKeyGenerator;
+    private KeyWrap keyWrap;
     private final ProtectionStrategy dataProtectionStrategy;
     private final DataStorage keyStorage;
     protected KeyWrapper keyWrapper;
     protected String storeId;
 
-    public KeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper) {
+    public KeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
         this.dataProtectionSpec = dataProtectionSpec;
+        this.dataKeyGenerator = dataKeyGenerator;
+        this.keyWrap = keyWrap;
         this.dataProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.keyStorage = keyStorage;
         this.keyWrapper = keyWrapper;
@@ -75,8 +79,8 @@ public class KeyManager {
             signingKey = loadDataSigningKey();
         }
         else {
-            encryptionKey = generateDataEncryptionKey();
-            signingKey = generateDataSigningKey();
+            encryptionKey = dataKeyGenerator.generateDataEncryptionKey(dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherSpec().getKeySize());
+            signingKey = dataKeyGenerator.generateDataEncryptionKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
             storeDataEncryptionKey(encryptionKey);
             storeDataSigningKey(signingKey);
         }
@@ -112,37 +116,23 @@ public class KeyManager {
         }
     }
 
-    protected @KeyPurpose.DataSecrecy Key generateDataEncryptionKey() throws GeneralSecurityException, IOException {
-        CipherSpec spec = dataProtectionSpec.getCipherSpec();
-        KeyGenerator g = KeyGenerator.getInstance(spec.getKeygenAlgorithm());
-        g.init(spec.getKeySize());
-        return g.generateKey();
-    }
-
-    protected @KeyPurpose.DataIntegrity Key generateDataSigningKey() throws GeneralSecurityException, IOException {
-        IntegritySpec spec = dataProtectionSpec.getIntegritySpec();
-        KeyGenerator g = KeyGenerator.getInstance(spec.getKeygenAlgorithm());
-        g.init(spec.getKeySize());
-        return g.generateKey();
-    }
-
     protected @KeyPurpose.DataSecrecy Key loadDataEncryptionKey() throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
-        return keyWrapper.unwrap(wrappedKey);
+        return keyWrap.unwrap(keyWrapper.getKdk(), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
     }
 
     protected @KeyPurpose.DataIntegrity Key loadDataSigningKey() throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
-        return keyWrapper.unwrap(wrappedKey);
+        return keyWrap.unwrap(keyWrapper.getKdk(), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
     }
 
     protected void storeDataEncryptionKey(@KeyPurpose.DataSecrecy Key key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyWrapper.wrap(key);
+        byte[] wrappedKey = keyWrap.wrap(keyWrapper.getKek(), (SecretKey) key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
         keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
     }
 
     protected void storeDataSigningKey(@KeyPurpose.DataIntegrity Key key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyWrapper.wrap(key);
+        byte[] wrappedKey = keyWrap.wrap(keyWrapper.getKek(), (SecretKey) key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
         keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
     }
 
@@ -169,6 +159,8 @@ public class KeyManager {
         protected Context keyStorageContext;
         protected String storeId;
         protected DataStorage keyStorage;
+        protected DataKeyGenerator dataKeyGenerator;
+        protected KeyWrap keyWrap;
 
         public Builder() {}
 
@@ -203,9 +195,19 @@ public class KeyManager {
             return this;
         }
 
+        public Builder dataKeyGenerator(DataKeyGenerator dataKeyGenerator) {
+            this.dataKeyGenerator = dataKeyGenerator;
+            return this;
+        }
+
+        public Builder keyWrap(KeyWrap keyWrap) {
+            this.keyWrap = keyWrap;
+            return this;
+        }
+
         public KeyManager build() {
             validate();
-            return new KeyManager(dataProtection, keyStorage, keyWrapper);
+            return new KeyManager(dataProtection, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
         }
 
         protected void validate() {
@@ -227,6 +229,12 @@ public class KeyManager {
             }
             if (keyWrapper == null) {
                 selectKeyWrapper();
+            }
+            if (dataKeyGenerator == null) {
+                dataKeyGenerator = new DataKeyGenerator();
+            }
+            if (keyWrap == null) {
+                keyWrap = new KeyWrap();
             }
         }
 

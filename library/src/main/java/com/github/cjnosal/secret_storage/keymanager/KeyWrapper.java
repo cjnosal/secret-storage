@@ -16,7 +16,6 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
-import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 
 import java.io.IOException;
@@ -35,8 +34,10 @@ public abstract class KeyWrapper {
         return keyProtectionSpec;
     }
 
-    abstract byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException;
-    abstract @KeyPurpose.Data Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException;
+    abstract String getWrapAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
+    abstract String getWrapParamAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
+    abstract Key getKek() throws GeneralSecurityException, IOException;
+    abstract Key getKdk() throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;
 
     public void setStoreId(String storeId) {
@@ -44,7 +45,6 @@ public abstract class KeyWrapper {
     }
 
     protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
-    protected static final String SIGNING_KEY = "SIGNING_KEY";
     protected static final String DELIMITER = "::";
 
     protected static String getStorageField(String storeId, String field) {

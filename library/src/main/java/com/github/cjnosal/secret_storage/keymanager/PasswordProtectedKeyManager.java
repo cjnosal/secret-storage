@@ -22,7 +22,9 @@ import android.support.annotation.NonNull;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
@@ -32,8 +34,8 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 
 public class PasswordProtectedKeyManager extends KeyManager {
-    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper) {
-        super(dataProtectionSpec, keyStorage, keyWrapper);
+    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
+        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
     }
 
     public void setPassword(@NonNull String password) throws GeneralSecurityException, IOException {
@@ -106,7 +108,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
         public PasswordProtectedKeyManager build() {
             validate();
-            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper);
+            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap);
         }
 
         @Override

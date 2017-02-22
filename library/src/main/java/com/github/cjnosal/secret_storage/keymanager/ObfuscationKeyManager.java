@@ -18,7 +18,9 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import android.content.Context;
 
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
@@ -32,8 +34,8 @@ import java.security.GeneralSecurityException;
  */
 public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
-    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper) {
-        super(dataProtectionSpec, keyStorage, keyWrapper);
+    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
+        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
@@ -106,7 +108,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         public ObfuscationKeyManager build() {
             validate();
-            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper);
+            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap);
         }
 
         @Override

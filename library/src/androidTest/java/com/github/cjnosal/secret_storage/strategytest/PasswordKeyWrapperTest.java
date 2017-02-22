@@ -23,7 +23,9 @@ import android.support.test.InstrumentationRegistry;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
@@ -159,8 +161,9 @@ public class PasswordKeyWrapperTest {
                         dataIntegrity
                 ),
                 keyStorage,
-                wrapper
-        );
+                wrapper,
+                new DataKeyGenerator(),
+                new KeyWrap());
         manager.setStoreId("test");
         wrapper.setPassword("default_password");
         return manager;

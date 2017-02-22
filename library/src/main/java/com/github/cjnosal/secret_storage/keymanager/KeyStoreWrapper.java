@@ -19,15 +19,10 @@ package com.github.cjnosal.secret_storage.keymanager;
 import android.annotation.TargetApi;
 import android.os.Build;
 
-import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
-import com.github.cjnosal.secret_storage.storage.encoding.KeyEncoding;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -42,70 +37,39 @@ public class KeyStoreWrapper extends KeyWrapper {
     // TODO unlock with fingerprint
 
     private AndroidCrypto androidCrypto;
-    private ProtectionStrategy keyProtectionStrategy;
-    private final KeyEncoding keyEncoding = new KeyEncoding();
 
     public KeyStoreWrapper(AndroidCrypto androidCrypto, ProtectionSpec keyProtectionSpec) {
         super(keyProtectionSpec);
         this.androidCrypto = androidCrypto;
-        this.keyProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
     }
 
     @Override
-    public byte[] wrap(@KeyPurpose.Data Key key) throws GeneralSecurityException, IOException {
-        @KeyPurpose.KeySecrecy Key encryptionKey;
-        @KeyPurpose.KeyIntegrity Key signingKey;
-        if (keysExist()) {
-            encryptionKey = loadEncryptionKey();
-            signingKey = loadSigningKey();
-        }
-        else {
-            encryptionKey = generateEncryptionKey();
-            signingKey = generateSigningKey();
-        }
-        return keyProtectionStrategy.encryptAndSign(encryptionKey, signingKey, keyProtectionSpec, keyEncoding.encodeKey(key));
+    String getWrapAlgorithm() {
+        return SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding;
     }
 
     @Override
-    public Key unwrap(byte[] wrappedKey) throws GeneralSecurityException, IOException {
-        @KeyPurpose.KeySecrecy Key decryptionKey = loadDecryptionKey();
-        @KeyPurpose.KeyIntegrity Key verificationKey = loadVerificationKey();
-        return keyEncoding.decodeKey(keyProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, keyProtectionSpec, wrappedKey));
+    String getWrapParamAlgorithm() {
+        return SecurityAlgorithms.AlgorithmParameters_AES;
+    }
+
+    @Override
+    Key getKek() throws IOException, GeneralSecurityException {
+        String storageField = getStorageField(storeId, ENCRYPTION_KEY);
+        if (!androidCrypto.hasEntry(storageField)) {
+            KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec.getCipherSpec();
+            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storageField));
+        }
+        return androidCrypto.loadSecretKey(storageField);
+    }
+
+    @Override
+    Key getKdk() throws IOException, GeneralSecurityException {
+        return getKek();
     }
 
     @Override
     public void clear() throws GeneralSecurityException, IOException {
-        androidCrypto.deleteEntry(getStorageField(storeId, SIGNING_KEY));
         androidCrypto.deleteEntry(getStorageField(storeId, ENCRYPTION_KEY));
-    }
-
-    private Key generateEncryptionKey() throws GeneralSecurityException, IOException {
-        KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec.getCipherSpec();
-        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(getStorageField(storeId, ENCRYPTION_KEY)));
-    }
-
-    private Key generateSigningKey() throws GeneralSecurityException, IOException {
-        KeyStoreIntegritySpec spec = (KeyStoreIntegritySpec) keyProtectionSpec.getIntegritySpec();
-        return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(getStorageField(storeId, SIGNING_KEY)));
-    }
-
-    private Key loadEncryptionKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(getStorageField(storeId, ENCRYPTION_KEY));
-    }
-
-    private Key loadSigningKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(getStorageField(storeId, SIGNING_KEY));
-    }
-
-    private Key loadDecryptionKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(getStorageField(storeId, ENCRYPTION_KEY));
-    }
-
-    private Key loadVerificationKey() throws GeneralSecurityException, IOException {
-        return androidCrypto.loadSecretKey(getStorageField(storeId, SIGNING_KEY));
-    }
-
-    private boolean keysExist() throws GeneralSecurityException, IOException {
-        return androidCrypto.hasEntry(getStorageField(storeId, SIGNING_KEY)) && androidCrypto.hasEntry(getStorageField(storeId, ENCRYPTION_KEY));
     }
 }

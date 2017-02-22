@@ -28,7 +28,9 @@ import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
@@ -42,7 +44,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
 
 public class SecretStorageTest {
 
@@ -51,11 +52,15 @@ public class SecretStorageTest {
     DataStorage configStorage;
     DataStorage keyStorage;
     DataStorage dataStorage;
+    DataKeyGenerator dataKeyGenerator;
+    KeyWrap keyWrap;
 
     @Before
     public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         androidCrypto = new AndroidCrypto();
+        dataKeyGenerator = new DataKeyGenerator();
+        keyWrap = new KeyWrap();
         configStorage = new FileStorage(context.getFilesDir() + "/testConfig");
         keyStorage = new FileStorage(context.getFilesDir() + "/testKeys");
         dataStorage = new FileStorage(context.getFilesDir() + "/testData");
@@ -99,7 +104,9 @@ public class SecretStorageTest {
         KeyManager keyManager = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
-                passwordKeyManager
+                passwordKeyManager,
+                dataKeyGenerator,
+                keyWrap
         );
 
         SecretStorage secretStorage = new SecretStorage(context, "id", configStorage, dataStorage, keyManager);
@@ -137,7 +144,9 @@ public class SecretStorageTest {
 
         // ICS data encryption for compatibility, upgraded key wrapper using M's AndroidKeyStore
         KeyManager upgradedWrapping = new KeyManager(DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.ICE_CREAM_SANDWICH), keyStorage,
-                new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec()));
+                new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec()),
+                dataKeyGenerator,
+                keyWrap);
 
         secretStorage1.rewrap(upgradedWrapping);
 
@@ -149,12 +158,6 @@ public class SecretStorageTest {
 
         assertEquals(new String(secretStorage2.load("mysecret1")), "message1");
         assertEquals(new String(secretStorage2.load("mysecret2")), "message2");
-
-        SecretStorage secretStorage3 = new SecretStorage(context, "id", configStorage, dataStorage, obfuscationKeyManager);
-        try {
-            assertEquals(new String(secretStorage3.load("mysecret1")), "message1");
-            fail("Expected decryption failure as data keys were rewrapped");
-        } catch (GeneralSecurityException e) {}
     }
 
     @Test
@@ -165,7 +168,7 @@ public class SecretStorageTest {
                 new PasswordKeyWrapper(
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT),
-                configStorage));
+                configStorage), dataKeyGenerator, keyWrap);
 
         PasswordProtectedKeyManager passwordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
@@ -173,7 +176,7 @@ public class SecretStorageTest {
                 new PasswordKeyWrapper(
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT),
-                configStorage));
+                configStorage), dataKeyGenerator, keyWrap);
 
         PasswordProtectedKeyManager signedPasswordKeyManager1 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
@@ -182,7 +185,7 @@ public class SecretStorageTest {
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordDeviceBindingSpec(),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT),
-                configStorage));
+                configStorage), dataKeyGenerator, keyWrap);
 
         PasswordProtectedKeyManager signedPasswordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
@@ -191,33 +194,41 @@ public class SecretStorageTest {
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordDeviceBindingSpec(),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT),
-                configStorage));
+                configStorage), dataKeyGenerator, keyWrap);
 
         KeyManager asymmetricWrapKeyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 new AsymmetricKeyStoreWrapper(context, androidCrypto,
                 DefaultSpecs.getAsymmetricKeyProtectionSpec()
-        ));
+        ),
+                dataKeyGenerator,
+                keyWrap);
 
         KeyManager asymmetricWrapKeyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 new AsymmetricKeyStoreWrapper(context, androidCrypto,
                 DefaultSpecs.getAsymmetricKeyProtectionSpec()
-        ));
+        ),
+                dataKeyGenerator,
+                keyWrap);
 
         KeyManager keyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 new KeyStoreWrapper(androidCrypto,
-                DefaultSpecs.getKeyStoreDataProtectionSpec()));
+                DefaultSpecs.getKeyStoreDataProtectionSpec()),
+                dataKeyGenerator,
+                keyWrap);
 
         KeyManager keyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 new KeyStoreWrapper(androidCrypto,
-                DefaultSpecs.getKeyStoreDataProtectionSpec()));
+                DefaultSpecs.getKeyStoreDataProtectionSpec()),
+                dataKeyGenerator,
+                keyWrap);
 
         SecretStorage s1 = new SecretStorage(context, "id1", configStorage, dataStorage, passwordKeyManager1);
         SecretStorage s2 = new SecretStorage(context, "id2", configStorage, dataStorage, passwordKeyManager2);
