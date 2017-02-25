@@ -19,7 +19,6 @@ package com.github.cjnosal.secret_storage.keymanager;
 import android.content.Context;
 import android.os.Build;
 
-import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
@@ -29,12 +28,9 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Key;
 
 import javax.crypto.SecretKey;
 
@@ -44,16 +40,14 @@ public class KeyManager {
     private DataKeyGenerator dataKeyGenerator;
     private KeyWrap keyWrap;
     private final ProtectionStrategy dataProtectionStrategy;
-    private final DataStorage keyStorage;
     protected KeyWrapper keyWrapper;
     protected String storeId;
 
-    public KeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, KeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
+    public KeyManager(ProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
         this.dataProtectionSpec = dataProtectionSpec;
         this.dataKeyGenerator = dataKeyGenerator;
         this.keyWrap = keyWrap;
         this.dataProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
-        this.keyStorage = keyStorage;
         this.keyWrapper = keyWrapper;
         PRNGFixes.apply();
     }
@@ -70,80 +64,28 @@ public class KeyManager {
         return dataProtectionSpec;
     }
 
-    public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
-        @KeyPurpose.DataSecrecy Key encryptionKey;
-        @KeyPurpose.DataIntegrity Key signingKey;
-        if (dataKeysExist()) {
-            encryptionKey = loadDataEncryptionKey();
-            signingKey = loadDataSigningKey();
-        }
-        else {
-            encryptionKey = dataKeyGenerator.generateDataEncryptionKey(dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherSpec().getKeySize());
-            signingKey = dataKeyGenerator.generateDataEncryptionKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
-            storeDataEncryptionKey(encryptionKey);
-            storeDataSigningKey(signingKey);
-        }
+    public byte[] encrypt(SecretKey encryptionKey, SecretKey signingKey, byte[] plainText) throws GeneralSecurityException, IOException {
         return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
     }
 
-    public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
-        @KeyPurpose.DataSecrecy Key decryptionKey = loadDataEncryptionKey();
-        @KeyPurpose.DataIntegrity Key verificationKey = loadDataSigningKey();
+    public byte[] decrypt(SecretKey decryptionKey, SecretKey verificationKey, byte[] cipherText) throws GeneralSecurityException, IOException {
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
     }
 
-    public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
-        if (dataKeysExist()) {
-            @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
-            @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
-            keyWrapper.clear();
-            keyWrapper = newWrapper;
-            storeDataEncryptionKey(encryptionKey);
-            storeDataSigningKey(signingKey);
-        } else {
-            keyWrapper = newWrapper;
-        }
+    public SecretKey generateDataEncryptionKey() throws GeneralSecurityException, IOException {
+        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherSpec().getKeySize());
     }
 
-    public void copyTo(KeyManager other) throws GeneralSecurityException, IOException {
-        if (dataKeysExist()) {
-            @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
-            @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
-            other.storeDataEncryptionKey(encryptionKey);
-            other.storeDataSigningKey(signingKey);
-        }
+    public SecretKey generateDataSigningKey() throws GeneralSecurityException, IOException {
+        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
     }
 
-    protected @KeyPurpose.DataSecrecy Key loadDataEncryptionKey() throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
+    public byte[] wrapKey(SecretKey key) throws GeneralSecurityException, IOException {
+        return keyWrap.wrap(keyWrapper.getKek(), key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
+    }
+
+    public SecretKey unwrapKey(byte[] wrappedKey) throws GeneralSecurityException, IOException {
         return keyWrap.unwrap(keyWrapper.getKdk(), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
-    }
-
-    protected @KeyPurpose.DataIntegrity Key loadDataSigningKey() throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
-        return keyWrap.unwrap(keyWrapper.getKdk(), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
-    }
-
-    protected void storeDataEncryptionKey(@KeyPurpose.DataSecrecy Key key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyWrap.wrap(keyWrapper.getKek(), (SecretKey) key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
-        keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
-    }
-
-    protected void storeDataSigningKey(@KeyPurpose.DataIntegrity Key key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyWrap.wrap(keyWrapper.getKek(), (SecretKey) key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
-        keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
-    }
-
-    protected boolean dataKeysExist() throws GeneralSecurityException, IOException {
-        return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
-    }
-    
-    protected static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
-    protected static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
-    protected static final String DELIMITER = "::";
-
-    protected static String getStorageField(String storeId, String field) {
-        return storeId + DELIMITER + field;
     }
 
     public static class Builder {
@@ -156,7 +98,6 @@ public class KeyManager {
 
         protected Context keyStorageContext;
         protected String storeId;
-        protected DataStorage keyStorage;
         protected DataKeyGenerator dataKeyGenerator;
         protected KeyWrap keyWrap;
 
@@ -193,11 +134,6 @@ public class KeyManager {
             return this;
         }
 
-        public Builder keyStorage(DataStorage keyStorage) {
-            this.keyStorage = keyStorage;
-            return this;
-        }
-
         public Builder dataKeyGenerator(DataKeyGenerator dataKeyGenerator) {
             this.dataKeyGenerator = dataKeyGenerator;
             return this;
@@ -210,18 +146,10 @@ public class KeyManager {
 
         public KeyManager build() {
             validate();
-            return new KeyManager(dataProtection, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
+            return new KeyManager(dataProtection, keyWrapper, dataKeyGenerator, keyWrap);
         }
 
         protected void validate() {
-            if (keyStorage == null) {
-                if (storeId != null && keyStorageContext != null) {
-                    keyStorage = new PreferenceStorage(keyStorageContext, storeId);
-                }
-                else {
-                    throw new IllegalArgumentException("Must provide either a DataStorage or a Context and storeId");
-                }
-            }
             if (dataProtection == null) {
                 if (defaultDataProtection > 0) {
                     dataProtection = DefaultSpecs.getDataProtectionSpec(defaultDataProtection);
@@ -255,6 +183,18 @@ public class KeyManager {
                 throw new IllegalArgumentException("Must provide either a KeyWrapper, or OS version and store ID");
             }
         }
+    }
+
+    public <E extends KeyManager.Editor> E getEditor(Rewrap rewrap) {
+        throw new UnsupportedOperationException("No editor available for this KeyManager");
+    }
+
+    public class Editor {
+    }
+
+    public interface Rewrap {
+        void unwrap() throws GeneralSecurityException, IOException;
+        void rewrap() throws GeneralSecurityException, IOException;
     }
 
 

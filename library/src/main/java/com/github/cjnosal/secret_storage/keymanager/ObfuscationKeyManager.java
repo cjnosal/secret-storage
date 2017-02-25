@@ -28,43 +28,36 @@ import com.github.cjnosal.secret_storage.storage.DataStorage;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
+import javax.crypto.SecretKey;
+
 /**
  * This KeyManager is NOT SECURE!
  * Should only be used when AndroidKeyStore is not available and a user password can not be requested.
  */
 public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
-    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
-        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
+    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
+        super(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
     }
 
-    public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+    public byte[] wrapKey(SecretKey key) throws GeneralSecurityException, IOException {
         unlock();
-        return super.encrypt(plainText);
+        return super.wrapKey(key);
     }
 
-    public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+    public SecretKey unwrapKey(byte[] wrappedKey) throws GeneralSecurityException, IOException {
         unlock();
-        return super.decrypt(cipherText);
-    }
-
-    public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
-        unlock();
-        super.rewrap(newWrapper);
-    }
-
-    public void copyTo(KeyManager other) throws GeneralSecurityException, IOException {
-        unlock();
-        super.copyTo(other);
+        return super.unwrapKey(wrappedKey);
     }
 
     private void unlock() throws IOException, GeneralSecurityException {
         PasswordKeyWrapper keyWrapper = (PasswordKeyWrapper) this.keyWrapper;
         if (!keyWrapper.isUnlocked()) {
-            if (isPasswordSet()) {
-                unlock("default_password");
+            PasswordEditor passwordEditor = new PasswordEditor();
+            if (passwordEditor.isPasswordSet()) {
+                passwordEditor.unlock("default_password");
             } else {
-                setPassword("default_password");
+                passwordEditor.setPassword("default_password");
             }
         }
     }
@@ -94,11 +87,6 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
             return this;
         }
 
-        public Builder keyStorage(DataStorage keyStorage) {
-            this.keyStorage = keyStorage;
-            return this;
-        }
-
         public Builder configStorage(DataStorage configStorage) {
             this.configStorage = configStorage;
             return this;
@@ -106,7 +94,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         public ObfuscationKeyManager build() {
             validate();
-            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
+            return new ObfuscationKeyManager(dataProtection, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
         }
 
         @Override

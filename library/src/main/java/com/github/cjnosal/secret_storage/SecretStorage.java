@@ -19,6 +19,7 @@ package com.github.cjnosal.secret_storage;
 import android.content.Context;
 import android.os.Build;
 
+import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyManager;
 import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
@@ -31,6 +32,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Set;
 
+import javax.crypto.SecretKey;
+
 import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
 
 public class SecretStorage {
@@ -39,25 +42,27 @@ public class SecretStorage {
     protected String storeId;
     protected DataStorage configStorage;
     protected DataStorage dataStorage;
+    private DataStorage keyStorage;
     protected KeyManager keyManager;
 
-    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, KeyManager keyManager) {
+    public SecretStorage(Context context, String storeId, DataStorage configStorage, DataStorage dataStorage, DataStorage keyStorage, KeyManager keyManager) {
         this.context = context;
         this.storeId = storeId;
         this.configStorage = configStorage;
         this.dataStorage = dataStorage;
+        this.keyStorage = keyStorage;
         this.keyManager = keyManager;
         this.keyManager.setStoreId(storeId);
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
-        byte[] cipherText = keyManager.encrypt(plainText);
+        byte[] cipherText = encrypt(plainText);
         dataStorage.store(getStorageField(storeId, id), cipherText);
     }
 
     public byte[] load(String id) throws GeneralSecurityException, IOException {
         byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
-        return keyManager.decrypt(cipherText);
+        return decrypt(cipherText);
     }
 
     // decrypt and copy all data to another SecretStorage instance
@@ -75,12 +80,93 @@ public class SecretStorage {
             throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionSpec() + " but was " + other.getDataProtectionSpec());
         }
         other.setStoreId(storeId);
-        keyManager.copyTo(other);
-        keyManager = other;
+        if (dataKeysExist()) {
+            @KeyPurpose.DataSecrecy SecretKey encryptionKey = loadDataEncryptionKey();
+            @KeyPurpose.DataIntegrity SecretKey signingKey = loadDataSigningKey();
+            keyStorage.clear();
+            keyManager = other;
+            storeDataEncryptionKey(encryptionKey);
+            storeDataSigningKey(signingKey);
+        } else {
+            keyManager = other;
+        }
     }
 
-    public <KM extends KeyManager> KM getKeyManager() {
-        return (KM) keyManager;
+    public <E extends KeyManager.Editor> E getEditor() {
+        return keyManager.getEditor(new RewrapImpl());
+    }
+
+    private final class RewrapImpl implements KeyManager.Rewrap {
+
+        private SecretKey encryptionKey;
+        private SecretKey signingKey;
+
+        private RewrapImpl() {
+        }
+
+        @Override
+        public void unwrap() throws GeneralSecurityException, IOException {
+            if (dataKeysExist()) {
+                encryptionKey = loadDataEncryptionKey();
+                signingKey = loadDataSigningKey();
+            }
+        }
+
+        @Override
+        public void rewrap() throws GeneralSecurityException, IOException {
+            if (encryptionKey != null && signingKey != null) {
+                storeDataEncryptionKey(encryptionKey);
+                storeDataSigningKey(signingKey);
+                encryptionKey = null;
+                signingKey = null;
+            }
+        }
+    }
+
+    private byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+        @KeyPurpose.DataSecrecy SecretKey encryptionKey;
+        @KeyPurpose.DataIntegrity SecretKey signingKey;
+        if (dataKeysExist()) {
+            encryptionKey = loadDataEncryptionKey();
+            signingKey = loadDataSigningKey();
+        }
+        else {
+            encryptionKey = keyManager.generateDataEncryptionKey();
+            signingKey = keyManager.generateDataSigningKey();
+            storeDataEncryptionKey(encryptionKey);
+            storeDataSigningKey(signingKey);
+        }
+        return keyManager.encrypt(encryptionKey, signingKey, plainText);
+    }
+
+    private byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+        @KeyPurpose.DataSecrecy SecretKey decryptionKey = loadDataEncryptionKey();
+        @KeyPurpose.DataIntegrity SecretKey verificationKey = loadDataSigningKey();
+        return keyManager.decrypt(decryptionKey, verificationKey, cipherText);
+    }
+
+    protected @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey() throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
+        return keyManager.unwrapKey(wrappedKey);
+    }
+
+    protected @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey() throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+        return keyManager.unwrapKey(wrappedKey);
+    }
+
+    protected void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyManager.wrapKey(key);
+        keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
+    }
+
+    protected void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyManager.wrapKey(key);
+        keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
+    }
+
+    protected boolean dataKeysExist() throws GeneralSecurityException, IOException {
+        return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
     }
 
     public static class Builder {
@@ -88,6 +174,7 @@ public class SecretStorage {
         protected String storeId;
         protected DataStorage configStorage;
         protected DataStorage dataStorage;
+        protected DataStorage keyStorage;
         protected KeyManager keyManager;
         protected boolean withUserPassword;
 
@@ -106,6 +193,11 @@ public class SecretStorage {
             return this;
         }
 
+        public Builder keyStorage(DataStorage keyStorage) {
+            this.keyStorage = keyStorage;
+            return this;
+        }
+
         public Builder keyManager(KeyManager keyManager) {
             this.keyManager = keyManager;
             return this;
@@ -118,7 +210,7 @@ public class SecretStorage {
 
         public SecretStorage build() throws IOException {
             validateArguments();
-            return new SecretStorage(context, storeId, configStorage, dataStorage, keyManager);
+            return new SecretStorage(context, storeId, configStorage, dataStorage, keyStorage, keyManager);
         }
 
         protected void validateArguments() throws IOException {
@@ -133,6 +225,9 @@ public class SecretStorage {
             }
             if (dataStorage == null) {
                 dataStorage = createStorage(DataStorage.TYPE_DATA);
+            }
+            if (keyStorage == null) {
+                keyStorage = createStorage(DataStorage.TYPE_KEYS);
             }
             if (keyManager == null) {
                 int osVersion; // OS Version when store was created // TODO migrations
@@ -182,7 +277,6 @@ public class SecretStorage {
             return builder
                     .storeId(storeId)
                     .defaultDataProtection(osVersion)
-                    .keyStorage(createStorage(DataStorage.TYPE_KEYS))
                     .build();
         }
 
@@ -194,6 +288,8 @@ public class SecretStorage {
     private static final String OS_VERSION = "OS_VERSION";
     private static final String DATA_PROTECTION = "DATA_PROTECTION";
     private static final String KEY_PROTECTION = "KEY_PROTECTION";
+    private static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
+    private static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
     private static final String DELIMITER = "::";
     
     private static String getStorageField(String storeId, String field) {

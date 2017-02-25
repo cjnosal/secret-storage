@@ -26,7 +26,7 @@ import javax.crypto.SecretKey;
 
 public class DataKeyGenerator {
     public @KeyPurpose.DataSecrecy
-    SecretKey generateDataEncryptionKey(@SecurityAlgorithms.KeyGenerator String algorithm, int keySize) throws NoSuchAlgorithmException {
+    SecretKey generateDataKey(@SecurityAlgorithms.KeyGenerator String algorithm, int keySize) throws NoSuchAlgorithmException {
         KeyGenerator g = KeyGenerator.getInstance(algorithm);
         g.init(keySize);
         return g.generateKey();
