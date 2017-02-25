@@ -21,22 +21,20 @@ import android.content.Context;
 import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
-import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Key;
 import java.security.PrivateKey;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
@@ -48,8 +46,8 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, ProtectionSpec keyProtectionSpec, DataStorage configStorage) {
-        super(keyDerivationSpec, keyProtectionSpec, configStorage);
+    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, ProtectionSpec keyProtectionSpec) {
+        super(keyDerivationSpec, keyProtectionSpec);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.derivationIntegritySpec = derivationIntegritySpec;
@@ -57,24 +55,30 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    protected void deriveAndStoreKeys(String password) throws IOException, GeneralSecurityException {
-        androidCrypto.generateKeyPair(context, getStorageField(storeId, DEVICE_BINDING), derivationIntegritySpec.getKeygenAlgorithm()).getPrivate();
-        super.deriveAndStoreKeys(password);
-    }
+    protected byte[] derive(PasswordWrapParams params) throws GeneralSecurityException, IOException {
+        String password = params.getPassword();
+        params.clearPassword();
 
-    protected Key generateKek(String password, byte[] salt) throws IOException, GeneralSecurityException {
-        PrivateKey signingKey = androidCrypto.loadPrivateKey(getStorageField(storeId, DEVICE_BINDING));
+        PrivateKey signingKey;
+        if (params.getVerification() == null) {
+            signingKey = androidCrypto.generateKeyPair(
+                    context,
+                    getStorageField(storeId, DEVICE_BINDING),
+                    derivationIntegritySpec.getKeygenAlgorithm())
+                    .getPrivate();
+        } else {
+            signingKey = androidCrypto.loadPrivateKey(getStorageField(storeId, DEVICE_BINDING));
+        }
+
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
 
-        PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds() / 2, derivationSpec.getKeySize());
+        PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), params.getSalt(), derivationSpec.getRounds() / 2, derivationSpec.getKeySize() * 2);
         byte[] firstHash = factory.generateSecret(firstSpec).getEncoded();
         byte[] signature = derivationIntegrityStrategy.sign(signingKey, derivationIntegritySpec, firstHash);
         String signatureString = Encoding.base64Encode(signature);
 
-        PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), salt, derivationSpec.getRounds() / 2, derivationSpec.getKeySize());
-        Key secondHash = factory.generateSecret(secondSpec);
-
-        return new SecretKeySpec(secondHash.getEncoded(), 0, derivationSpec.getKeySize() / 8, derivationSpec.getKeyspecAlgorithm());
+        PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), params.getSalt(), derivationSpec.getRounds() / 2, derivationSpec.getKeySize() * 2);
+        return factory.generateSecret(secondSpec).getEncoded();
     }
 
     @Override

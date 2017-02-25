@@ -22,8 +22,8 @@ import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -34,8 +34,8 @@ import java.security.GeneralSecurityException;
  */
 public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
-    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
-        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
+    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
+        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
@@ -61,17 +61,15 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
     private void unlock() throws IOException, GeneralSecurityException {
         PasswordKeyWrapper keyWrapper = (PasswordKeyWrapper) this.keyWrapper;
         if (!keyWrapper.isUnlocked()) {
-            if (keyWrapper.isPasswordSet()) {
-                keyWrapper.unlock("default_password");
+            if (isPasswordSet()) {
+                unlock("default_password");
             } else {
-                keyWrapper.setPassword("default_password");
+                setPassword("default_password");
             }
         }
     }
 
-    public static class Builder extends KeyManager.Builder {
-
-        private DataStorage configStorage;
+    public static class Builder extends PasswordProtectedKeyManager.Builder {
 
         public Builder() {}
 
@@ -108,20 +106,12 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         public ObfuscationKeyManager build() {
             validate();
-            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap);
+            return new ObfuscationKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
         }
 
         @Override
         protected void validate() {
             super.validate();
-            if (configStorage == null) {
-                if (storeId != null && keyStorageContext != null) {
-                    configStorage = new PreferenceStorage(keyStorageContext, storeId);
-                }
-                else {
-                    throw new IllegalArgumentException("Must provide either a DataStorage or a Context and storeId");
-                }
-            }
             if (!(keyWrapper instanceof PasswordKeyWrapper)) {
                 throw new IllegalArgumentException("ObfuscationKeyManager requires a PasswordKeyWrapper or descendant");
             }
@@ -129,7 +119,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         @Override
         protected void selectKeyWrapper() {
-            keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection), configStorage);
+            keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
         }
     }
 }

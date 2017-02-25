@@ -163,9 +163,11 @@ public class PasswordKeyWrapperTest {
                 keyStorage,
                 wrapper,
                 new DataKeyGenerator(),
-                new KeyWrap());
+                new KeyWrap(),
+                configStorage,
+                getDerivationSpec());
         manager.setStoreId("test");
-        wrapper.setPassword("default_password");
+        manager.setPassword("default_password");
         return manager;
     }
 
@@ -176,8 +178,7 @@ public class PasswordKeyWrapperTest {
                 new ProtectionSpec(
                         keyCipher,
                         keyIntegrity
-                ),
-                configStorage
+                )
         );
         return wrapper;
     }

@@ -25,47 +25,104 @@ import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.SecureRandom;
+
+import javax.security.auth.login.LoginException;
 
 public class PasswordProtectedKeyManager extends KeyManager {
-    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
+    private static final String ENC_SALT = "ENC_SALT";
+    private static final String VERIFICATION = "VERIFICATION";
+
+    private DataStorage configStorage;
+    private KeyDerivationSpec keyDerivationSpec;
+    protected final SecureRandom secureRandom;
+
+    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
         super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
+        this.configStorage = configStorage;
+        this.keyDerivationSpec = keyDerivationSpec;
+        this.secureRandom = new SecureRandom();
     }
 
-    public void setPassword(@NonNull String password) throws GeneralSecurityException, IOException {
-        ((PasswordKeyWrapper) keyWrapper).setPassword(password);
-    }
-
-    public void changePassword(@NonNull String oldPassword, @NonNull String newPassword) throws GeneralSecurityException, IOException {
-        if (dataKeysExist()) {
-            @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
-            @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
-            ((PasswordKeyWrapper) keyWrapper).changePassword(oldPassword, newPassword);
-            storeDataEncryptionKey(encryptionKey);
-            storeDataSigningKey(signingKey);
+    public void setPassword(@NonNull String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet()) {
+            byte[] salt = generateSalt();
+            byte[] verification = ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(password, salt));
+            configStorage.store(getStorageField(storeId, ENC_SALT), salt);
+            configStorage.store(getStorageField(storeId, VERIFICATION), verification);
         } else {
-            ((PasswordKeyWrapper) keyWrapper).changePassword(oldPassword, newPassword);
+            throw new LoginException("Password already set. Use unlock.");
         }
     }
 
-    public void unlock(@NonNull String password) throws GeneralSecurityException, IOException {
-        ((PasswordKeyWrapper) keyWrapper).unlock(password);
+    public void changePassword(@NonNull String oldPassword, @NonNull String newPassword) throws GeneralSecurityException, IOException {
+        unlock(oldPassword);
+
+        if (dataKeysExist()) {
+            @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
+            @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
+            clear();
+            setPassword(newPassword);
+            storeDataEncryptionKey(encryptionKey);
+            storeDataSigningKey(signingKey);
+        } else {
+            clear();
+            setPassword(newPassword);
+        }
+    }
+
+    public void clear() throws GeneralSecurityException, IOException {
+        configStorage.delete(getStorageField(storeId, VERIFICATION));
+        configStorage.delete(getStorageField(storeId, ENC_SALT));
+        keyWrapper.clear();
+    }
+
+    public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet()) {
+            throw new LoginException("No password set. Use setPassword.");
+        }
+        byte[] encSalt = configStorage.load(getStorageField(storeId, ENC_SALT));
+        byte[] verification = configStorage.load(getStorageField(storeId, VERIFICATION));
+        return ((PasswordKeyWrapper) keyWrapper).verifyPassword(new PasswordWrapParams(password, encSalt, verification));
+    }
+
+    public void unlock(@NonNull String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet()) {
+            throw new LoginException("No password set. Use setPassword.");
+        }
+        byte[] encSalt = configStorage.load(getStorageField(storeId, ENC_SALT));
+        byte[] verification = configStorage.load(getStorageField(storeId, VERIFICATION));
+        ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(password, encSalt, verification));
     }
 
     public void lock() {
         ((PasswordKeyWrapper) keyWrapper).lock();
     }
 
+    public boolean isPasswordSet() throws IOException {
+        return configStorage.exists(getStorageField(storeId, ENC_SALT)) && configStorage.exists(getStorageField(storeId, VERIFICATION));
+    }
+
+    protected byte[] generateSalt() {
+        byte[] random = new byte[keyDerivationSpec.getKeySize() / 8];
+        secureRandom.nextBytes(random);
+        return random;
+    }
+
     public static class Builder extends KeyManager.Builder {
 
-        private DataStorage configStorage;
-        private Context keyWrapperContext;
+        protected DataStorage configStorage;
+        protected Context keyWrapperContext;
+        protected KeyDerivationSpec keyDerivationSpec;
 
         public Builder() {}
 
@@ -106,14 +163,18 @@ public class PasswordProtectedKeyManager extends KeyManager {
             return this;
         }
 
+        public Builder keyDerivationSpec(KeyDerivationSpec keyDerivationSpec) {
+            this.keyDerivationSpec = keyDerivationSpec;
+            return this;
+        }
+
         public PasswordProtectedKeyManager build() {
             validate();
-            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap);
+            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
         }
 
         @Override
         protected void validate() {
-            super.validate();
             if (configStorage == null) {
                 if (storeId != null && keyStorageContext != null) {
                     configStorage = new PreferenceStorage(keyStorageContext, storeId);
@@ -122,6 +183,10 @@ public class PasswordProtectedKeyManager extends KeyManager {
                     throw new IllegalArgumentException("Must provide either a DataStorage or a Context and storeId");
                 }
             }
+            if (keyDerivationSpec == null) {
+                keyDerivationSpec = DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec();
+            }
+            super.validate();
             if (!(keyWrapper instanceof PasswordKeyWrapper)) {
                 throw new IllegalArgumentException("ObfuscationKeyManager requires a PasswordKeyWrapper or descendant");
             }
@@ -131,10 +196,10 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
                 keyWrapper = new SignedPasswordKeyWrapper(
-                        keyWrapperContext, new AndroidCrypto(), DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection), configStorage);
+                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
             } else {
                 keyWrapper = new PasswordKeyWrapper(
-                        DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection), configStorage);
+                        keyDerivationSpec, DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
             }
         }
     }
