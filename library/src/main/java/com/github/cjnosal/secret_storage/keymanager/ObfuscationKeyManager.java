@@ -35,7 +35,7 @@ import java.security.GeneralSecurityException;
 public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
     public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
-        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
+        super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {

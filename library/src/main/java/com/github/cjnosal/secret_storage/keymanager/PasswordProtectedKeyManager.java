@@ -43,13 +43,11 @@ public class PasswordProtectedKeyManager extends KeyManager {
     private static final String VERIFICATION = "VERIFICATION";
 
     private DataStorage configStorage;
-    private KeyDerivationSpec keyDerivationSpec;
     protected final SecureRandom secureRandom;
 
-    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
+    public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, DataStorage keyStorage, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage) {
         super(dataProtectionSpec, keyStorage, keyWrapper, dataKeyGenerator, keyWrap);
         this.configStorage = configStorage;
-        this.keyDerivationSpec = keyDerivationSpec;
         this.secureRandom = new SecureRandom();
     }
 
@@ -113,7 +111,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
     }
 
     protected byte[] generateSalt() {
-        byte[] random = new byte[keyDerivationSpec.getKeySize() / 8];
+        byte[] random = new byte[keyWrapper.getKeyProtectionSpec().getCipherSpec().getKeySize() / 8];
         secureRandom.nextBytes(random);
         return random;
     }
@@ -170,7 +168,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
         public PasswordProtectedKeyManager build() {
             validate();
-            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
+            return new PasswordProtectedKeyManager(dataProtection, keyStorage, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         }
 
         @Override

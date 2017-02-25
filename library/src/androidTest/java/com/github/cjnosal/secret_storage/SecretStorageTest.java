@@ -105,8 +105,7 @@ public class SecretStorageTest {
                 wrapper,
                 dataKeyGenerator,
                 keyWrap,
-                configStorage,
-                DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec()
+                configStorage
         );
 
         keyManager.setPassword("password");
@@ -172,14 +171,14 @@ public class SecretStorageTest {
                 new PasswordKeyWrapper(
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)
-                ), dataKeyGenerator, keyWrap, configStorage, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+                ), dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager passwordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 keyStorage,
                 new PasswordKeyWrapper(
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager signedPasswordKeyManager1 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
@@ -187,7 +186,7 @@ public class SecretStorageTest {
                 new SignedPasswordKeyWrapper(context, androidCrypto,
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordDeviceBindingSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager signedPasswordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
@@ -195,7 +194,7 @@ public class SecretStorageTest {
                 new SignedPasswordKeyWrapper(context, androidCrypto,
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
                 DefaultSpecs.getPasswordDeviceBindingSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec(Build.VERSION_CODES.KITKAT)), dataKeyGenerator, keyWrap, configStorage);
 
         KeyManager asymmetricWrapKeyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
