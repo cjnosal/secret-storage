@@ -21,6 +21,7 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.KeyManager;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyManager;
+import com.github.cjnosal.secret_storage.keymanager.PasswordProtectedKeyManager;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
@@ -78,12 +79,17 @@ public class SecretStorage {
         keyManager = other;
     }
 
+    public <KM extends KeyManager> KM getKeyManager() {
+        return (KM) keyManager;
+    }
+
     public static class Builder {
         protected Context context;
         protected String storeId;
         protected DataStorage configStorage;
         protected DataStorage dataStorage;
         protected KeyManager keyManager;
+        protected boolean withUserPassword;
 
         public Builder(Context context, String storeId) {
             this.context = context;
@@ -102,6 +108,11 @@ public class SecretStorage {
 
         public Builder keyManager(KeyManager keyManager) {
             this.keyManager = keyManager;
+            return this;
+        }
+
+        public Builder withUserPassword(boolean withUserPassword) {
+            this.withUserPassword = withUserPassword;
             return this;
         }
 
@@ -155,12 +166,18 @@ public class SecretStorage {
 
         protected KeyManager selectKeyManager(int osVersion) {
             KeyManager.Builder builder;
-            if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                builder = new KeyManager.Builder()
-                        .defaultKeyWrapper(osVersion);
-            } else {
-                builder = new ObfuscationKeyManager.Builder()
+            if (withUserPassword) {
+                builder = new PasswordProtectedKeyManager.Builder()
+                        .defaultKeyWrapper(context, osVersion)
                         .configStorage(configStorage);
+            } else {
+                if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    builder = new KeyManager.Builder()
+                            .defaultKeyWrapper(osVersion);
+                } else {
+                    builder = new ObfuscationKeyManager.Builder()
+                            .configStorage(configStorage);
+                }
             }
             return builder
                     .defaultDataProtection(osVersion)

@@ -80,8 +80,8 @@ public class SecretStorageTest {
 
     @Test
     public void createWithPassword() throws IOException, GeneralSecurityException {
-        PasswordProtectedSecretStorage secretStorage = new PasswordProtectedSecretStorage.Builder(context, "id").build();
-        secretStorage.setPassword("mysecret");
+        SecretStorage secretStorage = new SecretStorage.Builder(context, "id").withUserPassword(true).build();
+        secretStorage.<PasswordProtectedKeyManager>getKeyManager().setPassword("mysecret");
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
@@ -118,8 +118,10 @@ public class SecretStorageTest {
 
     @Test
     public void copyTo() throws IOException, GeneralSecurityException {
-        PasswordProtectedSecretStorage secretStorage1 = new PasswordProtectedSecretStorage.Builder(context, "id").build();
-        secretStorage1.setPassword("password");
+        SecretStorage secretStorage1 = new SecretStorage.Builder(context, "id")
+                .withUserPassword(true)
+                .build();
+        secretStorage1.<PasswordProtectedKeyManager>getKeyManager().setPassword("password");
         secretStorage1.store("mysecret1", "message1".getBytes());
         secretStorage1.store("mysecret2", "message2".getBytes());
 
@@ -270,19 +272,21 @@ public class SecretStorageTest {
 
         configStorage.store("id2::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR2));
         storage = new SecretStorage.Builder(context, "id2").build();
-        assert(storage.keyManager instanceof KeyManager);
+        assert(storage.keyManager.getKeyWrapper() instanceof AsymmetricKeyStoreWrapper);
 
         configStorage.store("id3::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.M));
         storage = new SecretStorage.Builder(context, "id3").build();
-        assert(storage.keyManager instanceof KeyManager);
+        assert(storage.keyManager.getKeyWrapper() instanceof KeyStoreWrapper);
 
         configStorage.store("id4::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1));
-        storage = new PasswordProtectedSecretStorage.Builder(context, "id4").build();
+        storage = new SecretStorage.Builder(context, "id4").withUserPassword(true).build();
         assert(storage.keyManager instanceof PasswordProtectedKeyManager);
+        assert(storage.keyManager.getKeyWrapper() instanceof PasswordKeyWrapper);
 
         configStorage.store("id5::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR2));
-        storage = new PasswordProtectedSecretStorage.Builder(context, "id5").build();
+        storage = new SecretStorage.Builder(context, "id5").withUserPassword(true).build();
         assert(storage.keyManager instanceof PasswordProtectedKeyManager);
+        assert(storage.keyManager.getKeyWrapper() instanceof SignedPasswordKeyWrapper);
     }
 
 }
