@@ -60,8 +60,7 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         KeyManager strat = createManager(
                 getSymmetricCipherSpec(),
                 getSymmetricIntegritySpec(),
-                getAsymmetricCipherSpec(),
-                getAsymmetricIntegritySpec()
+                getAsymmetricCipherSpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -70,15 +69,12 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         assertEquals(plain, "Hello world");
     }
 
-    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
+    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher) throws IOException, GeneralSecurityException {
 
         KeyWrapper wrapper = new AsymmetricKeyStoreWrapper(
                 context,
                 androidCrypto,
-                new ProtectionSpec(
-                        keyCipher,
-                        keyIntegrity
-                )
+                keyCipher
         );
         KeyManager manager = new KeyManager(
                 new ProtectionSpec(

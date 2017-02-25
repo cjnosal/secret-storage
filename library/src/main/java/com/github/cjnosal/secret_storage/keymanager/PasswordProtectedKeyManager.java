@@ -111,7 +111,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
     }
 
     protected byte[] generateSalt() {
-        byte[] random = new byte[keyWrapper.getKeyProtectionSpec().getCipherSpec().getKeySize() / 8];
+        byte[] random = new byte[((PasswordKeyWrapper)keyWrapper).getDerivationSpec().getKeySize() / 8];
         secureRandom.nextBytes(random);
         return random;
     }
@@ -194,10 +194,10 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
                 keyWrapper = new SignedPasswordKeyWrapper(
-                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
+                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection).getCipherSpec());
             } else {
                 keyWrapper = new PasswordKeyWrapper(
-                        keyDerivationSpec, DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
+                        keyDerivationSpec);
             }
         }
     }

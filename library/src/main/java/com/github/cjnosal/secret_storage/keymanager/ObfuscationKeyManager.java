@@ -119,7 +119,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         @Override
         protected void selectKeyWrapper() {
-            keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordBasedKeyProtectionSpec(defaultDataProtection));
+            keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
         }
     }
 }

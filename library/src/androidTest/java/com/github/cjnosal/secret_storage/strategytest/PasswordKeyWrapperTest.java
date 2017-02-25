@@ -154,7 +154,7 @@ public class PasswordKeyWrapperTest {
 
     private PasswordProtectedKeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
 
-        PasswordKeyWrapper wrapper = getWrapper(keyCipher, keyIntegrity);
+        PasswordKeyWrapper wrapper = getWrapper(keyCipher);
         PasswordProtectedKeyManager manager = new PasswordProtectedKeyManager(
                 new ProtectionSpec(
                         dataCipher,
@@ -172,13 +172,9 @@ public class PasswordKeyWrapperTest {
     }
 
     @NonNull
-    private PasswordKeyWrapper getWrapper(CipherSpec keyCipher, IntegritySpec keyIntegrity) throws GeneralSecurityException, IOException {
+    private PasswordKeyWrapper getWrapper(CipherSpec keyCipher) throws GeneralSecurityException, IOException {
         PasswordKeyWrapper wrapper = new PasswordKeyWrapper(
-                getDerivationSpec(),
-                new ProtectionSpec(
-                        keyCipher,
-                        keyIntegrity
-                )
+                getDerivationSpec()
         );
         return wrapper;
     }

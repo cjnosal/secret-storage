@@ -241,10 +241,10 @@ public class KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper > 0) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
-                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec());
+                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     keyWrapper = new AsymmetricKeyStoreWrapper(
-                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec());
+                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
                 } else {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }

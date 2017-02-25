@@ -18,7 +18,6 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 
 import java.io.IOException;
@@ -38,18 +37,18 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     protected Key derivedEncKey;
 
-    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, ProtectionSpec keyProtectionSpec) {
-        super(keyProtectionSpec);
+    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec) {
+        super();
         this.derivationSpec = derivationSpec;
     }
 
     @Override
-    String getWrapAlgorithm() {
+    public String getWrapAlgorithm() {
         return SecurityAlgorithms.Cipher_AESWRAP;
     }
 
     @Override
-    String getWrapParamAlgorithm() {
+    public String getWrapParamAlgorithm() {
         return SecurityAlgorithms.AlgorithmParameters_AES;
     }
 
@@ -91,6 +90,10 @@ public class PasswordKeyWrapper extends KeyWrapper {
     public boolean verifyPassword(PasswordWrapParams params) throws IOException, GeneralSecurityException {
         byte[] generated = derive(params);
         return MessageDigest.isEqual(getVerification(generated), params.getVerification());
+    }
+
+    public KeyDerivationSpec getDerivationSpec() {
+        return derivationSpec;
     }
 
     protected byte[] derive(PasswordWrapParams params) throws GeneralSecurityException, IOException {

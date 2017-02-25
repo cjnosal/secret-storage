@@ -21,7 +21,7 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
 
 import java.io.IOException;
@@ -37,19 +37,21 @@ public class KeyStoreWrapper extends KeyWrapper {
     // TODO unlock with fingerprint
 
     private AndroidCrypto androidCrypto;
+    private CipherSpec keyProtectionSpec;
 
-    public KeyStoreWrapper(AndroidCrypto androidCrypto, ProtectionSpec keyProtectionSpec) {
-        super(keyProtectionSpec);
+    public KeyStoreWrapper(AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec) {
+        super();
         this.androidCrypto = androidCrypto;
+        this.keyProtectionSpec = keyProtectionSpec;
     }
 
     @Override
-    String getWrapAlgorithm() {
+    public String getWrapAlgorithm() {
         return SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding;
     }
 
     @Override
-    String getWrapParamAlgorithm() {
+    public String getWrapParamAlgorithm() {
         return SecurityAlgorithms.AlgorithmParameters_AES;
     }
 
@@ -57,7 +59,7 @@ public class KeyStoreWrapper extends KeyWrapper {
     Key getKek() throws IOException, GeneralSecurityException {
         String storageField = getStorageField(storeId, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
-            KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec.getCipherSpec();
+            KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec;
             return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storageField));
         }
         return androidCrypto.loadSecretKey(storageField);

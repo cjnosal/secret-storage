@@ -16,26 +16,18 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
 public abstract class KeyWrapper {
-    protected final ProtectionSpec keyProtectionSpec;
     protected String storeId;
 
-    public KeyWrapper(ProtectionSpec keyProtectionSpec) {
-        this.keyProtectionSpec = keyProtectionSpec;
+    public KeyWrapper() {
     }
 
-    public ProtectionSpec getKeyProtectionSpec() {
-        return keyProtectionSpec;
-    }
-
-    abstract String getWrapAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
-    abstract String getWrapParamAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
+    public abstract String getWrapAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
+    public abstract String getWrapParamAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
     abstract Key getKek() throws GeneralSecurityException, IOException;
     abstract Key getKdk() throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;

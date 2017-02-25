@@ -155,12 +155,12 @@ public class SecretStorage {
             }
             if (configStorage.exists(getStorageField(storeId, KEY_PROTECTION))) {
                 String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, KEY_PROTECTION)));
-                String strategy = keyManager.getKeyWrapper().getKeyProtectionSpec().toString();
+                String strategy = keyManager.getKeyWrapper().getWrapAlgorithm().toString();
                 if (!strategy.equals(storedStrategy)) {
                     throw new IllegalArgumentException("Wrong key protection strategy (expected " + storedStrategy + " but was " + strategy);
                 }
             } else {
-                configStorage.store(getStorageField(storeId, KEY_PROTECTION), utf8Decode(keyManager.getKeyWrapper().getKeyProtectionSpec().toString()));
+                configStorage.store(getStorageField(storeId, KEY_PROTECTION), utf8Decode(keyManager.getKeyWrapper().getWrapAlgorithm().toString()));
             }
         }
 

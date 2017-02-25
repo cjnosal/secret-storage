@@ -102,7 +102,7 @@ public class SignedPasswordKeyWrapperTest {
 
     private PasswordProtectedKeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity) throws IOException, GeneralSecurityException {
 
-        SignedPasswordKeyWrapper wrapper = getWrapper(keyCipher, keyIntegrity, derivationIntegrity);
+        SignedPasswordKeyWrapper wrapper = getWrapper(keyCipher, derivationIntegrity);
         PasswordProtectedKeyManager manager = new PasswordProtectedKeyManager(
                 new ProtectionSpec(
                         dataCipher,
@@ -120,16 +120,13 @@ public class SignedPasswordKeyWrapperTest {
     }
 
     @NonNull
-    private SignedPasswordKeyWrapper getWrapper(CipherSpec keyCipher, IntegritySpec keyIntegrity, IntegritySpec derivationIntegrity) throws GeneralSecurityException, IOException {
+    private SignedPasswordKeyWrapper getWrapper(CipherSpec keyCipher, IntegritySpec derivationIntegrity) throws GeneralSecurityException, IOException {
         SignedPasswordKeyWrapper wrapper = new SignedPasswordKeyWrapper(
                 context,
                 androidCrypto,
                 getDerivationSpec(),
                 derivationIntegrity,
-                new ProtectionSpec(
-                        keyCipher,
-                        keyIntegrity
-                )
+                keyCipher
         );
         return wrapper;
     }

@@ -65,8 +65,7 @@ public class KeyStoreWrapperTest {
         KeyManager strat = createManager(
                 DefaultSpecs.getAesGcmCipherSpec(),
                 DefaultSpecs.getHmacShaIntegritySpec(),
-                DefaultSpecs.getKeyStoreAesCbcPkcs7CipherSpec(),
-                DefaultSpecs.getKeyStoreHmacShaIntegritySpec()
+                DefaultSpecs.getKeyStoreAesCbcPkcs7CipherSpec()
         );
 
         byte[] cipher = strat.encrypt("Hello world".getBytes());
@@ -75,14 +74,11 @@ public class KeyStoreWrapperTest {
         assertEquals(plain, "Hello world");
     }
 
-    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher, IntegritySpec keyIntegrity) throws IOException, GeneralSecurityException {
+    private KeyManager createManager(CipherSpec dataCipher, IntegritySpec dataIntegrity, CipherSpec keyCipher) throws IOException, GeneralSecurityException {
 
         KeyWrapper wrapper =  new KeyStoreWrapper(
                 androidCrypto,
-                new ProtectionSpec(
-                        keyCipher,
-                        keyIntegrity
-                )
+                keyCipher
         );
         KeyManager manager = new KeyManager(
                 new ProtectionSpec(
