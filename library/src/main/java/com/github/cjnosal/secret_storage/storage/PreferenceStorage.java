@@ -31,7 +31,7 @@ import java.util.Set;
 
 public class PreferenceStorage implements DataStorage {
 
-    SharedPreferences preferences;
+    final SharedPreferences preferences;
     public PreferenceStorage(@NonNull Context context, @NonNull String file) {
         preferences = context.getSharedPreferences(file, Context.MODE_PRIVATE);
     }

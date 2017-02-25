@@ -18,7 +18,7 @@ package com.github.cjnosal.secret_storage.keymanager.keywrap;
 
 public class KeyStoreWrapParams {
 
-    private String keyAlias;
+    private final String keyAlias;
 
     public KeyStoreWrapParams(String keyAlias) {
         this.keyAlias = keyAlias;

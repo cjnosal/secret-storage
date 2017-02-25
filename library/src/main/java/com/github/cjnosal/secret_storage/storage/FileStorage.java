@@ -31,7 +31,7 @@ import java.util.Set;
 
 public class FileStorage implements DataStorage {
 
-    File directory;
+    final File directory;
 
     public FileStorage(@NonNull String directoryPath) {
         this.directory = new File(directoryPath);

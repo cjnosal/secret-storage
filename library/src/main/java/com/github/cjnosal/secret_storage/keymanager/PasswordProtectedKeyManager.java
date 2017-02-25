@@ -194,7 +194,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
     public class PasswordEditor extends KeyManager.Editor {
 
-        private Rewrap rewrap;
+        private final Rewrap rewrap;
         private final String keyAlias;
 
         public PasswordEditor(Rewrap rewrap, String keyAlias) {

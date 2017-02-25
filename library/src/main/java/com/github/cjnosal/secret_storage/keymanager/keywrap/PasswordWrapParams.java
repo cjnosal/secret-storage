@@ -20,8 +20,8 @@ public class PasswordWrapParams {
 
     private String password;
     private byte[] verification;
-    private byte[] salt;
-    private String keyAlias;
+    private final byte[] salt;
+    private final String keyAlias;
 
     public PasswordWrapParams(String keyAlias, String password, byte[] salt) {
         this.keyAlias = keyAlias;

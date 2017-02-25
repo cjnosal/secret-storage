@@ -158,8 +158,8 @@ public class SecretStorage {
     }
 
     public static class Builder {
-        private Context context;
-        private String storeId;
+        private final Context context;
+        private final String storeId;
         private DataStorage configStorage;
         private DataStorage dataStorage;
         private DataStorage keyStorage;

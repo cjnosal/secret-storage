@@ -25,8 +25,8 @@ import java.io.IOException;
 
 public class PreferenceOutputStream extends ByteArrayOutputStream {
 
-    private SharedPreferences preferences;
-    private String id;
+    private final SharedPreferences preferences;
+    private final String id;
 
     public PreferenceOutputStream(SharedPreferences preferences, String id) {
         super();
