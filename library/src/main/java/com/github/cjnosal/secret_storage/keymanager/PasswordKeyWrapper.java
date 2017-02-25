@@ -33,9 +33,8 @@ import javax.security.auth.login.LoginException;
 
 public class PasswordKeyWrapper extends KeyWrapper {
 
-    protected final KeyDerivationSpec derivationSpec;
-
-    protected Key derivedEncKey;
+    private final KeyDerivationSpec derivationSpec;
+    private Key derivedEncKey;
 
     public PasswordKeyWrapper(KeyDerivationSpec derivationSpec) {
         super();
@@ -43,17 +42,17 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     @Override
-    public String getWrapAlgorithm() {
+    String getWrapAlgorithm() {
         return SecurityAlgorithms.Cipher_AESWRAP;
     }
 
     @Override
-    public String getWrapParamAlgorithm() {
+    String getWrapParamAlgorithm() {
         return SecurityAlgorithms.AlgorithmParameters_AES;
     }
 
     @Override
-    public Key getKek(String keyAlias) throws LoginException {
+    Key getKek(String keyAlias) throws LoginException {
         if (!isUnlocked()) {
             throw new LoginException("Not unlocked");
         }
@@ -66,18 +65,18 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     @Override
-    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+    void clear(String keyAlias) throws GeneralSecurityException, IOException {
     }
 
-    public void lock() {
+    void lock() {
         derivedEncKey = null;
     }
 
-    public boolean isUnlocked() {
+    boolean isUnlocked() {
         return derivedEncKey != null;
     }
 
-    public byte[] unlock(PasswordWrapParams params) throws GeneralSecurityException, IOException {
+    byte[] unlock(PasswordWrapParams params) throws GeneralSecurityException, IOException {
         byte[] generated = derive(params);
         byte[] verification = getVerification(generated);
         if (params.getVerification() != null && !MessageDigest.isEqual(verification, params.getVerification())) {
@@ -87,12 +86,12 @@ public class PasswordKeyWrapper extends KeyWrapper {
         return verification;
     }
 
-    public boolean verifyPassword(PasswordWrapParams params) throws IOException, GeneralSecurityException {
+    boolean verifyPassword(PasswordWrapParams params) throws IOException, GeneralSecurityException {
         byte[] generated = derive(params);
         return MessageDigest.isEqual(getVerification(generated), params.getVerification());
     }
 
-    public KeyDerivationSpec getDerivationSpec() {
+    KeyDerivationSpec getDerivationSpec() {
         return derivationSpec;
     }
 

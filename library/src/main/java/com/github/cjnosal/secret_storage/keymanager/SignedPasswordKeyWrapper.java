@@ -55,6 +55,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
     @Override
     protected byte[] derive(PasswordWrapParams params) throws GeneralSecurityException, IOException {
+        KeyDerivationSpec derivationSpec = getDerivationSpec();
         String password = params.getPassword();
         params.clearPassword();
 
@@ -81,7 +82,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+    void clear(String keyAlias) throws GeneralSecurityException, IOException {
         super.clear(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }

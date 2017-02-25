@@ -42,8 +42,8 @@ public class PasswordProtectedKeyManager extends KeyManager {
     private static final String ENC_SALT = "ENC_SALT";
     private static final String VERIFICATION = "VERIFICATION";
 
-    private DataStorage configStorage;
-    protected final SecureRandom secureRandom;
+    private final DataStorage configStorage;
+    private final SecureRandom secureRandom;
 
     public PasswordProtectedKeyManager(ProtectionSpec dataProtectionSpec, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage) {
         super(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap);
@@ -53,8 +53,9 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
     private void setPassword(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet(keyAlias)) {
+            PasswordKeyWrapper passwordKeyWrapper = getKeyWrapper();
             byte[] salt = generateSalt();
-            byte[] verification = ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(keyAlias, password, salt));
+            byte[] verification = passwordKeyWrapper.unlock(new PasswordWrapParams(keyAlias, password, salt));
             configStorage.store(getStorageField(keyAlias, ENC_SALT), salt);
             configStorage.store(getStorageField(keyAlias, VERIFICATION), verification);
         } else {
@@ -65,6 +66,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
     public void clear(String keyAlias) throws GeneralSecurityException, IOException {
         configStorage.delete(getStorageField(keyAlias, VERIFICATION));
         configStorage.delete(getStorageField(keyAlias, ENC_SALT));
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
         keyWrapper.clear(keyAlias);
     }
 
@@ -74,7 +76,8 @@ public class PasswordProtectedKeyManager extends KeyManager {
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
-        return ((PasswordKeyWrapper) keyWrapper).verifyPassword(new PasswordWrapParams(keyAlias, password, encSalt, verification));
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
+        return keyWrapper.verifyPassword(new PasswordWrapParams(keyAlias, password, encSalt, verification));
     }
 
     private void unlock(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
@@ -83,11 +86,13 @@ public class PasswordProtectedKeyManager extends KeyManager {
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
-        ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(keyAlias, password, encSalt, verification));
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
+        keyWrapper.unlock(new PasswordWrapParams(keyAlias, password, encSalt, verification));
     }
 
     private void lock() {
-        ((PasswordKeyWrapper) keyWrapper).lock();
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
+        keyWrapper.lock();
     }
 
     private boolean isPasswordSet(String keyAlias) throws IOException {
@@ -95,7 +100,8 @@ public class PasswordProtectedKeyManager extends KeyManager {
     }
 
     protected byte[] generateSalt() {
-        byte[] random = new byte[((PasswordKeyWrapper)keyWrapper).getDerivationSpec().getKeySize() / 8];
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
+        byte[] random = new byte[keyWrapper.getDerivationSpec().getKeySize() / 8];
         secureRandom.nextBytes(random);
         return random;
     }
@@ -105,6 +111,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected DataStorage configStorage;
         protected Context keyWrapperContext;
         protected KeyDerivationSpec keyDerivationSpec;
+        protected String storeId;
 
         public Builder() {}
 
@@ -129,7 +136,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
             return this;
         }
 
-        public Builder defaultKeyStorage(Context context, String storeId) {
+        public Builder defaultConfigStorage(Context context, String storeId) {
             this.keyStorageContext = context;
             this.storeId = storeId;
             return this;
@@ -221,7 +228,8 @@ public class PasswordProtectedKeyManager extends KeyManager {
         }
 
         public boolean isUnlocked() {
-            return ((PasswordKeyWrapper)keyWrapper).isUnlocked();
+            PasswordKeyWrapper keyWrapper = getKeyWrapper();
+            return keyWrapper.isUnlocked();
         }
 
         public boolean isPasswordSet() throws IOException {

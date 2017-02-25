@@ -32,9 +32,9 @@ import java.security.KeyPair;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class AsymmetricKeyStoreWrapper extends KeyWrapper {
 
-    private Context context;
-    private AndroidCrypto androidCrypto;
-    private CipherSpec keyProtectionSpec;
+    private final Context context;
+    private final AndroidCrypto androidCrypto;
+    private final CipherSpec keyProtectionSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
@@ -47,12 +47,12 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public String getWrapAlgorithm() {
+    String getWrapAlgorithm() {
         return SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding;
     }
 
     @Override
-    public String getWrapParamAlgorithm() {
+    String getWrapParamAlgorithm() {
         return null;
     }
 
@@ -77,7 +77,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+    void clear(String keyAlias) throws GeneralSecurityException, IOException {
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 }

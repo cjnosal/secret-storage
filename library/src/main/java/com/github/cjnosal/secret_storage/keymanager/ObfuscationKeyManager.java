@@ -51,7 +51,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
     }
 
     private void unlock(String keyAlias) throws IOException, GeneralSecurityException {
-        PasswordKeyWrapper keyWrapper = (PasswordKeyWrapper) this.keyWrapper;
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
         if (!keyWrapper.isUnlocked()) {
             PasswordEditor passwordEditor = new PasswordEditor(null, keyAlias);
             if (passwordEditor.isPasswordSet()) {

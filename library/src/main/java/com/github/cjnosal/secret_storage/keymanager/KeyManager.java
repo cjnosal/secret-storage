@@ -36,11 +36,11 @@ import javax.crypto.SecretKey;
 
 public class KeyManager {
 
-    private ProtectionSpec dataProtectionSpec;
-    private DataKeyGenerator dataKeyGenerator;
-    private KeyWrap keyWrap;
+    private final ProtectionSpec dataProtectionSpec;
+    private final DataKeyGenerator dataKeyGenerator;
+    private final KeyWrap keyWrap;
     private final ProtectionStrategy dataProtectionStrategy;
-    protected KeyWrapper keyWrapper;
+    private final KeyWrapper keyWrapper;
 
     public KeyManager(ProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
         this.dataProtectionSpec = dataProtectionSpec;
@@ -51,8 +51,12 @@ public class KeyManager {
         PRNGFixes.apply();
     }
 
-    public KeyWrapper getKeyWrapper() {
-        return keyWrapper;
+    public String getWrapAlgorithm() {
+        return keyWrapper.getWrapAlgorithm();
+    }
+
+    public String getWrapParamAlgorithm() {
+        return keyWrapper.getWrapParamAlgorithm();
     }
 
     public ProtectionSpec getDataProtectionSpec() {
@@ -83,6 +87,18 @@ public class KeyManager {
         return keyWrap.unwrap(keyWrapper.getKdk(keyAlias), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
     }
 
+    public <E extends KeyManager.Editor> E getEditor(Rewrap rewrap, String storeId) {
+        throw new UnsupportedOperationException("No editor available for this KeyManager");
+    }
+
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+        keyWrapper.clear(keyAlias);
+    }
+
+    protected <KW extends KeyWrapper> KW getKeyWrapper() {
+        return (KW) keyWrapper;
+    }
+
     public static class Builder {
 
         protected int defaultDataProtection;
@@ -92,16 +108,10 @@ public class KeyManager {
         protected KeyWrapper keyWrapper;
 
         protected Context keyStorageContext;
-        protected String storeId;
         protected DataKeyGenerator dataKeyGenerator;
         protected KeyWrap keyWrap;
 
         public Builder() {}
-
-        public Builder storeId(String storeId) {
-            this.storeId = storeId;
-            return this;
-        }
 
         public Builder defaultDataProtection(int osVersion) {
             this.defaultDataProtection = osVersion;
@@ -120,12 +130,6 @@ public class KeyManager {
 
         public Builder keyWrapper(KeyWrapper keyWrapper) {
             this.keyWrapper = keyWrapper;
-            return this;
-        }
-
-        public Builder defaultKeyStorage(Context context, String storeId) {
-            this.keyStorageContext = context;
-            this.storeId = storeId;
             return this;
         }
 
@@ -165,7 +169,7 @@ public class KeyManager {
         }
 
         protected void selectKeyWrapper() {
-            if (defaultKeyWrapper > 0 && storeId != null) {
+            if (defaultKeyWrapper > 0) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
                     keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -175,13 +179,9 @@ public class KeyManager {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }
             } else {
-                throw new IllegalArgumentException("Must provide either a KeyWrapper, or OS version and store ID");
+                throw new IllegalArgumentException("Must provide either a KeyWrapper, or OS version");
             }
         }
-    }
-
-    public <E extends KeyManager.Editor> E getEditor(Rewrap rewrap, String storeId) {
-        throw new UnsupportedOperationException("No editor available for this KeyManager");
     }
 
     public class Editor {

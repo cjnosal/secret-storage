@@ -36,8 +36,8 @@ public class KeyStoreWrapper extends KeyWrapper {
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
     // TODO unlock with fingerprint
 
-    private AndroidCrypto androidCrypto;
-    private CipherSpec keyProtectionSpec;
+    private final AndroidCrypto androidCrypto;
+    private final CipherSpec keyProtectionSpec;
 
     public KeyStoreWrapper(AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec) {
         super();
@@ -46,12 +46,12 @@ public class KeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public String getWrapAlgorithm() {
+    String getWrapAlgorithm() {
         return SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding;
     }
 
     @Override
-    public String getWrapParamAlgorithm() {
+    String getWrapParamAlgorithm() {
         return SecurityAlgorithms.AlgorithmParameters_AES;
     }
 
@@ -71,7 +71,7 @@ public class KeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+    void clear(String keyAlias) throws GeneralSecurityException, IOException {
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 }
