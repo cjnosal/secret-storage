@@ -20,7 +20,6 @@ import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
@@ -51,6 +50,18 @@ public class PasswordProtectedKeyManager extends KeyManager {
         this.secureRandom = new SecureRandom();
     }
 
+    @Override
+    public PasswordEditor getEditor(Rewrap rewrap, String storeId) {
+        return new PasswordEditor(rewrap, storeId);
+    }
+
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+        configStorage.delete(getStorageField(keyAlias, VERIFICATION));
+        configStorage.delete(getStorageField(keyAlias, ENC_SALT));
+        PasswordKeyWrapper keyWrapper = getKeyWrapper();
+        keyWrapper.clear(keyAlias);
+    }
+
     private void setPassword(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet(keyAlias)) {
             PasswordKeyWrapper passwordKeyWrapper = getKeyWrapper();
@@ -61,13 +72,6 @@ public class PasswordProtectedKeyManager extends KeyManager {
         } else {
             throw new LoginException("Password already set. Use unlock.");
         }
-    }
-
-    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
-        configStorage.delete(getStorageField(keyAlias, VERIFICATION));
-        configStorage.delete(getStorageField(keyAlias, ENC_SALT));
-        PasswordKeyWrapper keyWrapper = getKeyWrapper();
-        keyWrapper.clear(keyAlias);
     }
 
     private boolean verifyPassword(String keyAlias, String password) throws IOException, GeneralSecurityException {
@@ -180,17 +184,12 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
                 keyWrapper = new SignedPasswordKeyWrapper(
-                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec());
+                        keyWrapperContext, keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec());
             } else {
                 keyWrapper = new PasswordKeyWrapper(
                         keyDerivationSpec);
             }
         }
-    }
-
-    @Override
-    public Editor getEditor(Rewrap rewrap, String storeId) {
-        return new PasswordEditor(rewrap, storeId);
     }
 
     public class PasswordEditor extends KeyManager.Editor {

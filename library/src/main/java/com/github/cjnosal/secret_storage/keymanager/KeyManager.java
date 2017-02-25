@@ -19,7 +19,6 @@ package com.github.cjnosal.secret_storage.keymanager;
 import android.content.Context;
 import android.os.Build;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
@@ -171,10 +170,10 @@ public class KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper > 0) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
-                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
+                    keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     keyWrapper = new AsymmetricKeyStoreWrapper(
-                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
+                            keyStorageContext, DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
                 } else {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }

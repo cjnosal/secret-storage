@@ -50,6 +50,10 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
         return super.unwrapKey(keyAlias, wrappedKey);
     }
 
+    public PasswordEditor getEditor(Rewrap rewrap, String storeId) {
+        throw new UnsupportedOperationException("No editor available for this KeyManager");
+    }
+
     private void unlock(String keyAlias) throws IOException, GeneralSecurityException {
         PasswordKeyWrapper keyWrapper = getKeyWrapper();
         if (!keyWrapper.isUnlocked()) {

@@ -39,9 +39,9 @@ public class KeyStoreWrapper extends KeyWrapper {
     private final AndroidCrypto androidCrypto;
     private final CipherSpec keyProtectionSpec;
 
-    public KeyStoreWrapper(AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec) {
+    public KeyStoreWrapper(CipherSpec keyProtectionSpec) {
         super();
-        this.androidCrypto = androidCrypto;
+        this.androidCrypto = new AndroidCrypto();
         this.keyProtectionSpec = keyProtectionSpec;
     }
 

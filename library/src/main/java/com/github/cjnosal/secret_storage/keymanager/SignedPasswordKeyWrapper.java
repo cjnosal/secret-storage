@@ -45,10 +45,10 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec) {
+    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec) {
         super(keyDerivationSpec);
         this.context = context;
-        this.androidCrypto = androidCrypto;
+        this.androidCrypto = new AndroidCrypto();
         this.derivationIntegritySpec = derivationIntegritySpec;
         this.derivationIntegrityStrategy = new SignatureStrategy();
     }

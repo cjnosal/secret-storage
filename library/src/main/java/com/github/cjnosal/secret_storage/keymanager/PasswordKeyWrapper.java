@@ -66,6 +66,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     @Override
     void clear(String keyAlias) throws GeneralSecurityException, IOException {
+        lock();
     }
 
     void lock() {
