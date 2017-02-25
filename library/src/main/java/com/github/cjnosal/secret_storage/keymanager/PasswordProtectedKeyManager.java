@@ -99,7 +99,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
         keyWrapper.lock();
     }
 
-    private boolean isPasswordSet(String keyAlias) throws IOException {
+    private boolean isPasswordSet(String keyAlias) {
         return configStorage.exists(getStorageField(keyAlias, ENC_SALT)) && configStorage.exists(getStorageField(keyAlias, VERIFICATION));
     }
 
@@ -231,7 +231,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
             return keyWrapper.isUnlocked();
         }
 
-        public boolean isPasswordSet() throws IOException {
+        public boolean isPasswordSet() {
             return PasswordProtectedKeyManager.this.isPasswordSet(keyAlias);
         }
     }

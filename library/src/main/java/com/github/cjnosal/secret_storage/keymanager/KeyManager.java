@@ -70,11 +70,11 @@ public class KeyManager {
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
     }
 
-    public SecretKey generateDataEncryptionKey() throws GeneralSecurityException, IOException {
+    public SecretKey generateDataEncryptionKey() throws GeneralSecurityException {
         return dataKeyGenerator.generateDataKey(dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherSpec().getKeySize());
     }
 
-    public SecretKey generateDataSigningKey() throws GeneralSecurityException, IOException {
+    public SecretKey generateDataSigningKey() throws GeneralSecurityException {
         return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
     }
 

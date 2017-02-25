@@ -145,7 +145,7 @@ public class SecretStorage {
         keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
     }
 
-    private boolean dataKeysExist() throws GeneralSecurityException, IOException {
+    private boolean dataKeysExist() {
         return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
     }
 

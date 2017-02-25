@@ -64,7 +64,7 @@ public class KeyEncoding {
         return f.generatePrivate(spec);
     }
 
-    public SecretKey decodeSecretKey(@SecurityAlgorithms.SecretKeyFactory String algorithm, byte[] keyBytes) throws GeneralSecurityException {
+    public SecretKey decodeSecretKey(@SecurityAlgorithms.SecretKeyFactory String algorithm, byte[] keyBytes) {
         return new SecretKeySpec(keyBytes, algorithm);
     }
 

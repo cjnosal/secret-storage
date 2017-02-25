@@ -112,7 +112,7 @@ public class FileStorage implements DataStorage {
     }
 
     @Override
-    public boolean exists(@NonNull String id) throws IOException {
+    public boolean exists(@NonNull String id) {
         File f = new File(directory, id);
         return f.exists();
     }
@@ -142,7 +142,7 @@ public class FileStorage implements DataStorage {
     }
 
     @Override
-    public Set<String> entries() throws IOException {
+    public Set<String> entries() {
         if (directory.exists()) {
             String[] fileNames = directory.list();
             if (fileNames != null) {

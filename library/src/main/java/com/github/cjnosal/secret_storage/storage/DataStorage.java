@@ -36,10 +36,10 @@ public interface DataStorage {
     @NonNull InputStream read(@NonNull String id) throws IOException;
     void close(@NonNull InputStream in) throws IOException;
 
-    boolean exists(@NonNull String id) throws IOException;
+    boolean exists(@NonNull String id);
     void delete(@NonNull String id) throws IOException;
     void clear() throws IOException;
-    Set<String> entries() throws IOException;
+    Set<String> entries();
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({

@@ -82,7 +82,7 @@ public class PreferenceStorage implements DataStorage {
     }
 
     @Override
-    public boolean exists(@NonNull String id) throws IOException {
+    public boolean exists(@NonNull String id) {
         return preferences.contains(id);
     }
 
@@ -103,7 +103,7 @@ public class PreferenceStorage implements DataStorage {
     }
 
     @Override
-    public Set<String> entries() throws IOException {
+    public Set<String> entries() {
         return preferences.getAll().keySet();
     }
 }
