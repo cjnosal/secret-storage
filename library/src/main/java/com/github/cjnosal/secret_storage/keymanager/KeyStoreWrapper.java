@@ -38,11 +38,13 @@ public class KeyStoreWrapper extends KeyWrapper {
 
     private AndroidCrypto androidCrypto;
     private CipherSpec keyProtectionSpec;
+    private String keyAlias;
 
-    public KeyStoreWrapper(AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec) {
+    public KeyStoreWrapper(AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec, String keyAlias) {
         super();
         this.androidCrypto = androidCrypto;
         this.keyProtectionSpec = keyProtectionSpec;
+        this.keyAlias = keyAlias;
     }
 
     @Override
@@ -57,7 +59,7 @@ public class KeyStoreWrapper extends KeyWrapper {
 
     @Override
     Key getKek() throws IOException, GeneralSecurityException {
-        String storageField = getStorageField(storeId, ENCRYPTION_KEY);
+        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
             KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec;
             return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storageField));
@@ -72,6 +74,6 @@ public class KeyStoreWrapper extends KeyWrapper {
 
     @Override
     public void clear() throws GeneralSecurityException, IOException {
-        androidCrypto.deleteEntry(getStorageField(storeId, ENCRYPTION_KEY));
+        androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 }

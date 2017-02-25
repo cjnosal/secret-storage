@@ -78,7 +78,8 @@ public class KeyStoreWrapperTest {
 
         KeyWrapper wrapper =  new KeyStoreWrapper(
                 androidCrypto,
-                keyCipher
+                keyCipher,
+                "test"
         );
         KeyManager manager = new KeyManager(
                 new ProtectionSpec(

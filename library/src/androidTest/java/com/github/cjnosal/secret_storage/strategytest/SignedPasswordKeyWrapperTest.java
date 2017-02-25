@@ -126,7 +126,7 @@ public class SignedPasswordKeyWrapperTest {
                 androidCrypto,
                 getDerivationSpec(),
                 derivationIntegrity,
-                keyCipher
+                "test"
         );
         return wrapper;
     }

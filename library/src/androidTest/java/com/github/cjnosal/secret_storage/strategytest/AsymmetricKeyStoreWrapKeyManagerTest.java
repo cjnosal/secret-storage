@@ -74,7 +74,8 @@ public class AsymmetricKeyStoreWrapKeyManagerTest {
         KeyWrapper wrapper = new AsymmetricKeyStoreWrapper(
                 context,
                 androidCrypto,
-                keyCipher
+                keyCipher,
+                "testStore"
         );
         KeyManager manager = new KeyManager(
                 new ProtectionSpec(

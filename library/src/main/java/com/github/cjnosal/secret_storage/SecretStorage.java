@@ -180,6 +180,7 @@ public class SecretStorage {
                 }
             }
             return builder
+                    .storeId(storeId)
                     .defaultDataProtection(osVersion)
                     .keyStorage(createStorage(DataStorage.TYPE_KEYS))
                     .build();

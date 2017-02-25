@@ -60,7 +60,6 @@ public class KeyManager {
 
     public void setStoreId(String storeId) {
         this.storeId = storeId;
-        this.keyWrapper.setStoreId(storeId);
     }
 
     public KeyWrapper getKeyWrapper() {
@@ -94,7 +93,6 @@ public class KeyManager {
     }
 
     public void rewrap(KeyWrapper newWrapper) throws GeneralSecurityException, IOException {
-        newWrapper.setStoreId(storeId);
         if (dataKeysExist()) {
             @KeyPurpose.DataSecrecy Key encryptionKey = loadDataEncryptionKey();
             @KeyPurpose.DataIntegrity Key signingKey = loadDataSigningKey();
@@ -163,6 +161,11 @@ public class KeyManager {
         protected KeyWrap keyWrap;
 
         public Builder() {}
+
+        public Builder storeId(String storeId) {
+            this.storeId = storeId;
+            return this;
+        }
 
         public Builder defaultDataProtection(int osVersion) {
             this.defaultDataProtection = osVersion;
@@ -239,17 +242,17 @@ public class KeyManager {
         }
 
         protected void selectKeyWrapper() {
-            if (defaultKeyWrapper > 0) {
+            if (defaultKeyWrapper > 0 && storeId != null) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
-                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
+                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec(), storeId);
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     keyWrapper = new AsymmetricKeyStoreWrapper(
-                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
+                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec(), storeId);
                 } else {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }
             } else {
-                throw new IllegalArgumentException("Must provide either a KeyWrapper or OS version");
+                throw new IllegalArgumentException("Must provide either a KeyWrapper, or OS version and store ID");
             }
         }
     }

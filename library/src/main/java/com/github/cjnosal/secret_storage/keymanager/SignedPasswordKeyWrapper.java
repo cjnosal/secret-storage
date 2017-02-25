@@ -22,7 +22,6 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
@@ -44,13 +43,15 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final Context context;
     private final AndroidCrypto androidCrypto;
     private final IntegritySpec derivationIntegritySpec;
+    private String keyAlias;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec) {
+    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, String keyAlias) {
         super(keyDerivationSpec);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.derivationIntegritySpec = derivationIntegritySpec;
+        this.keyAlias = keyAlias;
         this.derivationIntegrityStrategy = new SignatureStrategy();
     }
 
@@ -63,11 +64,11 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
         if (params.getVerification() == null) {
             signingKey = androidCrypto.generateKeyPair(
                     context,
-                    getStorageField(storeId, DEVICE_BINDING),
+                    getStorageField(keyAlias, DEVICE_BINDING),
                     derivationIntegritySpec.getKeygenAlgorithm())
                     .getPrivate();
         } else {
-            signingKey = androidCrypto.loadPrivateKey(getStorageField(storeId, DEVICE_BINDING));
+            signingKey = androidCrypto.loadPrivateKey(getStorageField(keyAlias, DEVICE_BINDING));
         }
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
@@ -84,7 +85,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     @Override
     public void clear() throws GeneralSecurityException, IOException {
         super.clear();
-        androidCrypto.deleteEntry(getStorageField(storeId, DEVICE_BINDING));
+        androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }
 
 }

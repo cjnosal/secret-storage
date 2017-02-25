@@ -21,7 +21,6 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 
 public abstract class KeyWrapper {
-    protected String storeId;
 
     public KeyWrapper() {
     }
@@ -31,10 +30,6 @@ public abstract class KeyWrapper {
     abstract Key getKek() throws GeneralSecurityException, IOException;
     abstract Key getKdk() throws GeneralSecurityException, IOException;
     abstract void clear() throws GeneralSecurityException, IOException;
-
-    public void setStoreId(String storeId) {
-        this.storeId = storeId;
-    }
 
     protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
     protected static final String DELIMITER = "::";
