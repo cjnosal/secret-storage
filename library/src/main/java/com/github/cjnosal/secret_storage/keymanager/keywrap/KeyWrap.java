@@ -36,7 +36,10 @@ public class KeyWrap {
 
     public byte[] wrap(Key kek, SecretKey secret, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException {
         Cipher cipher = Cipher.getInstance(algorithm);
-        AlgorithmParameterSpec algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(paramAlgorithm);
+        AlgorithmParameterSpec algorithmParameterSpec = null;
+        if (paramAlgorithm != null) {
+            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(paramAlgorithm);
+        }
         cipher.init(Cipher.WRAP_MODE, kek, algorithmParameterSpec);
         byte[] wrappedKey = cipher.wrap(secret);
         byte[] paramBytes;

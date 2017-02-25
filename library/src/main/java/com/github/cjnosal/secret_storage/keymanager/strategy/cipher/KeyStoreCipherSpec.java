@@ -18,20 +18,17 @@ package com.github.cjnosal.secret_storage.keymanager.strategy.cipher;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.security.keystore.KeyGenParameterSpec;
 
-@TargetApi(Build.VERSION_CODES.M)
+import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
+
+import java.security.spec.AlgorithmParameterSpec;
+
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public abstract class KeyStoreCipherSpec extends CipherSpec {
 
-    public KeyStoreCipherSpec(String keygenAlgorithm, String cipherAlgorithm, String transformation) {
-        super(transformation, cipherAlgorithm, 0, keygenAlgorithm);
+    public KeyStoreCipherSpec(String cipherTransformation, String paramsAlgorithm, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm) {
+        super(cipherTransformation, paramsAlgorithm, keySize, keygenAlgorithm);
     }
 
-    @Override
-    public int getKeySize() {
-        KeyGenParameterSpec spec = getKeyGenParameterSpec("stub");
-        return spec.getKeySize();
-    }
-
-    public abstract KeyGenParameterSpec getKeyGenParameterSpec(String keyId);
+    public abstract AlgorithmParameterSpec getKeyGenParameterSpec(String keyId);
 }

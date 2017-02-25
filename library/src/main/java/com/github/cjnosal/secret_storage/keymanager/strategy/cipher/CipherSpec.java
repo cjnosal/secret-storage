@@ -20,13 +20,13 @@ import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 
 public class CipherSpec {
     private final @SecurityAlgorithms.Cipher String cipherTransformation;
-    private final @SecurityAlgorithms.AlgorithmParameters String cipherAlgorithm;
+    private final @SecurityAlgorithms.AlgorithmParameters String paramsAlgorithm;
     private final @SecurityAlgorithms.KeySize int keySize;
     private final String keygenAlgorithm; // key or keypair generator
 
-    public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String cipherAlgorithm, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm) {
+    public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String paramsAlgorithm, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm) {
         this.cipherTransformation = cipherTransformation;
-        this.cipherAlgorithm = cipherAlgorithm;
+        this.paramsAlgorithm = paramsAlgorithm;
         this.keySize = keySize;
         this.keygenAlgorithm = keygenAlgorithm;
     }
@@ -35,8 +35,8 @@ public class CipherSpec {
         return cipherTransformation;
     }
 
-    public @SecurityAlgorithms.AlgorithmParameters String getCipherAlgorithm() {
-        return cipherAlgorithm;
+    public @SecurityAlgorithms.AlgorithmParameters String getParamsAlgorithm() {
+        return paramsAlgorithm;
     }
 
     public @SecurityAlgorithms.KeySize int getKeySize() {
@@ -57,7 +57,7 @@ public class CipherSpec {
         if (keySize != that.keySize) return false;
         if (cipherTransformation != null ? !cipherTransformation.equals(that.cipherTransformation) : that.cipherTransformation != null)
             return false;
-        if (cipherAlgorithm != null ? !cipherAlgorithm.equals(that.cipherAlgorithm) : that.cipherAlgorithm != null)
+        if (paramsAlgorithm != null ? !paramsAlgorithm.equals(that.paramsAlgorithm) : that.paramsAlgorithm != null)
             return false;
         return keygenAlgorithm != null ? keygenAlgorithm.equals(that.keygenAlgorithm) : that.keygenAlgorithm == null;
 
@@ -66,7 +66,7 @@ public class CipherSpec {
     @Override
     public int hashCode() {
         int result = cipherTransformation != null ? cipherTransformation.hashCode() : 0;
-        result = 31 * result + (cipherAlgorithm != null ? cipherAlgorithm.hashCode() : 0);
+        result = 31 * result + (paramsAlgorithm != null ? paramsAlgorithm.hashCode() : 0);
         result = 31 * result + keySize;
         result = 31 * result + (keygenAlgorithm != null ? keygenAlgorithm.hashCode() : 0);
         return result;
@@ -76,7 +76,7 @@ public class CipherSpec {
     public String toString() {
         return "CipherSpec{" +
                 "cipherTransformation='" + cipherTransformation + '\'' +
-                ", cipherAlgorithm='" + cipherAlgorithm + '\'' +
+                ", paramsAlgorithm='" + paramsAlgorithm + '\'' +
                 ", keySize=" + keySize +
                 ", keygenAlgorithm='" + keygenAlgorithm + '\'' +
                 '}';

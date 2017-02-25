@@ -22,6 +22,7 @@ import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
@@ -45,8 +46,8 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec) {
-        super(keyDerivationSpec);
+    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec) {
+        super(keyDerivationSpec, keyProtectionSpec);
         this.context = context;
         this.androidCrypto = new AndroidCrypto();
         this.derivationIntegritySpec = derivationIntegritySpec;

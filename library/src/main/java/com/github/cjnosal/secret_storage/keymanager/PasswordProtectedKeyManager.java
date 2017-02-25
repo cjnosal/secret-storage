@@ -172,7 +172,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
                 }
             }
             if (keyDerivationSpec == null) {
-                keyDerivationSpec = DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec();
+                keyDerivationSpec = DefaultSpecs.getPasswordDerivationSpec();
             }
             super.validate();
             if (!(keyWrapper instanceof PasswordKeyWrapper)) {
@@ -184,10 +184,15 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
                 keyWrapper = new SignedPasswordKeyWrapper(
-                        keyWrapperContext, keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec());
+                        keyWrapperContext,
+                        keyDerivationSpec,
+                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec());
             } else {
                 keyWrapper = new PasswordKeyWrapper(
-                        keyDerivationSpec);
+                        keyDerivationSpec,
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+                );
             }
         }
     }

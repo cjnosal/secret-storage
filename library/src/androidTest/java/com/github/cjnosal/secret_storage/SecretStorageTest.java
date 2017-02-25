@@ -85,7 +85,12 @@ public class SecretStorageTest {
 
     @Test
     public void createWithPassword() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage = new SecretStorage.Builder(context, "id").withUserPassword(true).build();
+        SecretStorage secretStorage = new SecretStorage.Builder(context, "id")
+                .withUserPassword(true)
+                .keyStorage(keyStorage)
+                .dataStorage(dataStorage)
+                .configStorage(configStorage)
+                .build();
         secretStorage.<PasswordProtectedKeyManager.PasswordEditor>getEditor().setPassword("mysecret");
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
@@ -93,7 +98,12 @@ public class SecretStorageTest {
 
     @Test
     public void createWithoutPassword() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage = new SecretStorage.Builder(context, "id").build();
+        SecretStorage secretStorage = new SecretStorage.Builder(context, "id")
+                .withUserPassword(false)
+                .keyStorage(keyStorage)
+                .dataStorage(dataStorage)
+                .configStorage(configStorage)
+                .build();
         secretStorage.store("mysecret", "message".getBytes());
         assertEquals(new String(secretStorage.load("mysecret")), "message");
     }
@@ -101,7 +111,8 @@ public class SecretStorageTest {
     @Test
     public void createWithManager() throws IOException, GeneralSecurityException {
         PasswordKeyWrapper wrapper = new PasswordKeyWrapper(
-                DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec()
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
         );
 
         PasswordProtectedKeyManager keyManager = new PasswordProtectedKeyManager(
@@ -138,7 +149,7 @@ public class SecretStorageTest {
     public void rewrap() throws IOException, GeneralSecurityException {
         KeyManager obfuscationKeyManager = new ObfuscationKeyManager.Builder()
                 .configStorage(configStorage)
-                .defaultKeyWrapper(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+                .defaultKeyWrapper(context, Build.VERSION_CODES.ICE_CREAM_SANDWICH)
                 .defaultDataProtection(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
                 .build();
         SecretStorage secretStorage1 = new SecretStorage("id", dataStorage,
@@ -169,14 +180,20 @@ public class SecretStorageTest {
     public void sharedResourcesShouldNotInterfere() throws IOException, GeneralSecurityException {
         PasswordProtectedKeyManager passwordKeyManager1 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
-                new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec()),
+                new PasswordKeyWrapper(
+                        DefaultSpecs.getPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+                ),
                 dataKeyGenerator,
                 keyWrap,
                 configStorage);
 
         PasswordProtectedKeyManager passwordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
-                new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec()),
+                new PasswordKeyWrapper(
+                        DefaultSpecs.getPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+                ),
                 dataKeyGenerator,
                 keyWrap,
                 configStorage);
@@ -185,8 +202,10 @@ public class SecretStorageTest {
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new SignedPasswordKeyWrapper(
                         context,
-                        DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec()),
+                        DefaultSpecs.getPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+                ),
                 dataKeyGenerator,
                 keyWrap,
                 configStorage);
@@ -195,8 +214,10 @@ public class SecretStorageTest {
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new SignedPasswordKeyWrapper(
                         context,
-                        DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec()),
+                        DefaultSpecs.getPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+                ),
                 dataKeyGenerator,
                 keyWrap,
                 configStorage);
@@ -204,16 +225,14 @@ public class SecretStorageTest {
         KeyManager asymmetricWrapKeyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new AsymmetricKeyStoreWrapper(
-                        context,
-                        DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec()),
+                        DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context)),
                 dataKeyGenerator,
                 keyWrap);
 
         KeyManager asymmetricWrapKeyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new AsymmetricKeyStoreWrapper(
-                        context,
-                        DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec()),
+                        DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context)),
                 dataKeyGenerator,
                 keyWrap);
 

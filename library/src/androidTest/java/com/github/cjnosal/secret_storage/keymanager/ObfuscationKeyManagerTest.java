@@ -24,7 +24,6 @@ import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
@@ -58,7 +57,7 @@ public class ObfuscationKeyManagerTest {
     public void defaultKeyWrapper_isPasswordKeyWrapper() {
         KeyManager subject = new ObfuscationKeyManager.Builder()
                 .configStorage(configStorage)
-                .defaultKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR1)
+                .defaultKeyWrapper(context, Build.VERSION_CODES.JELLY_BEAN_MR1)
                 .defaultDataProtection(Build.VERSION_CODES.JELLY_BEAN_MR1)
                 .build();
         assertTrue(subject.getKeyWrapper() instanceof PasswordKeyWrapper);
@@ -67,8 +66,10 @@ public class ObfuscationKeyManagerTest {
     @Test
     public void passwordKeyWrapper() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        KeyDerivationSpec derivationSpec = DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec();
-        keyWrapper = new PasswordKeyWrapper(derivationSpec);
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new ObfuscationKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
 
         SecretKey enc = subject.generateDataEncryptionKey();

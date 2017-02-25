@@ -66,7 +66,7 @@ public class PasswordProtectedKeyManagerTest {
     public void defaultKeyWrapper_jbmr1_isPasswordKeyWrapper() {
         KeyManager subject = new PasswordProtectedKeyManager.Builder()
                 .configStorage(configStorage)
-                .defaultKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR1)
+                .defaultKeyWrapper(context, Build.VERSION_CODES.JELLY_BEAN_MR1)
                 .defaultDataProtection(Build.VERSION_CODES.JELLY_BEAN_MR1)
                 .build();
         assertTrue(subject.getKeyWrapper() instanceof PasswordKeyWrapper);
@@ -85,7 +85,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordKeyWrapper() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
@@ -109,7 +112,11 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void signedPasswordKeyWrapper() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR2);
-        keyWrapper = new SignedPasswordKeyWrapper(context, DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(), DefaultSpecs.getPasswordDeviceBindingSpec());
+        keyWrapper = new SignedPasswordKeyWrapper(
+                context,
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordDeviceBindingSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec());
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
@@ -133,7 +140,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordEditor_setPassword() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         SecretKey enc = subject.generateDataEncryptionKey();
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
@@ -164,7 +174,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordEditor_unlock() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         SecretKey enc = subject.generateDataEncryptionKey();
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
@@ -198,7 +211,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordEditor_verify() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
 
@@ -217,7 +233,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordEditor_isPasswordSet() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
 
@@ -239,7 +258,10 @@ public class PasswordProtectedKeyManagerTest {
     @Test
     public void passwordEditor_isUnlocked() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
-        keyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec());
+        keyWrapper = new PasswordKeyWrapper(
+                DefaultSpecs.getPasswordDerivationSpec(),
+                DefaultSpecs.getPasswordBasedKeyProtectionSpec()
+        );
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         PasswordProtectedKeyManager.PasswordEditor editor = subject.getEditor(null, "test");
 

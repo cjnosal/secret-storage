@@ -17,7 +17,9 @@
 package com.github.cjnosal.secret_storage.keymanager.defaults;
 
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.os.Build;
+import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
@@ -29,11 +31,17 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDeriv
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.KeyStoreIntegritySpec;
 
+import java.math.BigInteger;
+import java.security.spec.AlgorithmParameterSpec;
+import java.util.Calendar;
+
+import javax.security.auth.x500.X500Principal;
+
 public class DefaultSpecs {
 
     public static ProtectionSpec getDataProtectionSpec(int osVersion) {
         CipherSpec cipher;
-        if (osVersion >= Build.VERSION_CODES.LOLLIPOP) {
+        if (osVersion >= Build.VERSION_CODES.M) {
             // Use authenticated-encryption primitive when available
             // MacStrategy is redundant but avoids special handling for particular strategies
             cipher = getAesGcmCipherSpec();
@@ -44,20 +52,12 @@ public class DefaultSpecs {
         return new ProtectionSpec(cipher, integrity);
     }
 
-    public static ProtectionSpec getPasswordBasedKeyProtectionSpec(int osVersion) {
-        return getDataProtectionSpec(osVersion);
-    }
-
     public static ProtectionSpec getAsymmetricKeyProtectionSpec() {
         return new ProtectionSpec(getRsaPKCS1CipherSpec(), getShaRsaIntegritySpec());
     }
 
     public static ProtectionSpec getKeyStoreDataProtectionSpec() {
         return new ProtectionSpec(getKeyStoreAesCbcPkcs7CipherSpec(), getKeyStoreHmacShaIntegritySpec());
-    }
-
-    public static IntegritySpec getPasswordDeviceBindingSpec() {
-        return getShaRsaIntegritySpec();
     }
 
     public static CipherSpec getAesCbcPkcs5CipherSpec() {
@@ -69,7 +69,7 @@ public class DefaultSpecs {
         );
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @TargetApi(Build.VERSION_CODES.M)
     public static CipherSpec getAesGcmCipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_AES_GCM_NoPadding,
@@ -104,7 +104,7 @@ public class DefaultSpecs {
         );
     }
 
-    public static KeyDerivationSpec getPbkdf2WithHmacShaDerivationSpec() {
+    public static KeyDerivationSpec getPasswordDerivationSpec() {
         return new KeyDerivationSpec(
                 8192,
                 SecurityAlgorithms.KEY_SIZE_AES_128,
@@ -113,15 +113,68 @@ public class DefaultSpecs {
         );
     }
 
+    public static IntegritySpec getPasswordDeviceBindingSpec() {
+        return getShaRsaIntegritySpec();
+    }
+
+    public static CipherSpec getPasswordBasedKeyProtectionSpec() {
+        return new CipherSpec(
+                SecurityAlgorithms.Cipher_AESWRAP,
+                SecurityAlgorithms.AlgorithmParameters_AES,
+                SecurityAlgorithms.KEY_SIZE_AES_128,
+                SecurityAlgorithms.KeyGenerator_AES
+        );
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public static KeyStoreCipherSpec getAsymmetricKeyStoreCipherSpec(final Context context) {
+        return new KeyStoreCipherSpec(SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding, null, SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA) {
+
+            @Override
+            public AlgorithmParameterSpec getKeyGenParameterSpec(String keyId) {
+                Calendar start = Calendar.getInstance();
+                Calendar end = Calendar.getInstance();
+                end.add(Calendar.YEAR, 10);
+                return new KeyPairGeneratorSpec.Builder(context)
+                                .setAlias(keyId)
+                                .setSubject(new X500Principal("CN=" + keyId))
+                                .setSerialNumber(BigInteger.valueOf(System.currentTimeMillis()))
+                                .setStartDate(start.getTime())
+                                .setEndDate(end.getTime())
+                                .build();
+            }
+        };
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public static KeyStoreIntegritySpec getAsymmetricKeyStoreIntegritySpec(final Context context) {
+        return new KeyStoreIntegritySpec(SecurityAlgorithms.Signature_SHA256withRSA, SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA) {
+
+            @Override
+            public AlgorithmParameterSpec getKeyGenParameterSpec(String keyId) {
+                Calendar start = Calendar.getInstance();
+                Calendar end = Calendar.getInstance();
+                end.add(Calendar.YEAR, 10);
+                return new KeyPairGeneratorSpec.Builder(context)
+                        .setAlias(keyId)
+                        .setSubject(new X500Principal("CN=" + keyId))
+                        .setSerialNumber(BigInteger.valueOf(System.currentTimeMillis()))
+                        .setStartDate(start.getTime())
+                        .setEndDate(end.getTime())
+                        .build();
+            }
+        };
+    }
+
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreCipherSpec getKeyStoreAesCbcPkcs7CipherSpec() {
-        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.AlgorithmParameters_AES, SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding) {
+        return new KeyStoreCipherSpec(SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding, SecurityAlgorithms.AlgorithmParameters_AES, SecurityAlgorithms.KEY_SIZE_AES_256, SecurityAlgorithms.KeyGenerator_AES) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
                 return new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                         .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                        .setKeySize(SecurityAlgorithms.KEY_SIZE_AES_256)
+                        .setKeySize(getKeySize())
                         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                         .setRandomizedEncryptionRequired(false) // allow user-provided IV or let system generate
                         .build();
@@ -131,12 +184,12 @@ public class DefaultSpecs {
 
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreIntegritySpec getKeyStoreShaRsaPssIntegritySpec() {
-        return new KeyStoreIntegritySpec(SecurityAlgorithms.KeyPairGenerator_RSA, SecurityAlgorithms.Signature_SHA512withRSA_PSS) {
+        return new KeyStoreIntegritySpec(SecurityAlgorithms.Signature_SHA512withRSA_PSS, SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
                 return new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-                        .setKeySize(SecurityAlgorithms.KEY_SIZE_RSA_2048)
+                        .setKeySize(getKeySize())
                         .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
                         .setDigests(KeyProperties.DIGEST_SHA512)
                         .build();
@@ -146,12 +199,12 @@ public class DefaultSpecs {
 
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreCipherSpec getKeyStoreRsaPkcs1CipherSpec() {
-        return new KeyStoreCipherSpec(SecurityAlgorithms.KeyPairGenerator_RSA, null, SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding) {
+        return new KeyStoreCipherSpec(SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding, null, SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
                 return new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                        .setKeySize(SecurityAlgorithms.KEY_SIZE_RSA_2048)
+                        .setKeySize(getKeySize())
                         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
                         .build();
             }
@@ -160,12 +213,12 @@ public class DefaultSpecs {
 
     @TargetApi(Build.VERSION_CODES.M)
     public static KeyStoreIntegritySpec getKeyStoreHmacShaIntegritySpec() {
-        return new KeyStoreIntegritySpec(KeyProperties.KEY_ALGORITHM_HMAC_SHA256, KeyProperties.KEY_ALGORITHM_HMAC_SHA256) {
+        return new KeyStoreIntegritySpec(KeyProperties.KEY_ALGORITHM_HMAC_SHA256, SecurityAlgorithms.KEY_SIZE_AES_128, KeyProperties.KEY_ALGORITHM_HMAC_SHA256) {
 
             @Override
             public KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
                 return new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_SIGN)
-                        .setKeySize(SecurityAlgorithms.KEY_SIZE_AES_128)
+                        .setKeySize(getKeySize())
                         .setDigests(KeyProperties.DIGEST_SHA256)
                         .build();
             }

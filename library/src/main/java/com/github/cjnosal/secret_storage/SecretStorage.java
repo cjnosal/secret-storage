@@ -292,7 +292,7 @@ public class SecretStorage {
             } else {
                 if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     builder = new KeyManager.Builder()
-                            .defaultKeyWrapper(osVersion);
+                            .defaultKeyWrapper(context, osVersion);
                 } else {
                     builder = new ObfuscationKeyManager.Builder()
                             .configStorage(configStorage);

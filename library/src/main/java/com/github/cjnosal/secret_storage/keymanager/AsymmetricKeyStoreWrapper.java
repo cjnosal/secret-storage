@@ -17,12 +17,11 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -32,35 +31,33 @@ import java.security.KeyPair;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class AsymmetricKeyStoreWrapper extends KeyWrapper {
 
-    private final Context context;
     private final AndroidCrypto androidCrypto;
     private final CipherSpec keyProtectionSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(Context context, CipherSpec keyProtectionSpec) {
+    public AsymmetricKeyStoreWrapper(CipherSpec keyProtectionSpec) {
         super();
-        this.context = context;
         this.androidCrypto = new AndroidCrypto();
         this.keyProtectionSpec = keyProtectionSpec;
     }
 
     @Override
     String getWrapAlgorithm() {
-        return SecurityAlgorithms.Cipher_RSA_ECB_PKCS1Padding;
+        return keyProtectionSpec.getCipherTransformation();
     }
 
     @Override
     String getWrapParamAlgorithm() {
-        return null;
+        return keyProtectionSpec.getParamsAlgorithm();
     }
 
     @Override
     Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
-            KeyPair encryptionKey = androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY), keyProtectionSpec.getKeygenAlgorithm());
+            KeyPair encryptionKey = generateKeyPair(keyAlias);
             return encryptionKey.getPublic();
         }
         return androidCrypto.loadPublicKey(storageField);
@@ -70,7 +67,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
-            KeyPair encryptionKey = androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY), keyProtectionSpec.getKeygenAlgorithm());
+            KeyPair encryptionKey = generateKeyPair(keyAlias);
             return encryptionKey.getPrivate();
         }
         return androidCrypto.loadPrivateKey(storageField);
@@ -79,5 +76,9 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     @Override
     void clear(String keyAlias) throws GeneralSecurityException, IOException {
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
+    }
+
+    private KeyPair generateKeyPair(String keyAlias) throws GeneralSecurityException {
+        return androidCrypto.generateKeyPair(keyProtectionSpec.getKeygenAlgorithm(), ((KeyStoreCipherSpec)keyProtectionSpec).getKeyGenParameterSpec(getStorageField(keyAlias, ENCRYPTION_KEY)));
     }
 }

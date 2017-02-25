@@ -20,7 +20,6 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
-import android.security.keystore.KeyGenParameterSpec;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -32,6 +31,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.Calendar;
 import java.util.Enumeration;
 
@@ -80,15 +80,15 @@ public class AndroidCrypto {
         return g.generateKeyPair();
     }
 
-    @TargetApi(Build.VERSION_CODES.M)
-    public KeyPair generateKeyPair(@SecurityAlgorithms.KeyPairGenerator String algorithm, KeyGenParameterSpec spec) throws GeneralSecurityException {
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public KeyPair generateKeyPair(@SecurityAlgorithms.KeyPairGenerator String algorithm, AlgorithmParameterSpec spec) throws GeneralSecurityException {
         KeyPairGenerator g = KeyPairGenerator.getInstance(algorithm, SecurityAlgorithms.SecurityProvider_AndroidKeyStore);
         g.initialize(spec);
         return g.generateKeyPair();
     }
 
     @TargetApi(Build.VERSION_CODES.M)
-    public SecretKey generateSecretKey(@SecurityAlgorithms.KeyGenerator String algorithm, KeyGenParameterSpec spec) throws GeneralSecurityException {
+    public SecretKey generateSecretKey(@SecurityAlgorithms.KeyGenerator String algorithm, AlgorithmParameterSpec spec) throws GeneralSecurityException {
         KeyGenerator g = KeyGenerator.getInstance(algorithm, SecurityAlgorithms.SecurityProvider_AndroidKeyStore);
         g.init(spec);
         return g.generateKey();

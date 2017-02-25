@@ -79,7 +79,7 @@ public class KeyManager {
     }
 
     public byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
-        return keyWrap.wrap(keyWrapper.getKek(keyAlias), key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
+        return keyWrap.wrap(keyWrapper.getKek(keyAlias), key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm());
     }
 
     public SecretKey unwrapKey(String keyAlias, byte[] wrappedKey) throws GeneralSecurityException, IOException {
@@ -103,6 +103,7 @@ public class KeyManager {
         protected int defaultDataProtection;
         protected ProtectionSpec dataProtection;
 
+        private Context context;
         protected int defaultKeyWrapper;
         protected KeyWrapper keyWrapper;
 
@@ -117,7 +118,8 @@ public class KeyManager {
             return this;
         }
 
-        public Builder defaultKeyWrapper(int osVersion) {
+        public Builder defaultKeyWrapper(Context context, int osVersion) {
+            this.context = context;
             this.defaultKeyWrapper = osVersion;
             return this;
         }
@@ -172,8 +174,7 @@ public class KeyManager {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
                     keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    keyWrapper = new AsymmetricKeyStoreWrapper(
-                            keyStorageContext, DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
+                    keyWrapper = new AsymmetricKeyStoreWrapper(DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context));
                 } else {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }

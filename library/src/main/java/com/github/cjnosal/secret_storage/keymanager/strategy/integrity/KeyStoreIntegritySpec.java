@@ -18,20 +18,17 @@ package com.github.cjnosal.secret_storage.keymanager.strategy.integrity;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.security.keystore.KeyGenParameterSpec;
 
-@TargetApi(Build.VERSION_CODES.M)
+import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
+
+import java.security.spec.AlgorithmParameterSpec;
+
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public abstract class KeyStoreIntegritySpec extends IntegritySpec {
 
-    public KeyStoreIntegritySpec(String keygenAlgorithm, String transformation) {
-        super(transformation, 0, keygenAlgorithm);
+    public KeyStoreIntegritySpec(String transformation, @SecurityAlgorithms.KeySize int keySize, String keygenAlgorithm) {
+        super(transformation, keySize, keygenAlgorithm);
     }
 
-    @Override
-    public int getKeySize() {
-        KeyGenParameterSpec spec = getKeyGenParameterSpec("stub");
-        return spec.getKeySize();
-    }
-
-    public abstract KeyGenParameterSpec getKeyGenParameterSpec(String keyId);
+    public abstract AlgorithmParameterSpec getKeyGenParameterSpec(String keyId);
 }

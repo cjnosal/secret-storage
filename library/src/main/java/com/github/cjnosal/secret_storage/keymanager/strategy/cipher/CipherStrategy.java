@@ -51,7 +51,7 @@ public abstract class CipherStrategy {
         Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
         AlgorithmParameters params = null;
         if (splitBytes[0].length != 0) {
-            params = AlgorithmParameters.getInstance(cipherSpec.getCipherAlgorithm());
+            params = AlgorithmParameters.getInstance(cipherSpec.getParamsAlgorithm());
             params.init(splitBytes[0]);
         }
         cipher.init(Cipher.DECRYPT_MODE, key, params);

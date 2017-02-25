@@ -20,7 +20,6 @@ import android.annotation.TargetApi;
 import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
-import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
 
@@ -47,12 +46,12 @@ public class KeyStoreWrapper extends KeyWrapper {
 
     @Override
     String getWrapAlgorithm() {
-        return SecurityAlgorithms.Cipher_AES_CBC_PKCS7Padding;
+        return keyProtectionSpec.getCipherTransformation();
     }
 
     @Override
     String getWrapParamAlgorithm() {
-        return SecurityAlgorithms.AlgorithmParameters_AES;
+        return keyProtectionSpec.getParamsAlgorithm();
     }
 
     @Override

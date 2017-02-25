@@ -16,8 +16,8 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 
 import java.io.IOException;
@@ -34,21 +34,23 @@ import javax.security.auth.login.LoginException;
 public class PasswordKeyWrapper extends KeyWrapper {
 
     private final KeyDerivationSpec derivationSpec;
+    private final CipherSpec keyProtectionSpec;
     private Key derivedEncKey;
 
-    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec) {
+    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, CipherSpec keyProtectionSpec) {
         super();
         this.derivationSpec = derivationSpec;
+        this.keyProtectionSpec = keyProtectionSpec;
     }
 
     @Override
     String getWrapAlgorithm() {
-        return SecurityAlgorithms.Cipher_AESWRAP;
+        return keyProtectionSpec.getCipherTransformation();
     }
 
     @Override
     String getWrapParamAlgorithm() {
-        return SecurityAlgorithms.AlgorithmParameters_AES;
+        return keyProtectionSpec.getParamsAlgorithm();
     }
 
     @Override

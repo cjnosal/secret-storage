@@ -57,7 +57,7 @@ public class KeyManagerTest {
     public void defaultKeyWrapper_jbmr1_throwsException() {
         try {
             KeyManager subject = new KeyManager.Builder()
-                    .defaultKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR1)
+                    .defaultKeyWrapper(context, Build.VERSION_CODES.JELLY_BEAN_MR1)
                     .defaultDataProtection(Build.VERSION_CODES.JELLY_BEAN_MR1)
                     .build();
             fail("KeyManager should throw exception when keystore not available");
@@ -67,7 +67,7 @@ public class KeyManagerTest {
     @Test
     public void defaultKeyWrapper_jbmr2_isAsymmetricKeyStoreWrapper() {
         KeyManager subject = new KeyManager.Builder()
-                .defaultKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR2)
+                .defaultKeyWrapper(context, Build.VERSION_CODES.JELLY_BEAN_MR2)
                 .defaultDataProtection(Build.VERSION_CODES.JELLY_BEAN_MR2)
                 .build();
         assertTrue(subject.getKeyWrapper() instanceof AsymmetricKeyStoreWrapper);
@@ -76,7 +76,7 @@ public class KeyManagerTest {
     @Test
     public void defaultKeyWrapper_m_isKeyStoreWrapper() {
         KeyManager subject = new KeyManager.Builder()
-                .defaultKeyWrapper(Build.VERSION_CODES.M)
+                .defaultKeyWrapper(context, Build.VERSION_CODES.M)
                 .defaultDataProtection(Build.VERSION_CODES.M)
                 .build();
         assertTrue(subject.getKeyWrapper() instanceof KeyStoreWrapper);
@@ -85,7 +85,7 @@ public class KeyManagerTest {
     @Test
     public void asymmetricKeyStoreWrapper() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR2);
-        keyWrapper = new AsymmetricKeyStoreWrapper(context, DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
+        keyWrapper = new AsymmetricKeyStoreWrapper(DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context));
         KeyManager subject = new KeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap);
 
         SecretKey enc = subject.generateDataEncryptionKey();
