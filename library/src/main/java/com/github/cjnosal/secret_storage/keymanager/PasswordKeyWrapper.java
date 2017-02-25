@@ -53,7 +53,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     @Override
-    public Key getKek() throws LoginException {
+    public Key getKek(String keyAlias) throws LoginException {
         if (!isUnlocked()) {
             throw new LoginException("Not unlocked");
         }
@@ -61,12 +61,12 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     @Override
-    Key getKdk() throws IOException, GeneralSecurityException {
-        return getKek();
+    Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
+        return getKek(keyAlias);
     }
 
     @Override
-    public void clear() throws GeneralSecurityException, IOException {
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
     }
 
     public void lock() {

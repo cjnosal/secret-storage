@@ -41,7 +41,6 @@ public class KeyManager {
     private KeyWrap keyWrap;
     private final ProtectionStrategy dataProtectionStrategy;
     protected KeyWrapper keyWrapper;
-    protected String storeId;
 
     public KeyManager(ProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap) {
         this.dataProtectionSpec = dataProtectionSpec;
@@ -50,10 +49,6 @@ public class KeyManager {
         this.dataProtectionStrategy = new ProtectionStrategy(new SymmetricCipherStrategy(), new MacStrategy());
         this.keyWrapper = keyWrapper;
         PRNGFixes.apply();
-    }
-
-    public void setStoreId(String storeId) {
-        this.storeId = storeId;
     }
 
     public KeyWrapper getKeyWrapper() {
@@ -80,12 +75,12 @@ public class KeyManager {
         return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
     }
 
-    public byte[] wrapKey(SecretKey key) throws GeneralSecurityException, IOException {
-        return keyWrap.wrap(keyWrapper.getKek(), key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
+    public byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
+        return keyWrap.wrap(keyWrapper.getKek(keyAlias), key, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapAlgorithm());
     }
 
-    public SecretKey unwrapKey(byte[] wrappedKey) throws GeneralSecurityException, IOException {
-        return keyWrap.unwrap(keyWrapper.getKdk(), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
+    public SecretKey unwrapKey(String keyAlias, byte[] wrappedKey) throws GeneralSecurityException, IOException {
+        return keyWrap.unwrap(keyWrapper.getKdk(keyAlias), wrappedKey, keyWrapper.getWrapAlgorithm(), keyWrapper.getWrapParamAlgorithm(), dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
     }
 
     public static class Builder {
@@ -172,10 +167,10 @@ public class KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper > 0 && storeId != null) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
-                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec(), storeId);
+                    keyWrapper = new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     keyWrapper = new AsymmetricKeyStoreWrapper(
-                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec(), storeId);
+                            keyStorageContext, new AndroidCrypto(), DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec());
                 } else {
                     throw new IllegalArgumentException("AndroidKeyStore not available. Use PasswordProtectedKeyManager or ObfuscationKeyManager");
                 }
@@ -185,7 +180,7 @@ public class KeyManager {
         }
     }
 
-    public <E extends KeyManager.Editor> E getEditor(Rewrap rewrap) {
+    public <E extends KeyManager.Editor> E getEditor(Rewrap rewrap, String storeId) {
         throw new UnsupportedOperationException("No editor available for this KeyManager");
     }
 

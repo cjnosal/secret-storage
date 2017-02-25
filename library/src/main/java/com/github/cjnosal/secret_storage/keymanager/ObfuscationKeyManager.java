@@ -40,20 +40,20 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
         super(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
     }
 
-    public byte[] wrapKey(SecretKey key) throws GeneralSecurityException, IOException {
-        unlock();
-        return super.wrapKey(key);
+    public byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
+        unlock(keyAlias);
+        return super.wrapKey(keyAlias, key);
     }
 
-    public SecretKey unwrapKey(byte[] wrappedKey) throws GeneralSecurityException, IOException {
-        unlock();
-        return super.unwrapKey(wrappedKey);
+    public SecretKey unwrapKey(String keyAlias, byte[] wrappedKey) throws GeneralSecurityException, IOException {
+        unlock(keyAlias);
+        return super.unwrapKey(keyAlias, wrappedKey);
     }
 
-    private void unlock() throws IOException, GeneralSecurityException {
+    private void unlock(String keyAlias) throws IOException, GeneralSecurityException {
         PasswordKeyWrapper keyWrapper = (PasswordKeyWrapper) this.keyWrapper;
         if (!keyWrapper.isUnlocked()) {
-            PasswordEditor passwordEditor = new PasswordEditor();
+            PasswordEditor passwordEditor = new PasswordEditor(null, keyAlias);
             if (passwordEditor.isPasswordSet()) {
                 passwordEditor.unlock("default_password");
             } else {

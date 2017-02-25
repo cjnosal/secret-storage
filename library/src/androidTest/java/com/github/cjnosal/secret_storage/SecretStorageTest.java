@@ -148,7 +148,7 @@ public class SecretStorageTest {
 
         // ICS data encryption for compatibility, upgraded key wrapper using M's AndroidKeyStore
         KeyManager upgradedWrapping = new KeyManager(DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.ICE_CREAM_SANDWICH),
-                new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec(), "id"),
+                new KeyStoreWrapper(new AndroidCrypto(), DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 
@@ -182,21 +182,18 @@ public class SecretStorageTest {
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new SignedPasswordKeyWrapper(context, androidCrypto,
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                DefaultSpecs.getPasswordDeviceBindingSpec(),
-                "id3"), dataKeyGenerator, keyWrap, configStorage);
+                DefaultSpecs.getPasswordDeviceBindingSpec()), dataKeyGenerator, keyWrap, configStorage);
 
         PasswordProtectedKeyManager signedPasswordKeyManager2 = new PasswordProtectedKeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new SignedPasswordKeyWrapper(context, androidCrypto,
                 DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec(),
-                DefaultSpecs.getPasswordDeviceBindingSpec(),
-                "id4"), dataKeyGenerator, keyWrap, configStorage);
+                DefaultSpecs.getPasswordDeviceBindingSpec()), dataKeyGenerator, keyWrap, configStorage);
 
         KeyManager asymmetricWrapKeyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new AsymmetricKeyStoreWrapper(context, androidCrypto,
-                        DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec(),
-                        "id5"
+                        DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec()
         ),
                 dataKeyGenerator,
                 keyWrap);
@@ -204,8 +201,7 @@ public class SecretStorageTest {
         KeyManager asymmetricWrapKeyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new AsymmetricKeyStoreWrapper(context, androidCrypto,
-                DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec(),
-                        "id6"
+                DefaultSpecs.getAsymmetricKeyProtectionSpec().getCipherSpec()
         ),
                 dataKeyGenerator,
                 keyWrap);
@@ -213,16 +209,14 @@ public class SecretStorageTest {
         KeyManager keyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new KeyStoreWrapper(androidCrypto,
-                DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec(),
-                        "id7"),
+                DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 
         KeyManager keyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
                 new KeyStoreWrapper(androidCrypto,
-                DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec(),
-                        "id8"),
+                DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 

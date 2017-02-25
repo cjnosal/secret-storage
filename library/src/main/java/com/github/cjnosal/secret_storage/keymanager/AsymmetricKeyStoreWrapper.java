@@ -35,17 +35,15 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     private Context context;
     private AndroidCrypto androidCrypto;
     private CipherSpec keyProtectionSpec;
-    private String keyAlias;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec, String keyAlias) {
+    public AsymmetricKeyStoreWrapper(Context context, AndroidCrypto androidCrypto, CipherSpec keyProtectionSpec) {
         super();
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.keyProtectionSpec = keyProtectionSpec;
-        this.keyAlias = keyAlias;
     }
 
     @Override
@@ -59,7 +57,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    Key getKek() throws IOException, GeneralSecurityException {
+    Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
             KeyPair encryptionKey = androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY), keyProtectionSpec.getKeygenAlgorithm());
@@ -69,7 +67,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    Key getKdk() throws IOException, GeneralSecurityException {
+    Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
             KeyPair encryptionKey = androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY), keyProtectionSpec.getKeygenAlgorithm());
@@ -79,7 +77,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    public void clear() throws GeneralSecurityException, IOException {
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 }

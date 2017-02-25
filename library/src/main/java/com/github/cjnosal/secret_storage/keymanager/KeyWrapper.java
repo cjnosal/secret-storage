@@ -27,9 +27,9 @@ public abstract class KeyWrapper {
 
     public abstract String getWrapAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
     public abstract String getWrapParamAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
-    abstract Key getKek() throws GeneralSecurityException, IOException;
-    abstract Key getKdk() throws GeneralSecurityException, IOException;
-    abstract void clear() throws GeneralSecurityException, IOException;
+    abstract Key getKek(String keyAlias) throws GeneralSecurityException, IOException;
+    abstract Key getKdk(String keyAlias) throws GeneralSecurityException, IOException;
+    abstract void clear(String keyAlias) throws GeneralSecurityException, IOException;
 
     protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
     protected static final String DELIMITER = "::";

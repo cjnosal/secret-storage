@@ -51,47 +51,47 @@ public class PasswordProtectedKeyManager extends KeyManager {
         this.secureRandom = new SecureRandom();
     }
 
-    private void setPassword(@NonNull String password) throws IOException, GeneralSecurityException {
-        if (!isPasswordSet()) {
+    private void setPassword(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet(keyAlias)) {
             byte[] salt = generateSalt();
-            byte[] verification = ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(password, salt));
-            configStorage.store(getStorageField(storeId, ENC_SALT), salt);
-            configStorage.store(getStorageField(storeId, VERIFICATION), verification);
+            byte[] verification = ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(keyAlias, password, salt));
+            configStorage.store(getStorageField(keyAlias, ENC_SALT), salt);
+            configStorage.store(getStorageField(keyAlias, VERIFICATION), verification);
         } else {
             throw new LoginException("Password already set. Use unlock.");
         }
     }
 
-    public void clear() throws GeneralSecurityException, IOException {
-        configStorage.delete(getStorageField(storeId, VERIFICATION));
-        configStorage.delete(getStorageField(storeId, ENC_SALT));
-        keyWrapper.clear();
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+        configStorage.delete(getStorageField(keyAlias, VERIFICATION));
+        configStorage.delete(getStorageField(keyAlias, ENC_SALT));
+        keyWrapper.clear(keyAlias);
     }
 
-    private boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
-        if (!isPasswordSet()) {
+    private boolean verifyPassword(String keyAlias, String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet(keyAlias)) {
             throw new LoginException("No password set. Use setPassword.");
         }
-        byte[] encSalt = configStorage.load(getStorageField(storeId, ENC_SALT));
-        byte[] verification = configStorage.load(getStorageField(storeId, VERIFICATION));
-        return ((PasswordKeyWrapper) keyWrapper).verifyPassword(new PasswordWrapParams(password, encSalt, verification));
+        byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
+        byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
+        return ((PasswordKeyWrapper) keyWrapper).verifyPassword(new PasswordWrapParams(keyAlias, password, encSalt, verification));
     }
 
-    private void unlock(@NonNull String password) throws IOException, GeneralSecurityException {
-        if (!isPasswordSet()) {
+    private void unlock(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
+        if (!isPasswordSet(keyAlias)) {
             throw new LoginException("No password set. Use setPassword.");
         }
-        byte[] encSalt = configStorage.load(getStorageField(storeId, ENC_SALT));
-        byte[] verification = configStorage.load(getStorageField(storeId, VERIFICATION));
-        ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(password, encSalt, verification));
+        byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
+        byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
+        ((PasswordKeyWrapper) keyWrapper).unlock(new PasswordWrapParams(keyAlias, password, encSalt, verification));
     }
 
     private void lock() {
         ((PasswordKeyWrapper) keyWrapper).lock();
     }
 
-    private boolean isPasswordSet() throws IOException {
-        return configStorage.exists(getStorageField(storeId, ENC_SALT)) && configStorage.exists(getStorageField(storeId, VERIFICATION));
+    private boolean isPasswordSet(String keyAlias) throws IOException {
+        return configStorage.exists(getStorageField(keyAlias, ENC_SALT)) && configStorage.exists(getStorageField(keyAlias, VERIFICATION));
     }
 
     protected byte[] generateSalt() {
@@ -157,7 +157,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
                     configStorage = new PreferenceStorage(keyStorageContext, storeId);
                 }
                 else {
-                    throw new IllegalArgumentException("Must provide either a DataStorage or a Context and storeId");
+                    throw new IllegalArgumentException("Must provide either a DataStorage or a Context and keyAlias");
                 }
             }
             if (keyDerivationSpec == null) {
@@ -173,7 +173,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
                 keyWrapper = new SignedPasswordKeyWrapper(
-                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec(), storeId);
+                        keyWrapperContext, new AndroidCrypto(), keyDerivationSpec, DefaultSpecs.getPasswordDeviceBindingSpec());
             } else {
                 keyWrapper = new PasswordKeyWrapper(
                         keyDerivationSpec);
@@ -182,27 +182,26 @@ public class PasswordProtectedKeyManager extends KeyManager {
     }
 
     @Override
-    public Editor getEditor(Rewrap rewrap) {
-        return new PasswordEditor(rewrap);
+    public Editor getEditor(Rewrap rewrap, String storeId) {
+        return new PasswordEditor(rewrap, storeId);
     }
 
     public class PasswordEditor extends KeyManager.Editor {
 
         private Rewrap rewrap;
+        private final String keyAlias;
 
-        public PasswordEditor() {
-        }
-
-        public PasswordEditor(Rewrap rewrap) {
+        public PasswordEditor(Rewrap rewrap, String keyAlias) {
             this.rewrap = rewrap;
+            this.keyAlias = keyAlias;
         }
 
         public void setPassword(String password) throws IOException, GeneralSecurityException {
-            PasswordProtectedKeyManager.this.setPassword(password);
+            PasswordProtectedKeyManager.this.setPassword(keyAlias, password);
         }
 
         public void unlock(String password) throws GeneralSecurityException, IOException {
-            PasswordProtectedKeyManager.this.unlock(password);
+            PasswordProtectedKeyManager.this.unlock(keyAlias, password);
         }
 
         public void lock() {
@@ -210,15 +209,15 @@ public class PasswordProtectedKeyManager extends KeyManager {
         }
 
         public void changePassword(@NonNull String oldPassword, @NonNull String newPassword) throws GeneralSecurityException, IOException {
-            PasswordProtectedKeyManager.this.unlock(oldPassword);
+            PasswordProtectedKeyManager.this.unlock(keyAlias, oldPassword);
             rewrap.unwrap();
-            PasswordProtectedKeyManager.this.clear();
-            PasswordProtectedKeyManager.this.setPassword(newPassword);
+            PasswordProtectedKeyManager.this.clear(keyAlias);
+            PasswordProtectedKeyManager.this.setPassword(keyAlias, newPassword);
             rewrap.rewrap();
         }
 
         public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
-            return PasswordProtectedKeyManager.this.verifyPassword(password);
+            return PasswordProtectedKeyManager.this.verifyPassword(keyAlias, password);
         }
 
         public boolean isUnlocked() {
@@ -226,7 +225,7 @@ public class PasswordProtectedKeyManager extends KeyManager {
         }
 
         public boolean isPasswordSet() throws IOException {
-            return PasswordProtectedKeyManager.this.isPasswordSet();
+            return PasswordProtectedKeyManager.this.isPasswordSet(keyAlias);
         }
     }
 }

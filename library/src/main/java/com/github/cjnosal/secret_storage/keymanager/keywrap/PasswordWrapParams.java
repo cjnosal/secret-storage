@@ -23,12 +23,14 @@ public class PasswordWrapParams {
     private byte[] salt;
     private String keyAlias;
 
-    public PasswordWrapParams(String password, byte[] salt) {
+    public PasswordWrapParams(String keyAlias, String password, byte[] salt) {
+        this.keyAlias = keyAlias;
         this.password = password;
         this.salt = salt;
     }
 
-    public PasswordWrapParams(String password, byte[] salt, byte[] verification) {
+    public PasswordWrapParams(String keyAlias, String password, byte[] salt, byte[] verification) {
+        this.keyAlias = keyAlias;
         this.password = password;
         this.salt = salt;
         this.verification = verification;
@@ -44,6 +46,10 @@ public class PasswordWrapParams {
 
     public byte[] getSalt() {
         return salt;
+    }
+
+    public String getKeyAlias() {
+        return keyAlias;
     }
 
     public void clearPassword() {

@@ -52,7 +52,6 @@ public class SecretStorage {
         this.dataStorage = dataStorage;
         this.keyStorage = keyStorage;
         this.keyManager = keyManager;
-        this.keyManager.setStoreId(storeId);
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
@@ -79,7 +78,6 @@ public class SecretStorage {
         if (!keyManager.getDataProtectionSpec().equals(other.getDataProtectionSpec())) {
             throw new IllegalArgumentException("Incompatible data protection strategy (expected " + keyManager.getDataProtectionSpec() + " but was " + other.getDataProtectionSpec());
         }
-        other.setStoreId(storeId);
         if (dataKeysExist()) {
             @KeyPurpose.DataSecrecy SecretKey encryptionKey = loadDataEncryptionKey();
             @KeyPurpose.DataIntegrity SecretKey signingKey = loadDataSigningKey();
@@ -93,7 +91,7 @@ public class SecretStorage {
     }
 
     public <E extends KeyManager.Editor> E getEditor() {
-        return keyManager.getEditor(new RewrapImpl());
+        return keyManager.getEditor(new RewrapImpl(), storeId);
     }
 
     private final class RewrapImpl implements KeyManager.Rewrap {
@@ -147,21 +145,21 @@ public class SecretStorage {
 
     protected @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey() throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
-        return keyManager.unwrapKey(wrappedKey);
+        return keyManager.unwrapKey(storeId, wrappedKey);
     }
 
     protected @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey() throws GeneralSecurityException, IOException {
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
-        return keyManager.unwrapKey(wrappedKey);
+        return keyManager.unwrapKey(storeId, wrappedKey);
     }
 
     protected void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyManager.wrapKey(key);
+        byte[] wrappedKey = keyManager.wrapKey(storeId, key);
         keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
     }
 
     protected void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
-        byte[] wrappedKey = keyManager.wrapKey(key);
+        byte[] wrappedKey = keyManager.wrapKey(storeId, key);
         keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
     }
 

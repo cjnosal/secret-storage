@@ -43,15 +43,13 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final Context context;
     private final AndroidCrypto androidCrypto;
     private final IntegritySpec derivationIntegritySpec;
-    private String keyAlias;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, String keyAlias) {
+    public SignedPasswordKeyWrapper(Context context, AndroidCrypto androidCrypto, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec) {
         super(keyDerivationSpec);
         this.context = context;
         this.androidCrypto = androidCrypto;
         this.derivationIntegritySpec = derivationIntegritySpec;
-        this.keyAlias = keyAlias;
         this.derivationIntegrityStrategy = new SignatureStrategy();
     }
 
@@ -64,11 +62,11 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
         if (params.getVerification() == null) {
             signingKey = androidCrypto.generateKeyPair(
                     context,
-                    getStorageField(keyAlias, DEVICE_BINDING),
+                    getStorageField(params.getKeyAlias(), DEVICE_BINDING),
                     derivationIntegritySpec.getKeygenAlgorithm())
                     .getPrivate();
         } else {
-            signingKey = androidCrypto.loadPrivateKey(getStorageField(keyAlias, DEVICE_BINDING));
+            signingKey = androidCrypto.loadPrivateKey(getStorageField(params.getKeyAlias(), DEVICE_BINDING));
         }
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
@@ -83,8 +81,8 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public void clear() throws GeneralSecurityException, IOException {
-        super.clear();
+    public void clear(String keyAlias) throws GeneralSecurityException, IOException {
+        super.clear(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }
 
