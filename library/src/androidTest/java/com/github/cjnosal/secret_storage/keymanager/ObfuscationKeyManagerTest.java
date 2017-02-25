@@ -69,7 +69,7 @@ public class ObfuscationKeyManagerTest {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR1);
         KeyDerivationSpec derivationSpec = DefaultSpecs.getPbkdf2WithHmacShaDerivationSpec();
         keyWrapper = new PasswordKeyWrapper(derivationSpec);
-        KeyManager subject = new ObfuscationKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage, derivationSpec);
+        KeyManager subject = new ObfuscationKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
 
         SecretKey enc = subject.generateDataEncryptionKey();
         SecretKey sig = subject.generateDataSigningKey();

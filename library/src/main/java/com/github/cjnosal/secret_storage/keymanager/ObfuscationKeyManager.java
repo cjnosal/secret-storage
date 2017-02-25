@@ -22,7 +22,6 @@ import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -36,7 +35,7 @@ import javax.crypto.SecretKey;
  */
 public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
-    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage, KeyDerivationSpec keyDerivationSpec) {
+    public ObfuscationKeyManager(ProtectionSpec dataProtectionSpec, PasswordKeyWrapper keyWrapper, DataKeyGenerator dataKeyGenerator, KeyWrap keyWrap, DataStorage configStorage) {
         super(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
     }
 
@@ -98,7 +97,7 @@ public class ObfuscationKeyManager extends PasswordProtectedKeyManager {
 
         public ObfuscationKeyManager build() {
             validate();
-            return new ObfuscationKeyManager(dataProtection, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage, keyDerivationSpec);
+            return new ObfuscationKeyManager(dataProtection, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage);
         }
 
         @Override
