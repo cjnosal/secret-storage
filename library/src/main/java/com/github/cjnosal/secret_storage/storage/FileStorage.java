@@ -136,7 +136,7 @@ public class FileStorage implements DataStorage {
                 }
             }
             if (!directory.delete()) {
-                throw new IOException("Failed to clear " + directory.getName());
+                throw new IOException("Failed to eraseConfig " + directory.getName());
             }
         }
     }

@@ -16,25 +16,140 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
+import javax.crypto.SecretKey;
+
+import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
+
 public abstract class KeyWrapper {
 
-    public KeyWrapper() {
+    // key storage
+    private static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
+    private static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
+
+    // config storage
+    private static final String KEY_PROTECTION = "KEY_PROTECTION";
+    private static final String DELIMITER = "::";
+
+    protected final KeyWrap keyWrap = new KeyWrap();
+    protected final CipherSpec keyProtectionSpec;
+    protected final DataStorage configStorage;
+    protected final DataStorage keyStorage;
+
+    public KeyWrapper(CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+        this.keyProtectionSpec = keyProtectionSpec;
+        this.configStorage = configStorage;
+        this.keyStorage = keyStorage;
     }
 
-    abstract String getWrapAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
-    abstract String getWrapParamAlgorithm(); // must be provided by AndroidKeyStore / BCWorkaround
-    abstract Key getKek(String keyAlias) throws GeneralSecurityException, IOException;
-    abstract Key getKdk(String keyAlias) throws GeneralSecurityException, IOException;
-    abstract void clear(String keyAlias) throws GeneralSecurityException, IOException;
+    public @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
+        return unwrapKey(storeId, wrappedKey, keyType);
+    }
 
-    protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
-    protected static final String DELIMITER = "::";
+    public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+        return unwrapKey(storeId, wrappedKey, keyType);
+    }
 
-    protected static String getStorageField(String storeId, String field) {
+    public void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = wrapKey(storeId, key);
+        keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
+    }
+
+    public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
+        byte[] wrappedKey = wrapKey(storeId, key);
+        keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
+    }
+
+    public boolean dataKeysExist(String storeId) {
+        return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+    }
+
+    public <E extends Editor> E getEditor(String storeId, String encKeyType, String sigKeyType) {
+        throw new UnsupportedOperationException("No editor available for this KeyManager");
+    }
+
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+        eraseKeys(keyAlias);
+        configStorage.delete(getStorageField(keyAlias, KEY_PROTECTION));
+    }
+
+    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
+        keyStorage.delete(getStorageField(keyAlias, WRAPPED_ENCRYPTION_KEY));
+        keyStorage.delete(getStorageField(keyAlias, WRAPPED_SIGNING_KEY));
+    }
+
+    protected byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
+        checkProtectionSpec(keyAlias);
+        return keyWrap.wrap(getKek(keyAlias), key, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+    }
+
+    protected SecretKey unwrapKey(String keyAlias, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
+        checkProtectionSpec(keyAlias);
+        return keyWrap.unwrap(getKdk(keyAlias), wrappedKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm(), keyType);
+    }
+
+    protected abstract Key getKek(String keyAlias) throws GeneralSecurityException, IOException;
+    protected abstract Key getKdk(String keyAlias) throws GeneralSecurityException, IOException;
+
+    private void checkProtectionSpec(String storeId) throws IOException {
+        if (configStorage.exists(getStorageField(storeId, KEY_PROTECTION))) {
+            // TODO migrate on mismatch
+            String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, KEY_PROTECTION)));
+            String strategy = keyProtectionSpec.toString();
+            if (!strategy.equals(storedStrategy)) {
+                throw new IllegalArgumentException("Wrong key protection strategy (expected " + storedStrategy + " but was " + strategy);
+            }
+        } else {
+            configStorage.store(getStorageField(storeId, KEY_PROTECTION), utf8Decode(keyProtectionSpec.toString()));
+        }
+    }
+
+    static String getStorageField(String storeId, String field) {
         return storeId + DELIMITER + field;
+    }
+
+    public class Editor {
+    }
+
+    final class Rewrap {
+
+        private final String storeId;
+        private final String encKeyType;
+        private final String sigKeyType;
+        private SecretKey encryptionKey;
+        private SecretKey signingKey;
+
+        Rewrap(String storeId, String encKeyType, String sigKeyType) {
+            this.storeId = storeId;
+            this.encKeyType = encKeyType;
+            this.sigKeyType = sigKeyType;
+        }
+
+        void unwrap() throws GeneralSecurityException, IOException {
+            if (dataKeysExist(storeId)) {
+                encryptionKey = loadDataEncryptionKey(storeId, encKeyType);
+                signingKey = loadDataSigningKey(storeId, sigKeyType);
+            }
+        }
+
+        void rewrap() throws GeneralSecurityException, IOException {
+            if (encryptionKey != null && signingKey != null) {
+                storeDataEncryptionKey(storeId, encryptionKey);
+                storeDataSigningKey(storeId, signingKey);
+                encryptionKey = null;
+                signingKey = null;
+            }
+        }
     }
 }

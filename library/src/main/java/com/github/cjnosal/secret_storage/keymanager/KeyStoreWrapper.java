@@ -22,6 +22,7 @@ import android.os.Build;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -35,27 +36,25 @@ public class KeyStoreWrapper extends KeyWrapper {
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
     // TODO unlock with fingerprint
 
+    private static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
+
     private final AndroidCrypto androidCrypto;
     private final CipherSpec keyProtectionSpec;
 
-    public KeyStoreWrapper(CipherSpec keyProtectionSpec) {
-        super();
+    public KeyStoreWrapper(CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+        super(keyProtectionSpec, configStorage, keyStorage);
         this.androidCrypto = new AndroidCrypto();
         this.keyProtectionSpec = keyProtectionSpec;
     }
 
     @Override
-    String getWrapAlgorithm() {
-        return keyProtectionSpec.getCipherTransformation();
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+        super.eraseConfig(keyAlias);
+        androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 
     @Override
-    String getWrapParamAlgorithm() {
-        return keyProtectionSpec.getParamsAlgorithm();
-    }
-
-    @Override
-    Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
+    protected Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
             KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec;
@@ -65,12 +64,7 @@ public class KeyStoreWrapper extends KeyWrapper {
     }
 
     @Override
-    Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
+    protected Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
         return getKek(keyAlias);
-    }
-
-    @Override
-    void clear(String keyAlias) throws GeneralSecurityException, IOException {
-        androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 }

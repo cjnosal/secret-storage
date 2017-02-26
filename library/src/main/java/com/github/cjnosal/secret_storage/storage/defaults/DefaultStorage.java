@@ -25,7 +25,7 @@ import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 import java.io.File;
 
 public class DefaultStorage {
-    public DataStorage createStorage(Context context, String storeId, @DataStorage.Type String type) {
+    public static DataStorage createStorage(Context context, String storeId, @DataStorage.Type String type) {
         if (type.equals(DataStorage.TYPE_DATA)) {
             return new FileStorage(context.getFilesDir() + File.separator + storeId + File.separator + type);
         } else {

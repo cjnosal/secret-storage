@@ -27,6 +27,7 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDeriv
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
 import java.io.IOException;
@@ -39,19 +40,25 @@ import javax.crypto.spec.PBEKeySpec;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     
-    private static final String DEVICE_BINDING = "DEVICE_BINDINNG";
+    private static final String DEVICE_BINDING = "DEVICE_BINDING";
 
     private final Context context;
     private final AndroidCrypto androidCrypto;
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec) {
-        super(keyDerivationSpec, keyProtectionSpec);
+    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+        super(keyDerivationSpec, keyProtectionSpec, configStorage, keyStorage);
         this.context = context;
         this.androidCrypto = new AndroidCrypto();
         this.derivationIntegritySpec = derivationIntegritySpec;
         this.derivationIntegrityStrategy = new SignatureStrategy();
+    }
+
+    @Override
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+        super.eraseConfig(keyAlias);
+        androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }
 
     @Override
@@ -80,12 +87,6 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
         PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), params.getSalt(), derivationSpec.getRounds() / 2, derivationSpec.getKeySize() * 2);
         return factory.generateSecret(secondSpec).getEncoded();
-    }
-
-    @Override
-    void clear(String keyAlias) throws GeneralSecurityException, IOException {
-        super.clear(keyAlias);
-        androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }
 
 }

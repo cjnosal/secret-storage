@@ -98,7 +98,7 @@ public class PreferenceStorage implements DataStorage {
     public void clear() throws IOException {
         boolean success = preferences.edit().clear().commit();
         if (!success) {
-            throw new IOException("Failed to clear preferences");
+            throw new IOException("Failed to eraseConfig preferences");
         }
     }
 
