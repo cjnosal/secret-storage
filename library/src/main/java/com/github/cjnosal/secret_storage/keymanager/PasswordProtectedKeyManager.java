@@ -25,7 +25,6 @@ import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 
@@ -114,7 +113,6 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
         protected DataStorage configStorage;
         protected Context keyWrapperContext;
-        protected KeyDerivationSpec keyDerivationSpec;
         protected String storeId;
 
         public Builder() {}
@@ -151,11 +149,6 @@ public class PasswordProtectedKeyManager extends KeyManager {
             return this;
         }
 
-        public Builder keyDerivationSpec(KeyDerivationSpec keyDerivationSpec) {
-            this.keyDerivationSpec = keyDerivationSpec;
-            return this;
-        }
-
         public PasswordProtectedKeyManager build() {
             validate();
             return new PasswordProtectedKeyManager(dataProtection, (PasswordKeyWrapper) keyWrapper, dataKeyGenerator, keyWrap, configStorage);
@@ -171,9 +164,6 @@ public class PasswordProtectedKeyManager extends KeyManager {
                     throw new IllegalArgumentException("Must provide either a DataStorage or a Context and keyAlias");
                 }
             }
-            if (keyDerivationSpec == null) {
-                keyDerivationSpec = DefaultSpecs.getPasswordDerivationSpec();
-            }
             super.validate();
             if (!(keyWrapper instanceof PasswordKeyWrapper)) {
                 throw new IllegalArgumentException("ObfuscationKeyManager requires a PasswordKeyWrapper or descendant");
@@ -182,15 +172,21 @@ public class PasswordProtectedKeyManager extends KeyManager {
 
         @Override
         protected void selectKeyWrapper() {
-            if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
+            if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
                 keyWrapper = new SignedPasswordKeyWrapper(
                         keyWrapperContext,
-                        keyDerivationSpec,
-                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getStrongPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(keyWrapperContext),
+                        DefaultSpecs.getStrongPasswordBasedKeyProtectionSpec());
+            } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2 && keyWrapperContext != null) {
+                keyWrapper = new SignedPasswordKeyWrapper(
+                        keyWrapperContext,
+                        DefaultSpecs.getPasswordDerivationSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(keyWrapperContext),
                         DefaultSpecs.getPasswordBasedKeyProtectionSpec());
             } else {
                 keyWrapper = new PasswordKeyWrapper(
-                        keyDerivationSpec,
+                        DefaultSpecs.getPasswordDerivationSpec(),
                         DefaultSpecs.getPasswordBasedKeyProtectionSpec()
                 );
             }

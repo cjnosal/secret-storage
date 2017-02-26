@@ -172,7 +172,7 @@ public class KeyManager {
         protected void selectKeyWrapper() {
             if (defaultKeyWrapper > 0) {
                 if (defaultKeyWrapper >= Build.VERSION_CODES.M) {
-                    keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
+                    keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreCipherSpec());
                 } else if (defaultKeyWrapper >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     keyWrapper = new AsymmetricKeyStoreWrapper(DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context));
                 } else {

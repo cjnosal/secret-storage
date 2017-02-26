@@ -106,7 +106,7 @@ public class KeyManagerTest {
     @Test
     public void keyStoreWrapper() throws Exception {
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.M);
-        keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec());
+        keyWrapper = new KeyStoreWrapper(DefaultSpecs.getKeyStoreCipherSpec());
         KeyManager subject = new KeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap);
 
         SecretKey enc = subject.generateDataEncryptionKey();

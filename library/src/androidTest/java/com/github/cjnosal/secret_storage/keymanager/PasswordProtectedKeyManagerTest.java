@@ -57,7 +57,6 @@ public class PasswordProtectedKeyManagerTest {
         keyWrap = new KeyWrap();
         dataKeyGenerator = new DataKeyGenerator();
         androidCrypto = new AndroidCrypto();
-        androidCrypto.clear();
         configStorage = new PreferenceStorage(context, "test");
         configStorage.clear();
     }
@@ -73,7 +72,8 @@ public class PasswordProtectedKeyManagerTest {
     }
 
     @Test
-    public void defaultKeyWrapper_jbmr2_isSignedPasswordKeyWrapper() {
+    public void defaultKeyWrapper_jbmr2_isSignedPasswordKeyWrapper() throws Exception {
+        androidCrypto.clear();
         KeyManager subject = new PasswordProtectedKeyManager.Builder()
                 .configStorage(configStorage)
                 .defaultKeyWrapper(context, Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -111,11 +111,12 @@ public class PasswordProtectedKeyManagerTest {
 
     @Test
     public void signedPasswordKeyWrapper() throws Exception {
+        androidCrypto.clear();
         dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.JELLY_BEAN_MR2);
         keyWrapper = new SignedPasswordKeyWrapper(
                 context,
                 DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordDeviceBindingSpec(),
+                DefaultSpecs.getPasswordDeviceBindingSpec(context),
                 DefaultSpecs.getPasswordBasedKeyProtectionSpec());
         KeyManager subject = new PasswordProtectedKeyManager(dataProtectionSpec, keyWrapper, dataKeyGenerator, keyWrap, configStorage);
 

@@ -160,7 +160,7 @@ public class SecretStorageTest {
 
         // ICS data encryption for compatibility, upgraded key wrapper using M's AndroidKeyStore
         KeyManager upgradedWrapping = new KeyManager(DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.ICE_CREAM_SANDWICH),
-                new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
+                new KeyStoreWrapper(DefaultSpecs.getKeyStoreCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 
@@ -203,7 +203,7 @@ public class SecretStorageTest {
                 new SignedPasswordKeyWrapper(
                         context,
                         DefaultSpecs.getPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(context),
                         DefaultSpecs.getPasswordBasedKeyProtectionSpec()
                 ),
                 dataKeyGenerator,
@@ -215,7 +215,7 @@ public class SecretStorageTest {
                 new SignedPasswordKeyWrapper(
                         context,
                         DefaultSpecs.getPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec(),
+                        DefaultSpecs.getPasswordDeviceBindingSpec(context),
                         DefaultSpecs.getPasswordBasedKeyProtectionSpec()
                 ),
                 dataKeyGenerator,
@@ -238,13 +238,13 @@ public class SecretStorageTest {
 
         KeyManager keyStoreManager1 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
-                new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
+                new KeyStoreWrapper(DefaultSpecs.getKeyStoreCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 
         KeyManager keyStoreManager2 = new KeyManager(
                 DefaultSpecs.getDataProtectionSpec(Build.VERSION_CODES.KITKAT),
-                new KeyStoreWrapper(DefaultSpecs.getKeyStoreDataProtectionSpec().getCipherSpec()),
+                new KeyStoreWrapper(DefaultSpecs.getKeyStoreCipherSpec()),
                 dataKeyGenerator,
                 keyWrap);
 
