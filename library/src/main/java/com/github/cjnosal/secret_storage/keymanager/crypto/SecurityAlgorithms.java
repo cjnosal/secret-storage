@@ -139,10 +139,11 @@ public class SecurityAlgorithms {
     @StringDef({
             SecurityProvider_AndroidKeyStore,    // Version 1.0 Android KeyStore security provider
             SecurityProvider_AndroidKeyStoreBCWorkaround,    // Version 1.0 Android KeyStore security provider to work around Bouncy Castle
+            SecurityProvider_AndroidNSSP,    // Version 1.0 Android Network Security Policy Provider
             SecurityProvider_AndroidOpenSSL,    // Version 1.0 Android's OpenSSL-backed security provider
-            SecurityProvider_BC,    // Version 1.52 BouncyCastle Security Provider v1.52
-            SecurityProvider_Crypto,    // Version 1.0 HARMONY (SHA1 digest; SecureRandom; SHA1withDSA signature)
-            SecurityProvider_GmsCore_OpenSSL,	// Version 1.0 Android's OpenSSL-backed security provider
+            SecurityProvider_BC,    // Version 1.54 BouncyCastle Security Provider v1.54
+            SecurityProvider_CertPathProvider,    // Version 1.0 Provider of CertPathBuilder and CertPathVerifier
+            SecurityProvider_GmsCore_OpenSSL,    // Version 1.0 Android's OpenSSL-backed security provider
             SecurityProvider_HarmonyJSSE    // Version 1.0 Harmony JSSE Provider
     })
     public @interface SecurityProvider {
@@ -150,34 +151,35 @@ public class SecurityAlgorithms {
 
     public static final String SecurityProvider_AndroidKeyStore = "AndroidKeyStore";
     public static final String SecurityProvider_AndroidKeyStoreBCWorkaround = "AndroidKeyStoreBCWorkaround";
+    public static final String SecurityProvider_AndroidNSSP = "AndroidNSSP";
     public static final String SecurityProvider_AndroidOpenSSL = "AndroidOpenSSL";
     public static final String SecurityProvider_BC = "BC";
-    @Deprecated public static final String SecurityProvider_Crypto = "Crypto"; // provides legacy SHA1PRNG, replaced by OpenSSL
-    public static final String SecurityProvider_GmsCore_OpenSSL = "GmsCore_OpenSSL"; // if installed with GMS's ProviderInstaller
-    @Deprecated public static final String SecurityProvider_HarmonyJSSE = "HarmonyJSSE"; // provides legacy SSLv3 and TLS1.0 SSLContext, replaced by OpenSSL
+    public static final String SecurityProvider_CertPathProvider = "CertPathProvider";
+    public static final String SecurityProvider_GmsCore_OpenSSL = "GmsCore_OpenSSL";
+    public static final String SecurityProvider_HarmonyJSSE = "HarmonyJSSE";
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
             SecurityService_AlgorithmParameterGenerator,    // BC
             SecurityService_AlgorithmParameters,    // BC
-            SecurityService_CertPathBuilder,    // BC
-            SecurityService_CertPathValidator,    // BC
+            SecurityService_CertPathBuilder,    // BC, CertPathProvider
+            SecurityService_CertPathValidator,    // BC, CertPathProvider
             SecurityService_CertStore,    // BC
-            SecurityService_CertificateFactory,    // AndroidOpenSSL, BC
-            SecurityService_Cipher,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC
-            SecurityService_KeyAgreement,    // AndroidOpenSSL, BC
-            SecurityService_KeyFactory,    // AndroidKeyStore, AndroidOpenSSL, BC
+            SecurityService_CertificateFactory,    // AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_Cipher,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_KeyAgreement,    // AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_KeyFactory,    // AndroidKeyStore, AndroidOpenSSL, BC, GmsCore_OpenSSL
             SecurityService_KeyGenerator,    // AndroidKeyStore, BC
             SecurityService_KeyManagerFactory,    // HarmonyJSSE
-            SecurityService_KeyPairGenerator,    // AndroidKeyStore, AndroidOpenSSL, BC
+            SecurityService_KeyPairGenerator,    // AndroidKeyStore, AndroidOpenSSL, BC, GmsCore_OpenSSL
             SecurityService_KeyStore,    // AndroidKeyStore, BC, HarmonyJSSE
-            SecurityService_Mac,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC
-            SecurityService_MessageDigest,    // AndroidOpenSSL, BC
-            SecurityService_SSLContext,    // AndroidOpenSSL
+            SecurityService_Mac,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_MessageDigest,    // AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_SSLContext,    // AndroidOpenSSL, GmsCore_OpenSSL
             SecurityService_SecretKeyFactory,    // AndroidKeyStore, BC
-            SecurityService_SecureRandom,    // AndroidOpenSSL, Crypto
-            SecurityService_Signature,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC
-            SecurityService_TrustManagerFactory    // HarmonyJSSE
+            SecurityService_SecureRandom,    // AndroidOpenSSL, GmsCore_OpenSSL
+            SecurityService_Signature,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC, GmsCore_OpenSSL
+            SecurityService_TrustManagerFactory    // AndroidNSSP, HarmonyJSSE
     })
     public @interface SecurityService {
     }
@@ -224,7 +226,8 @@ public class SecurityAlgorithms {
             AlgorithmParameters_DSA,    // BC
             AlgorithmParameters_GCM,    // BC
             AlgorithmParameters_OAEP,    // BC
-            AlgorithmParameters_PKCS12PBE    // BC
+            AlgorithmParameters_PKCS12PBE,    // BC
+            AlgorithmParameters_PSS    // BC
     })
     public @interface AlgorithmParameters {
     }
@@ -238,10 +241,11 @@ public class SecurityAlgorithms {
     public static final String AlgorithmParameters_GCM = "GCM";
     public static final String AlgorithmParameters_OAEP = "OAEP";
     public static final String AlgorithmParameters_PKCS12PBE = "PKCS12PBE";
+    public static final String AlgorithmParameters_PSS = "PSS";
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            CertPathBuilder_PKIX    // BC
+            CertPathBuilder_PKIX    // CertPathProvider, BC
     })
     public @interface CertPathBuilder {
     }
@@ -250,7 +254,7 @@ public class SecurityAlgorithms {
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            CertPathValidator_PKIX    // BC
+            CertPathValidator_PKIX    // CertPathProvider, BC
     })
     public @interface CertPathValidator {
     }
@@ -269,7 +273,7 @@ public class SecurityAlgorithms {
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
             CertificateFactory_X_509,    // BC
-            CertificateFactory_X509    // AndroidOpenSSL
+            CertificateFactory_X509    // GmsCore_OpenSSL, AndroidOpenSSL
     })
     public @interface CertificateFactory {
     }
@@ -280,22 +284,22 @@ public class SecurityAlgorithms {
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
             Cipher_AES,    // BC
-            Cipher_AES_CBC_NoPadding,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Cipher_AES_CBC_PKCS5Padding,    // AndroidOpenSSL
+            Cipher_AES_CBC_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Cipher_AES_CBC_PKCS5Padding,    // GmsCore_OpenSSL, AndroidOpenSSL
             Cipher_AES_CBC_PKCS7Padding,    // AndroidKeyStoreBCWorkaround
-            Cipher_AES_CTR_NoPadding,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Cipher_AES_ECB_NoPadding,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Cipher_AES_ECB_PKCS5Padding,    // AndroidOpenSSL
+            Cipher_AES_CTR_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Cipher_AES_ECB_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Cipher_AES_ECB_PKCS5Padding,    // GmsCore_OpenSSL, AndroidOpenSSL
             Cipher_AES_ECB_PKCS7Padding,    // AndroidKeyStoreBCWorkaround
             Cipher_AES_GCM_NOPADDING,    // BC
-            Cipher_AES_GCM_NoPadding,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Cipher_AES_GCM_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Cipher_AESWRAP,    // BC
-            Cipher_ARC4,    // AndroidOpenSSL, BC
+            Cipher_ARC4,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
             Cipher_BLOWFISH,    // BC
             Cipher_DES,    // BC
             Cipher_DESEDE,    // BC
-            Cipher_DESEDE_CBC_NoPadding,    // AndroidOpenSSL
-            Cipher_DESEDE_CBC_PKCS5Padding,    // AndroidOpenSSL
+            Cipher_DESEDE_CBC_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Cipher_DESEDE_CBC_PKCS5Padding,    // GmsCore_OpenSSL, AndroidOpenSSL
             Cipher_DESEDEWRAP,    // BC
             Cipher_PBEWITHMD5AND128BITAES_CBC_OPENSSL,    // BC
             Cipher_PBEWITHMD5AND192BITAES_CBC_OPENSSL,    // BC
@@ -318,26 +322,26 @@ public class SecurityAlgorithms {
             Cipher_PBEWITHSHAAND40BITRC4,    // BC
             Cipher_PBEWITHSHAANDTWOFISH_CBC,    // BC
             Cipher_RSA,    // BC
-            Cipher_RSA_ECB_NoPadding,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Cipher_RSA_ECB_NoPadding,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPPadding,    // AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPWithSHA_1AndMGF1Padding,    // AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPWithSHA_224AndMGF1Padding,    // AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPWithSHA_256AndMGF1Padding,    // AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPWithSHA_384AndMGF1Padding,    // AndroidKeyStoreBCWorkaround
             Cipher_RSA_ECB_OAEPWithSHA_512AndMGF1Padding,    // AndroidKeyStoreBCWorkaround
-            Cipher_RSA_ECB_PKCS1Padding    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Cipher_RSA_ECB_PKCS1Padding    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
     })
     public @interface Cipher {
     }
 
-    @Deprecated public static final String Cipher_AES = "AES"; // alias to Cipher_AES_ECB_NoPadding
+    public static final String Cipher_AES = "AES";
     public static final String Cipher_AES_CBC_NoPadding = "AES/CBC/NoPadding";
     public static final String Cipher_AES_CBC_PKCS5Padding = "AES/CBC/PKCS5Padding";
     public static final String Cipher_AES_CBC_PKCS7Padding = "AES/CBC/PKCS7Padding";
     public static final String Cipher_AES_CTR_NoPadding = "AES/CTR/NoPadding";
-    @Deprecated public static final String Cipher_AES_ECB_NoPadding = "AES/ECB/NoPadding"; // ECB is insecure for symmetric ciphers
-    @Deprecated public static final String Cipher_AES_ECB_PKCS5Padding = "AES/ECB/PKCS5Padding"; // ECB is insecure for symmetric ciphers
-    @Deprecated public static final String Cipher_AES_ECB_PKCS7Padding = "AES/ECB/PKCS7Padding"; // ECB is insecure for symmetric ciphers
+    public static final String Cipher_AES_ECB_NoPadding = "AES/ECB/NoPadding";
+    public static final String Cipher_AES_ECB_PKCS5Padding = "AES/ECB/PKCS5Padding";
+    public static final String Cipher_AES_ECB_PKCS7Padding = "AES/ECB/PKCS7Padding";
     public static final String Cipher_AES_GCM_NOPADDING = "AES/GCM/NOPADDING";
     public static final String Cipher_AES_GCM_NoPadding = "AES/GCM/NoPadding";
     public static final String Cipher_AESWRAP = "AESWRAP";
@@ -381,7 +385,7 @@ public class SecurityAlgorithms {
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
             KeyAgreement_DH,    // BC
-            KeyAgreement_ECDH    // AndroidOpenSSL, BC
+            KeyAgreement_ECDH    // GmsCore_OpenSSL, AndroidOpenSSL, BC
     })
     public @interface KeyAgreement {
     }
@@ -393,8 +397,8 @@ public class SecurityAlgorithms {
     @StringDef({
             KeyFactory_DH,    // BC
             KeyFactory_DSA,    // BC
-            KeyFactory_EC,    // AndroidOpenSSL, BC, AndroidKeyStore
-            KeyFactory_RSA    // AndroidOpenSSL, BC, AndroidKeyStore
+            KeyFactory_EC,    // GmsCore_OpenSSL, AndroidOpenSSL, BC, AndroidKeyStore
+            KeyFactory_RSA    // GmsCore_OpenSSL, AndroidOpenSSL, BC, AndroidKeyStore
     })
     public @interface KeyFactory {
     }
@@ -450,14 +454,14 @@ public class SecurityAlgorithms {
     public @interface KeyManagerFactory {
     }
 
-    @Deprecated public static final String KeyManagerFactory_PKIX = "PKIX";
+    public static final String KeyManagerFactory_PKIX = "PKIX";
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
             KeyPairGenerator_DH,    // BC
             KeyPairGenerator_DSA,    // BC
-            KeyPairGenerator_EC,    // AndroidOpenSSL, BC, AndroidKeyStore
-            KeyPairGenerator_RSA    // AndroidOpenSSL, BC, AndroidKeyStore
+            KeyPairGenerator_EC,    // GmsCore_OpenSSL, AndroidOpenSSL, BC, AndroidKeyStore
+            KeyPairGenerator_RSA    // GmsCore_OpenSSL, AndroidOpenSSL, BC, AndroidKeyStore
     })
     public @interface KeyPairGenerator {
     }
@@ -492,12 +496,12 @@ public class SecurityAlgorithms {
             Mac_HMACSHA256,    // BC
             Mac_HMACSHA384,    // BC
             Mac_HMACSHA512,    // BC
-            Mac_HmacMD5,    // AndroidOpenSSL
-            Mac_HmacSHA1,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Mac_HmacSHA224,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Mac_HmacSHA256,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Mac_HmacSHA384,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
-            Mac_HmacSHA512,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Mac_HmacMD5,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Mac_HmacSHA1,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Mac_HmacSHA224,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Mac_HmacSHA256,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Mac_HmacSHA384,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
+            Mac_HmacSHA512,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Mac_PBEWITHHMACSHA,    // BC
             Mac_PBEWITHHMACSHA1    // BC
     })
@@ -521,41 +525,41 @@ public class SecurityAlgorithms {
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            MessageDigest_MD5,    // AndroidOpenSSL, BC
-            MessageDigest_SHA_1,    // AndroidOpenSSL, BC
-            MessageDigest_SHA_224,    // AndroidOpenSSL, BC
-            MessageDigest_SHA_256,    // AndroidOpenSSL, BC
-            MessageDigest_SHA_384,    // AndroidOpenSSL, BC
-            MessageDigest_SHA_512    // AndroidOpenSSL, BC
+            MessageDigest_MD5,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
+            MessageDigest_SHA_1,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
+            MessageDigest_SHA_224,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
+            MessageDigest_SHA_256,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
+            MessageDigest_SHA_384,    // GmsCore_OpenSSL, AndroidOpenSSL, BC
+            MessageDigest_SHA_512    // GmsCore_OpenSSL, AndroidOpenSSL, BC
     })
     public @interface MessageDigest {
     }
 
-    @Deprecated public static final String MessageDigest_MD5 = "MD5";
-    @Deprecated public static final String MessageDigest_SHA_1 = "SHA-1";
-    @Deprecated public static final String MessageDigest_SHA_224 = "SHA-224";
+    public static final String MessageDigest_MD5 = "MD5";
+    public static final String MessageDigest_SHA_1 = "SHA-1";
+    public static final String MessageDigest_SHA_224 = "SHA-224";
     public static final String MessageDigest_SHA_256 = "SHA-256";
     public static final String MessageDigest_SHA_384 = "SHA-384";
     public static final String MessageDigest_SHA_512 = "SHA-512";
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            SSLContext_Default,    // AndroidOpenSSL
-            SSLContext_SSL,    // AndroidOpenSSL
-            SSLContext_SSLv3,    // AndroidOpenSSL
-            SSLContext_TLS,    // AndroidOpenSSL
-            SSLContext_TLSv1,    // AndroidOpenSSL
-            SSLContext_TLSv1_1,    // AndroidOpenSSL
-            SSLContext_TLSv1_2    // AndroidOpenSSL
+            SSLContext_Default,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_SSL,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_SSLv3,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_TLS,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_TLSv1,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_TLSv1_1,    // GmsCore_OpenSSL, AndroidOpenSSL
+            SSLContext_TLSv1_2    // GmsCore_OpenSSL, AndroidOpenSSL
     })
     public @interface SSLContext {
     }
 
     public static final String SSLContext_Default = "Default";
-    @Deprecated public static final String SSLContext_SSL = "SSL";
-    @Deprecated public static final String SSLContext_SSLv3 = "SSLv3";
+    public static final String SSLContext_SSL = "SSL";
+    public static final String SSLContext_SSLv3 = "SSLv3";
     public static final String SSLContext_TLS = "TLS";
-    @Deprecated public static final String SSLContext_TLSv1 = "TLSv1";
+    public static final String SSLContext_TLSv1 = "TLSv1";
     public static final String SSLContext_TLSv1_1 = "TLSv1.1";
     public static final String SSLContext_TLSv1_2 = "TLSv1.2";
 
@@ -630,7 +634,7 @@ public class SecurityAlgorithms {
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            SecureRandom_SHA1PRNG    // AndroidOpenSSL, Crypto
+            SecureRandom_SHA1PRNG    // GmsCore_OpenSSL, AndroidOpenSSL
     })
     public @interface SecureRandom {
     }
@@ -639,49 +643,48 @@ public class SecurityAlgorithms {
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            Signature_ECDSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL, BC
             Signature_MD5WITHRSA,    // BC
-            Signature_MD5WithRSA,    // AndroidOpenSSL
+            Signature_MD5WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
             Signature_MD5withRSA,    // AndroidKeyStoreBCWorkaround
             Signature_NONEWITHDSA,    // BC
             Signature_NONEwithECDSA,    // AndroidKeyStoreBCWorkaround, BC
-            Signature_NONEwithRSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Signature_NONEwithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA1WITHRSA,    // BC
-            Signature_SHA1WithRSA,    // AndroidOpenSSL
+            Signature_SHA1WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
             Signature_SHA1withDSA,    // BC
+            Signature_SHA1withECDSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround, BC
             Signature_SHA1withRSA,    // AndroidKeyStoreBCWorkaround
-            Signature_SHA1withRSA_PSS,    // AndroidKeyStoreBCWorkaround
+            Signature_SHA1withRSA_PSS,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA224WITHDSA,    // BC
             Signature_SHA224WITHECDSA,    // BC
             Signature_SHA224WITHRSA,    // BC
-            Signature_SHA224WithRSA,    // AndroidOpenSSL
-            Signature_SHA224withECDSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Signature_SHA224WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Signature_SHA224withECDSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA224withRSA,    // AndroidKeyStoreBCWorkaround
-            Signature_SHA224withRSA_PSS,    // AndroidKeyStoreBCWorkaround
+            Signature_SHA224withRSA_PSS,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA256WITHDSA,    // BC
             Signature_SHA256WITHECDSA,    // BC
             Signature_SHA256WITHRSA,    // BC
-            Signature_SHA256WithRSA,    // AndroidOpenSSL
-            Signature_SHA256withECDSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Signature_SHA256WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Signature_SHA256withECDSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA256withRSA,    // AndroidKeyStoreBCWorkaround
-            Signature_SHA256withRSA_PSS,    // AndroidKeyStoreBCWorkaround
+            Signature_SHA256withRSA_PSS,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA384WITHECDSA,    // BC
             Signature_SHA384WITHRSA,    // BC
-            Signature_SHA384WithRSA,    // AndroidOpenSSL
-            Signature_SHA384withECDSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Signature_SHA384WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Signature_SHA384withECDSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA384withRSA,    // AndroidKeyStoreBCWorkaround
-            Signature_SHA384withRSA_PSS,    // AndroidKeyStoreBCWorkaround
+            Signature_SHA384withRSA_PSS,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA512WITHECDSA,    // BC
             Signature_SHA512WITHRSA,    // BC
-            Signature_SHA512WithRSA,    // AndroidOpenSSL
-            Signature_SHA512withECDSA,    // AndroidKeyStoreBCWorkaround, AndroidOpenSSL
+            Signature_SHA512WithRSA,    // GmsCore_OpenSSL, AndroidOpenSSL
+            Signature_SHA512withECDSA,    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
             Signature_SHA512withRSA,    // AndroidKeyStoreBCWorkaround
-            Signature_SHA512withRSA_PSS    // AndroidKeyStoreBCWorkaround
+            Signature_SHA512withRSA_PSS    // GmsCore_OpenSSL, AndroidOpenSSL, AndroidKeyStoreBCWorkaround
     })
     public @interface Signature {
     }
 
-    public static final String Signature_ECDSA = "ECDSA";
     public static final String Signature_MD5WITHRSA = "MD5WITHRSA";
     public static final String Signature_MD5WithRSA = "MD5WithRSA";
     public static final String Signature_MD5withRSA = "MD5withRSA";
@@ -691,6 +694,7 @@ public class SecurityAlgorithms {
     public static final String Signature_SHA1WITHRSA = "SHA1WITHRSA";
     public static final String Signature_SHA1WithRSA = "SHA1WithRSA";
     public static final String Signature_SHA1withDSA = "SHA1withDSA";
+    public static final String Signature_SHA1withECDSA = "SHA1withECDSA";
     public static final String Signature_SHA1withRSA = "SHA1withRSA";
     public static final String Signature_SHA1withRSA_PSS = "SHA1withRSA/PSS";
     public static final String Signature_SHA224WITHDSA = "SHA224WITHDSA";
@@ -722,11 +726,11 @@ public class SecurityAlgorithms {
 
     @Retention(RetentionPolicy.SOURCE)
     @StringDef({
-            TrustManagerFactory_PKIX    // HarmonyJSSE
+            TrustManagerFactory_PKIX    // AndroidNSSP, HarmonyJSSE
     })
     public @interface TrustManagerFactory {
     }
 
-    @Deprecated public static final String TrustManagerFactory_PKIX = "PKIX";
+    public static final String TrustManagerFactory_PKIX = "PKIX";
 
 }
