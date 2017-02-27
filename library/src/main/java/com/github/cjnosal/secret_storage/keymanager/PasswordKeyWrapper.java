@@ -18,7 +18,6 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import android.support.annotation.NonNull;
 
-import com.github.cjnosal.secret_storage.keymanager.keywrap.PasswordWrapParams;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
@@ -80,7 +79,10 @@ public class PasswordKeyWrapper extends KeyWrapper {
     void setPassword(String keyAlias, @NonNull String password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet(keyAlias)) {
             byte[] salt = generateSalt();
-            byte[] verification = unlock(new PasswordWrapParams(keyAlias, password, salt));
+            byte[] generated = derive(keyAlias, password, salt);
+            byte[] verification = getVerification(generated);
+
+            derivedEncKey = getDerivedEncKey(generated);
             configStorage.store(getStorageField(keyAlias, ENC_SALT), salt);
             configStorage.store(getStorageField(keyAlias, VERIFICATION), verification);
         } else {
@@ -94,7 +96,12 @@ public class PasswordKeyWrapper extends KeyWrapper {
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
-        unlock(new PasswordWrapParams(keyAlias, password, encSalt, verification));
+
+        byte[] generated = derive(keyAlias, password, encSalt);
+        if (!MessageDigest.isEqual(verification, getVerification(generated))) {
+            throw new LoginException("Wrong password");
+        }
+        derivedEncKey = getDerivedEncKey(generated);
     }
 
     boolean isPasswordSet(String keyAlias) {
@@ -109,12 +116,9 @@ public class PasswordKeyWrapper extends KeyWrapper {
         return derivedEncKey != null;
     }
 
-    byte[] derive(PasswordWrapParams params) throws GeneralSecurityException, IOException {
-        String password = params.getPassword();
-        params.clearPassword();
-
+    byte[] derive(String keyAlias, String password, byte[] salt) throws GeneralSecurityException, IOException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
-        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), params.getSalt(), derivationSpec.getRounds(), derivationSpec.getKeySize() * 2);
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds(), derivationSpec.getKeySize() * 2);
         return factory.generateSecret(spec).getEncoded();
     }
 
@@ -124,7 +128,9 @@ public class PasswordKeyWrapper extends KeyWrapper {
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
-        return verifyPassword(new PasswordWrapParams(keyAlias, password, encSalt, verification));
+
+        byte[] generated = derive(keyAlias, password, encSalt);
+        return MessageDigest.isEqual(getVerification(generated), verification);
     }
 
     private byte[] generateSalt() {
@@ -135,21 +141,6 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     private void lock() {
         derivedEncKey = null;
-    }
-
-    private byte[] unlock(PasswordWrapParams params) throws GeneralSecurityException, IOException {
-        byte[] generated = derive(params);
-        byte[] verification = getVerification(generated);
-        if (params.getVerification() != null && !MessageDigest.isEqual(verification, params.getVerification())) {
-            throw new LoginException("Wrong password");
-        }
-        derivedEncKey = getDerivedEncKey(generated);
-        return verification;
-    }
-
-    private boolean verifyPassword(PasswordWrapParams params) throws IOException, GeneralSecurityException {
-        byte[] generated = derive(params);
-        return MessageDigest.isEqual(getVerification(generated), params.getVerification());
     }
 
     private Key getDerivedEncKey(byte[] generated) {
