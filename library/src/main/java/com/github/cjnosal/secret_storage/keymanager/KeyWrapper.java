@@ -75,7 +75,7 @@ public abstract class KeyWrapper {
         return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
     }
 
-    public <E extends Editor> E getEditor(String storeId, String encKeyType, String sigKeyType) {
+    public <E extends Editor> E getEditor(String storeId, ReWrap reWrap) {
         throw new UnsupportedOperationException("No editor available for this KeyManager");
     }
 
@@ -120,36 +120,5 @@ public abstract class KeyWrapper {
     }
 
     public class Editor {
-    }
-
-    final class Rewrap {
-
-        private final String storeId;
-        private final String encKeyType;
-        private final String sigKeyType;
-        private SecretKey encryptionKey;
-        private SecretKey signingKey;
-
-        Rewrap(String storeId, String encKeyType, String sigKeyType) {
-            this.storeId = storeId;
-            this.encKeyType = encKeyType;
-            this.sigKeyType = sigKeyType;
-        }
-
-        void unwrap() throws GeneralSecurityException, IOException {
-            if (dataKeysExist(storeId)) {
-                encryptionKey = loadDataEncryptionKey(storeId, encKeyType);
-                signingKey = loadDataSigningKey(storeId, sigKeyType);
-            }
-        }
-
-        void rewrap() throws GeneralSecurityException, IOException {
-            if (encryptionKey != null && signingKey != null) {
-                storeDataEncryptionKey(storeId, encryptionKey);
-                storeDataSigningKey(storeId, signingKey);
-                encryptionKey = null;
-                signingKey = null;
-            }
-        }
     }
 }

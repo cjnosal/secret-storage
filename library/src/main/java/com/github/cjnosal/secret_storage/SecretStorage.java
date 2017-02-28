@@ -23,8 +23,10 @@ import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.KeyWrapperInitializer;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.ReWrap;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
@@ -95,23 +97,25 @@ public class SecretStorage {
     }
 
     // decrypt and copy data encryption keys to another KeyManager instance
-    public void rewrap(KeyWrapper other) throws IOException, GeneralSecurityException {
+    public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
         checkProtectionSpec();
         if (keyWrapper.dataKeysExist(storeId)) {
             @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
             @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm());
-            keyWrapper.eraseConfig(storeId);
-            keyWrapper = other;
+            keyWrapper = initializer.initKeyWrapper();
             keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
             keyWrapper.storeDataSigningKey(storeId, signingKey);
         } else {
-            keyWrapper.eraseConfig(storeId);
-            keyWrapper = other;
+            keyWrapper = initializer.initKeyWrapper();
         }
     }
 
     public <E extends KeyWrapper.Editor> E getEditor() {
-        return keyWrapper.getEditor(storeId, dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm());
+        return keyWrapper.getEditor(storeId, new ReWrap() {
+            public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
+                SecretStorage.this.rewrap(initializer);
+            }
+        });
     }
 
     private void checkProtectionSpec() throws IOException {

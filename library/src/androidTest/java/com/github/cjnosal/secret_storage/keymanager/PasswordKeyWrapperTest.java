@@ -27,6 +27,9 @@ import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.security.auth.login.LoginException;
@@ -137,7 +140,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_noPassword_setPassword() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", null);
         assertFalse(editor.isPasswordSet());
         assertFalse(editor.isUnlocked());
 
@@ -149,7 +152,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_withPassword_setPasswordFails() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", null);
         editor.setPassword("password");
 
         try {
@@ -160,7 +163,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_verifyPassword() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", null);
 
         try {
             editor.verifyPassword("password");
@@ -177,7 +180,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_lock() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", null);
         editor.setPassword("password");
 
         editor.lock();
@@ -187,7 +190,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_unlock() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", null);
 
         try {
             editor.unlock("password");
@@ -208,7 +211,13 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void getEditor_changePassword() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+        final PasswordKeyWrapper.PasswordEditor editor = subject.getEditor("id", new ReWrap() {
+
+            @Override
+            public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
+                assertTrue(initializer.initKeyWrapper() == subject);
+            }
+        });
 
         try {
             editor.changePassword(null, "password");
@@ -226,6 +235,7 @@ public class PasswordKeyWrapperTest {
         editor.changePassword("password", "password2");
         assertTrue(editor.isUnlocked());
         assertTrue(editor.isPasswordSet());
+        assertTrue(editor.verifyPassword("password2"));
     }
 
 

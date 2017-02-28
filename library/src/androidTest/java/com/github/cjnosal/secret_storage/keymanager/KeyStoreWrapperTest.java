@@ -128,7 +128,7 @@ public class KeyStoreWrapperTest {
     @Test
     public void getEditor() throws Exception {
         try {
-            subject.getEditor("test", SecurityAlgorithms.KeyGenerator_AES, SecurityAlgorithms.KeyGenerator_AES);
+            subject.getEditor("test", null);
             fail("No editor available for this manager");
         } catch (UnsupportedOperationException expected) {}
     }

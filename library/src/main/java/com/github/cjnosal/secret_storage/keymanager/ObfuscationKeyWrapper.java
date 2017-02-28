@@ -45,7 +45,7 @@ public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
         return super.unwrapKey(keyAlias, wrappedKey, keyType);
     }
 
-    public PasswordEditor getEditor(String keyAlias, String encKeyType, String sigKeyType) {
+    public PasswordEditor getEditor(String storeId, ReWrap reWrap) {
         throw new UnsupportedOperationException("No editor available for this KeyManager");
     }
 

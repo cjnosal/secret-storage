@@ -23,6 +23,7 @@ import android.support.test.InstrumentationRegistry;
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.KeyWrapperInitializer;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
@@ -36,6 +37,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -107,24 +110,59 @@ public class SecretStorageTest {
 
     @Test
     public void rewrap() throws IOException, GeneralSecurityException {
-        SecretStorage secretStorage1 = defaultBuilder("id")
-                .keyWrapper(getPasswordKeyWrapper())
-                .build();
-        secretStorage1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password");
-        secretStorage1.store("mysecret1", "message1".getBytes());
-        secretStorage1.store("mysecret2", "message2".getBytes());
+        final List<KeyWrapper> keyWrappers = Arrays.asList(
+                getObfuscationKeyWrapper(),
+                getPasswordKeyWrapper(),
+                getSignedPasswordKeyWrapper(),
+                getAsymmetricKeyStoreWrapper(),
+                getKeyStoreWrapper()
+        );
 
-        secretStorage1.rewrap(getObfuscationKeyWrapper());
+        for (final KeyWrapper k1 : keyWrappers) {
 
-        assertEquals(new String(secretStorage1.load("mysecret1")), "message1");
-        assertEquals(new String(secretStorage1.load("mysecret2")), "message2");
+            for (final KeyWrapper k2 : keyWrappers) {
 
-        SecretStorage secretStorage2 = defaultBuilder("id")
-                .keyWrapper(getObfuscationKeyWrapper())
-                .build();
+                if (k1 == k2) {
+                    continue;
+                }
 
-        assertEquals(new String(secretStorage2.load("mysecret1")), "message1");
-        assertEquals(new String(secretStorage2.load("mysecret2")), "message2");
+                keyStorage.clear();
+                dataStorage.clear();
+                configStorage.clear();
+                androidCrypto.clear();
+
+                SecretStorage secretStorage = defaultBuilder("id")
+                        .keyWrapper(k1)
+                        .build();
+                if (k1 instanceof PasswordKeyWrapper && !(k1 instanceof ObfuscationKeyWrapper)) {
+                    PasswordKeyWrapper.PasswordEditor e = k1.getEditor("id", null);
+                    if (!e.isPasswordSet()) {
+                        e.setPassword("password" + keyWrappers.indexOf(k1));
+                    } else if (!e.isUnlocked()) {
+                        e.unlock("password" + keyWrappers.indexOf(k1));
+                    }
+                }
+                secretStorage.store("my secret", "message".getBytes());
+
+                secretStorage.rewrap(new KeyWrapperInitializer() {
+
+                    @Override
+                    public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
+                        k1.eraseConfig("id");
+                        if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
+                            PasswordKeyWrapper.PasswordEditor e = k2.getEditor("id", null);
+                            if (!e.isPasswordSet()) {
+                                e.setPassword("password" + keyWrappers.indexOf(k2));
+                            } else if (!e.isUnlocked()) {
+                                e.unlock("password" + keyWrappers.indexOf(k2));
+                            }
+                        }
+                        return k2;
+                    }
+                });
+                assertEquals(new String(secretStorage.load("my secret")), "message");
+            }
+        }
     }
 
     @Test

@@ -59,8 +59,8 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     @Override
-    public PasswordEditor getEditor(String storeId, String encKeyType, String sigKeyType) {
-        return new PasswordEditor(storeId, encKeyType, sigKeyType);
+    public PasswordEditor getEditor(String storeId, ReWrap reWrap) {
+        return new PasswordEditor(storeId, reWrap);
     }
 
     @Override
@@ -153,12 +153,12 @@ public class PasswordKeyWrapper extends KeyWrapper {
 
     public class PasswordEditor extends KeyWrapper.Editor {
 
-        private final Rewrap rewrap;
         private final String keyAlias;
+        private final ReWrap reWrap;
 
-        PasswordEditor(String keyAlias, String encKeyType, String sigKeyType) {
-            this.rewrap = new Rewrap(keyAlias, encKeyType, sigKeyType);
+        PasswordEditor(String keyAlias, ReWrap reWrap) {
             this.keyAlias = keyAlias;
+            this.reWrap = reWrap;
         }
 
         public void setPassword(String password) throws IOException, GeneralSecurityException {
@@ -173,12 +173,17 @@ public class PasswordKeyWrapper extends KeyWrapper {
             PasswordKeyWrapper.this.lock();
         }
 
-        public void changePassword(@NonNull String oldPassword, @NonNull String newPassword) throws GeneralSecurityException, IOException {
+        public void changePassword(final @NonNull String oldPassword, final @NonNull String newPassword) throws GeneralSecurityException, IOException {
             PasswordKeyWrapper.this.unlock(keyAlias, oldPassword);
-            rewrap.unwrap();
-            PasswordKeyWrapper.this.eraseConfig(keyAlias);
-            PasswordKeyWrapper.this.setPassword(keyAlias, newPassword);
-            rewrap.rewrap();
+            reWrap.rewrap(new KeyWrapperInitializer() {
+
+                @Override
+                public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
+                    PasswordKeyWrapper.this.eraseConfig(keyAlias);
+                    PasswordKeyWrapper.this.setPassword(keyAlias, newPassword);
+                    return PasswordKeyWrapper.this;
+                }
+            });
         }
 
         public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
