@@ -58,7 +58,8 @@ public class KeyStoreWrapperTest {
         keyStorage.clear();
 
         subject = new KeyStoreWrapper(
-                DefaultSpecs.getKeyStoreCipherSpec(),
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
                 configStorage,
                 keyStorage
         );
@@ -80,7 +81,8 @@ public class KeyStoreWrapperTest {
         assertTrue(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
 
         subject = new KeyStoreWrapper(
-                DefaultSpecs.getKeyStoreCipherSpec(),
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
                 configStorage,
                 keyStorage
         );

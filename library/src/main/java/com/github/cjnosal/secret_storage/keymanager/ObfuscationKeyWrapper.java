@@ -18,6 +18,7 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -31,8 +32,8 @@ import javax.crypto.SecretKey;
  */
 public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
 
-    public ObfuscationKeyWrapper(KeyDerivationSpec derivationSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
-        super(derivationSpec, keyProtectionSpec, configStorage, keyStorage);
+    public ObfuscationKeyWrapper(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+        super(derivationSpec, keyGenSpec, keyProtectionSpec, configStorage, keyStorage);
     }
 
     protected byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {

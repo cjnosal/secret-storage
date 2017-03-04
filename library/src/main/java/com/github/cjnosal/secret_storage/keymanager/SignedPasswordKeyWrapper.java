@@ -26,6 +26,7 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDeriv
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
@@ -42,13 +43,15 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private static final String DEVICE_BINDING = "DEVICE_BINDING";
 
     private final Context context;
+    private final KeyGenSpec integrityKeyGenSpec;
     private final AndroidCrypto androidCrypto;
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
-    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
-        super(keyDerivationSpec, keyProtectionSpec, configStorage, keyStorage);
+    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyGenSpec integrityKeyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
+        super(keyDerivationSpec, derivedKeyGenSpec, keyProtectionSpec, configStorage, keyStorage);
         this.context = context;
+        this.integrityKeyGenSpec = integrityKeyGenSpec;
         this.androidCrypto = new AndroidCrypto();
         this.derivationIntegritySpec = derivationIntegritySpec;
         this.derivationIntegrityStrategy = new SignatureStrategy();
@@ -62,14 +65,13 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
     @Override
     protected byte[] derive(String keyAlias, String password, byte[] salt) throws GeneralSecurityException, IOException {
-        KeyDerivationSpec derivationSpec = getDerivationSpec();
 
         PrivateKey signingKey;
         if (!isPasswordSet(keyAlias)) {
             signingKey = androidCrypto.generateKeyPair(
                     context,
                     getStorageField(keyAlias, DEVICE_BINDING),
-                    derivationIntegritySpec.getKeygenAlgorithm())
+                    integrityKeyGenSpec.getKeygenAlgorithm())
                     .getPrivate();
         } else {
             signingKey = androidCrypto.loadPrivateKey(getStorageField(keyAlias, DEVICE_BINDING));
@@ -77,12 +79,12 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
 
-        PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds() / 2, derivationSpec.getKeySize() * 2);
+        PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
         byte[] firstHash = factory.generateSecret(firstSpec).getEncoded();
         byte[] signature = derivationIntegrityStrategy.sign(signingKey, derivationIntegritySpec, firstHash);
         String signatureString = Encoding.base64Encode(signature);
 
-        PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), salt, derivationSpec.getRounds() / 2, derivationSpec.getKeySize() * 2);
+        PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
         return factory.generateSecret(secondSpec).getEncoded();
     }
 

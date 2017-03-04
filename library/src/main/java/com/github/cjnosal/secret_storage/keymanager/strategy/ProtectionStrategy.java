@@ -44,21 +44,21 @@ public class ProtectionStrategy {
     }
 
     // TODO key and/or data ids should be signed by the mac?
-    public byte[] encryptAndSign(Key encryptionKey, Key signingKey, ProtectionSpec protectionSpec, byte[] plainText) throws GeneralSecurityException, IOException {
-        byte[] cipherText = cipherStrategy.encrypt(encryptionKey, protectionSpec.getCipherSpec(), plainText);
-        byte[] signature = integrityStrategy.sign(signingKey, protectionSpec.getIntegritySpec(), cipherText);
+    public byte[] encryptAndSign(Key encryptionKey, Key signingKey, DataProtectionSpec dataProtectionSpec, byte[] plainText) throws GeneralSecurityException, IOException {
+        byte[] cipherText = cipherStrategy.encrypt(encryptionKey, dataProtectionSpec.getCipherSpec(), plainText);
+        byte[] signature = integrityStrategy.sign(signingKey, dataProtectionSpec.getIntegritySpec(), cipherText);
 
         return ByteArrayUtil.join(cipherText, signature);
     }
 
-    public byte[] verifyAndDecrypt(Key decryptionKey, Key verificationKey, ProtectionSpec protectionSpec, byte[] cipherText) throws GeneralSecurityException, IOException {
+    public byte[] verifyAndDecrypt(Key decryptionKey, Key verificationKey, DataProtectionSpec dataProtectionSpec, byte[] cipherText) throws GeneralSecurityException, IOException {
 
         byte[][] signedData = ByteArrayUtil.split(cipherText);
 
-        if (!integrityStrategy.verify(verificationKey, protectionSpec.getIntegritySpec(), signedData[0], signedData[1])) {
+        if (!integrityStrategy.verify(verificationKey, dataProtectionSpec.getIntegritySpec(), signedData[0], signedData[1])) {
             throw new SignatureException("Signature check failed");
         }
 
-        return cipherStrategy.decrypt(decryptionKey, protectionSpec.getCipherSpec(), signedData[0]);
+        return cipherStrategy.decrypt(decryptionKey, dataProtectionSpec.getCipherSpec(), signedData[0]);
     }
 }

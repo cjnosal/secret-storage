@@ -51,8 +51,9 @@ public class ObfuscationKeyWrapperTest {
         keyStorage.clear();
 
         subject = new ObfuscationKeyWrapper(
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
                 configStorage,
                 keyStorage
         );
@@ -76,8 +77,9 @@ public class ObfuscationKeyWrapperTest {
         assertTrue(configStorage.exists("id::KEY_PROTECTION"));
 
         subject = new ObfuscationKeyWrapper(
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
                 configStorage,
                 keyStorage
         );

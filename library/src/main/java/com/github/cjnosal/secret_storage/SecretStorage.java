@@ -31,7 +31,7 @@ import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
-import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.ProtectionStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.symmetric.SymmetricCipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.mac.MacStrategy;
@@ -58,12 +58,12 @@ public class SecretStorage {
     private final String storeId;
     private final DataStorage dataStorage;
     private final DataStorage configStorage;
-    private final ProtectionSpec dataProtectionSpec;
+    private final DataProtectionSpec dataProtectionSpec;
     private final DataKeyGenerator dataKeyGenerator;
     private final ProtectionStrategy dataProtectionStrategy;
     private KeyWrapper keyWrapper;
 
-    public SecretStorage(String storeId, DataStorage dataStorage, DataStorage configStorage, ProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
+    public SecretStorage(String storeId, DataStorage dataStorage, DataStorage configStorage, DataProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
         this.storeId = storeId;
         this.dataStorage = dataStorage;
         this.configStorage = configStorage;
@@ -100,8 +100,8 @@ public class SecretStorage {
     public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
         checkProtectionSpec();
         if (keyWrapper.dataKeysExist(storeId)) {
-            @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
-            @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm());
+            @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
+            @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
             keyWrapper = initializer.initKeyWrapper();
             keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
             keyWrapper.storeDataSigningKey(storeId, signingKey);
@@ -131,32 +131,45 @@ public class SecretStorage {
     }
 
     private byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
-        @KeyPurpose.DataSecrecy SecretKey encryptionKey;
-        @KeyPurpose.DataIntegrity SecretKey signingKey;
-        if (keyWrapper.dataKeysExist(storeId)) {
-            encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
-            signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm());
-        } else {
-            encryptionKey = generateDataEncryptionKey();
-            signingKey = generateDataSigningKey();
-            keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
-            keyWrapper.storeDataSigningKey(storeId, signingKey);
-        }
+        @KeyPurpose.DataSecrecy SecretKey encryptionKey = prepareDataEncryptionKey();
+        @KeyPurpose.DataIntegrity SecretKey signingKey = prepareDataSigningKey();
         return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
     }
 
     private byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
-        @KeyPurpose.DataSecrecy SecretKey decryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherSpec().getKeygenAlgorithm());
-        @KeyPurpose.DataIntegrity SecretKey verificationKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm());
+        @KeyPurpose.DataSecrecy SecretKey decryptionKey = prepareDataEncryptionKey();
+        @KeyPurpose.DataIntegrity SecretKey verificationKey = prepareDataSigningKey();
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
     }
 
+    private SecretKey prepareDataEncryptionKey() throws GeneralSecurityException, IOException {
+        @KeyPurpose.DataSecrecy SecretKey encryptionKey;
+        if (keyWrapper.dataKeysExist(storeId)) {
+            encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
+        } else {
+            encryptionKey = generateDataEncryptionKey();
+            keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
+        }
+        return encryptionKey;
+    }
+
+    private SecretKey prepareDataSigningKey() throws GeneralSecurityException, IOException {
+        @KeyPurpose.DataIntegrity SecretKey signingKey;
+        if (keyWrapper.dataKeysExist(storeId)) {
+            signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
+        } else {
+            signingKey = generateDataSigningKey();
+            keyWrapper.storeDataSigningKey(storeId, signingKey);
+        }
+        return signingKey;
+    }
+
     private SecretKey generateDataEncryptionKey() throws GeneralSecurityException {
-        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getCipherSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherSpec().getKeySize());
+        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm(), dataProtectionSpec.getCipherKeyGenSpec().getKeySize());
     }
 
     private SecretKey generateDataSigningKey() throws GeneralSecurityException {
-        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegritySpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegritySpec().getKeySize());
+        return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegrityKeyGenSpec().getKeySize());
     }
 
     private static String getStorageField(String storeId, String field) {
@@ -172,7 +185,7 @@ public class SecretStorage {
         private String storeId;
         private DataStorage dataStorage;
         private DataStorage configStorage;
-        private ProtectionSpec dataProtectionSpec;
+        private DataProtectionSpec dataProtectionSpec;
         private KeyWrapper keyWrapper;
 
         // Used for choosing defaults
@@ -210,7 +223,7 @@ public class SecretStorage {
             return this;
         }
 
-        public Builder dataProtectionSpec(ProtectionSpec dataProtectionSpec) {
+        public Builder dataProtectionSpec(DataProtectionSpec dataProtectionSpec) {
             this.dataProtectionSpec = dataProtectionSpec;
             return this;
         }
@@ -266,25 +279,30 @@ public class SecretStorage {
             if (osVersion >= Build.VERSION_CODES.M) {
                 return new SignedPasswordKeyWrapper(
                         context,
-                        DefaultSpecs.getStrongPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec(context),
-                        DefaultSpecs.getStrongPasswordBasedKeyProtectionSpec(),
+                        DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes256KeyGenSpec(),
+                        DefaultSpecs.getSha384WithEcdsaSpec(),
+                        DefaultSpecs.getAesWrapSpec(),
+                        DefaultSpecs.getEc384KeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2 && context != null) {
                 return new SignedPasswordKeyWrapper(
                         context,
-                        DefaultSpecs.getPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordDeviceBindingSpec(context),
-                        DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes128KeyGenSpec(),
+                        DefaultSpecs.getSha256WithRsaSpec(),
+                        DefaultSpecs.getAesWrapSpec(),
+                        DefaultSpecs.getRsa2048KeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             } else {
                 return new PasswordKeyWrapper(
-                        DefaultSpecs.getPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes128KeyGenSpec(),
+                        DefaultSpecs.getAesWrapSpec(),
                         configStorage,
                         keyStorage
                 );
@@ -292,20 +310,24 @@ public class SecretStorage {
         } else {
             if (osVersion >= Build.VERSION_CODES.M) {
                 return new KeyStoreWrapper(
-                        DefaultSpecs.getKeyStoreCipherSpec(),
+                        DefaultSpecs.getAesGcmCipherSpec(),
+                        DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 return new AsymmetricKeyStoreWrapper(
-                        DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context),
+                        context,
+                        DefaultSpecs.getRsaEcbPkcs1Spec(),
+                        DefaultSpecs.getRsa2048KeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             } else {
                 return new ObfuscationKeyWrapper(
-                        DefaultSpecs.getPasswordDerivationSpec(),
-                        DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes128KeyGenSpec(),
+                        DefaultSpecs.getAesWrapSpec(),
                         configStorage,
                         keyStorage
                 );

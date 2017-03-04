@@ -58,7 +58,9 @@ public class AsymmetricKeyStoreWrapperTest {
         keyStorage.clear();
 
         subject = new AsymmetricKeyStoreWrapper(
-                DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context),
+                context,
+                DefaultSpecs.getRsaEcbPkcs1Spec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
                 configStorage,
                 keyStorage
         );
@@ -80,7 +82,9 @@ public class AsymmetricKeyStoreWrapperTest {
         assertTrue(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
 
         subject = new AsymmetricKeyStoreWrapper(
-                DefaultSpecs.getAsymmetricKeyStoreCipherSpec(context),
+                context,
+                DefaultSpecs.getRsaEcbPkcs1Spec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
                 configStorage,
                 keyStorage
         );

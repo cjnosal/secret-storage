@@ -16,29 +16,15 @@
 
 package com.github.cjnosal.secret_storage.keymanager.strategy.integrity;
 
-import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
-
 public class IntegritySpec {
     private final String cipherTransformation; // Mac or Signature
-    private final @SecurityAlgorithms.KeySize int keySize;
-    private final @SecurityAlgorithms.KeyGenerator String keygenAlgorithm;
 
-    public IntegritySpec(String cipherTransformation, @SecurityAlgorithms.KeySize int keySize, @SecurityAlgorithms.KeyGenerator String keygenAlgorithm) {
+    public IntegritySpec(String cipherTransformation) {
         this.cipherTransformation = cipherTransformation;
-        this.keySize = keySize;
-        this.keygenAlgorithm = keygenAlgorithm;
     }
 
     public String getIntegrityTransformation() {
         return cipherTransformation;
-    }
-
-    public @SecurityAlgorithms.KeySize int getKeySize() {
-        return keySize;
-    }
-
-    public @SecurityAlgorithms.KeyGenerator String getKeygenAlgorithm() {
-        return keygenAlgorithm;
     }
 
     @Override
@@ -48,27 +34,19 @@ public class IntegritySpec {
 
         IntegritySpec that = (IntegritySpec) o;
 
-        if (keySize != that.keySize) return false;
-        if (cipherTransformation != null ? !cipherTransformation.equals(that.cipherTransformation) : that.cipherTransformation != null)
-            return false;
-        return keygenAlgorithm != null ? keygenAlgorithm.equals(that.keygenAlgorithm) : that.keygenAlgorithm == null;
+        return cipherTransformation != null ? cipherTransformation.equals(that.cipherTransformation) : that.cipherTransformation == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = cipherTransformation != null ? cipherTransformation.hashCode() : 0;
-        result = 31 * result + keySize;
-        result = 31 * result + (keygenAlgorithm != null ? keygenAlgorithm.hashCode() : 0);
-        return result;
+        return cipherTransformation != null ? cipherTransformation.hashCode() : 0;
     }
 
     @Override
     public String toString() {
         return "IntegritySpec{" +
                 "cipherTransformation='" + cipherTransformation + '\'' +
-                ", keySize=" + keySize +
-                ", keygenAlgorithm='" + keygenAlgorithm + '\'' +
                 '}';
     }
 }

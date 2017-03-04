@@ -63,9 +63,11 @@ public class SignedPasswordKeyWrapperTest {
 
         subject = new SignedPasswordKeyWrapper(
                 context,
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordDeviceBindingSpec(context),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getSha256WithRsaSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
                 configStorage,
                 keyStorage
         );
@@ -93,9 +95,11 @@ public class SignedPasswordKeyWrapperTest {
 
         subject = new SignedPasswordKeyWrapper(
                 context,
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordDeviceBindingSpec(context),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getSha256WithRsaSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
                 configStorage,
                 keyStorage
         );

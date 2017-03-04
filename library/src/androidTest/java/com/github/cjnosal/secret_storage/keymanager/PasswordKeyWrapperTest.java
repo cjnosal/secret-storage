@@ -58,8 +58,9 @@ public class PasswordKeyWrapperTest {
         keyStorage.clear();
 
         subject = new PasswordKeyWrapper(
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
                 configStorage,
                 keyStorage
         );
@@ -85,8 +86,9 @@ public class PasswordKeyWrapperTest {
         assertTrue(configStorage.exists("id::VERIFICATION"));
 
         subject = new PasswordKeyWrapper(
-                DefaultSpecs.getPasswordDerivationSpec(),
-                DefaultSpecs.getPasswordBasedKeyProtectionSpec(),
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
                 configStorage,
                 keyStorage
         );

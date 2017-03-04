@@ -14,24 +14,24 @@
  *    limitations under the License.
  */
 
-package com.github.cjnosal.secret_storage.keymanager.strategy.derivation;
+package com.github.cjnosal.secret_storage.keymanager.strategy.keygen;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 
-public class KeyDerivationSpec {
-    private final int rounds;
-    private final @SecurityAlgorithms.SecretKeyFactory String keygenAlgorithm;
+public class KeyGenSpec {
+    private final @SecurityAlgorithms.KeySize int keySize;
+    private final String keygenAlgorithm; // key or keypair generator
 
-    public KeyDerivationSpec(int rounds, @SecurityAlgorithms.SecretKeyFactory String keygenAlgorithm) {
-        this.rounds = rounds;
+    public KeyGenSpec(int keySize, String keygenAlgorithm) {
+        this.keySize = keySize;
         this.keygenAlgorithm = keygenAlgorithm;
     }
 
-    public int getRounds() {
-        return rounds;
+    public int getKeySize() {
+        return keySize;
     }
 
-    public @SecurityAlgorithms.SecretKeyFactory String getKeygenAlgorithm() {
+    public String getKeygenAlgorithm() {
         return keygenAlgorithm;
     }
 
@@ -40,24 +40,24 @@ public class KeyDerivationSpec {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        KeyDerivationSpec that = (KeyDerivationSpec) o;
+        KeyGenSpec that = (KeyGenSpec) o;
 
-        if (rounds != that.rounds) return false;
+        if (keySize != that.keySize) return false;
         return keygenAlgorithm != null ? keygenAlgorithm.equals(that.keygenAlgorithm) : that.keygenAlgorithm == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = rounds;
+        int result = keySize;
         result = 31 * result + (keygenAlgorithm != null ? keygenAlgorithm.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
-        return "KeyDerivationSpec{" +
-                "rounds=" + rounds +
+        return "KeyGenSpec{" +
+                "keySize=" + keySize +
                 ", keygenAlgorithm='" + keygenAlgorithm + '\'' +
                 '}';
     }

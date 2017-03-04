@@ -20,6 +20,7 @@ import android.support.annotation.NonNull;
 
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -39,14 +40,16 @@ public class PasswordKeyWrapper extends KeyWrapper {
     private static final String ENC_SALT = "ENC_SALT";
     private static final String VERIFICATION = "VERIFICATION";
 
-    private final SecureRandom secureRandom;
+    final SecureRandom secureRandom;
 
-    private final KeyDerivationSpec derivationSpec;
+    final KeyDerivationSpec derivationSpec;
+    final KeyGenSpec keyGenSpec;
     private Key derivedEncKey;
 
-    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+    public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, configStorage, keyStorage);
         this.derivationSpec = derivationSpec;
+        this.keyGenSpec = keyGenSpec;
         this.secureRandom = new SecureRandom();
     }
 
@@ -108,17 +111,13 @@ public class PasswordKeyWrapper extends KeyWrapper {
         return configStorage.exists(getStorageField(keyAlias, ENC_SALT)) && configStorage.exists(getStorageField(keyAlias, VERIFICATION));
     }
 
-    KeyDerivationSpec getDerivationSpec() {
-        return derivationSpec;
-    }
-
     boolean isUnlocked() {
         return derivedEncKey != null;
     }
 
     byte[] derive(String keyAlias, String password, byte[] salt) throws GeneralSecurityException, IOException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
-        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds(), derivationSpec.getKeySize() * 2);
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds(), keyGenSpec.getKeySize() * 2);
         return factory.generateSecret(spec).getEncoded();
     }
 
@@ -134,7 +133,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     private byte[] generateSalt() {
-        byte[] random = new byte[derivationSpec.getKeySize() / 8];
+        byte[] random = new byte[keyGenSpec.getKeySize() / 8];
         secureRandom.nextBytes(random);
         return random;
     }
@@ -144,11 +143,11 @@ public class PasswordKeyWrapper extends KeyWrapper {
     }
 
     private Key getDerivedEncKey(byte[] generated) {
-        return new SecretKeySpec(generated, derivationSpec.getKeySize()/8, derivationSpec.getKeySize()/8, derivationSpec.getKeyspecAlgorithm());
+        return new SecretKeySpec(generated, keyGenSpec.getKeySize()/8, keyGenSpec.getKeySize()/8, keyGenSpec.getKeygenAlgorithm());
     }
 
     private byte[] getVerification(byte[] generated) {
-        return Arrays.copyOfRange(generated, 0, derivationSpec.getKeySize()/8);
+        return Arrays.copyOfRange(generated, 0, keyGenSpec.getKeySize()/8);
     }
 
     public class PasswordEditor extends KeyWrapper.Editor {

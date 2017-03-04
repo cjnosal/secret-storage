@@ -17,11 +17,12 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.os.Build;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -36,12 +37,16 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
 
     private final AndroidCrypto androidCrypto;
     private final CipherSpec keyProtectionSpec;
+    private final Context context;
+    private final KeyGenSpec kekSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+    public AsymmetricKeyStoreWrapper(Context context, CipherSpec keyProtectionSpec, KeyGenSpec kekSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, configStorage, keyStorage);
+        this.context = context;
+        this.kekSpec = kekSpec;
         this.androidCrypto = new AndroidCrypto();
         this.keyProtectionSpec = keyProtectionSpec;
     }
@@ -73,6 +78,7 @@ public class AsymmetricKeyStoreWrapper extends KeyWrapper {
     }
 
     private KeyPair generateKeyPair(String keyAlias) throws GeneralSecurityException {
-        return androidCrypto.generateKeyPair(keyProtectionSpec.getKeygenAlgorithm(), ((KeyStoreCipherSpec)keyProtectionSpec).getKeyGenParameterSpec(getStorageField(keyAlias, ENCRYPTION_KEY)));
+        return androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY),
+                kekSpec.getKeygenAlgorithm());
     }
 }

@@ -18,10 +18,13 @@ package com.github.cjnosal.secret_storage.keymanager;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.KeyStoreCipherSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyStoreKeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -39,12 +42,12 @@ public class KeyStoreWrapper extends KeyWrapper {
     private static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
 
     private final AndroidCrypto androidCrypto;
-    private final CipherSpec keyProtectionSpec;
+    private final KeyGenSpec keyGenSpec;
 
-    public KeyStoreWrapper(CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
+    public KeyStoreWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, configStorage, keyStorage);
+        this.keyGenSpec = keyGenSpec;
         this.androidCrypto = new AndroidCrypto();
-        this.keyProtectionSpec = keyProtectionSpec;
     }
 
     @Override
@@ -57,8 +60,7 @@ public class KeyStoreWrapper extends KeyWrapper {
     protected Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
-            KeyStoreCipherSpec spec = (KeyStoreCipherSpec) keyProtectionSpec;
-            return androidCrypto.generateSecretKey(spec.getKeygenAlgorithm(), spec.getKeyGenParameterSpec(storageField));
+            return androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
         }
         return androidCrypto.loadSecretKey(storageField);
     }
@@ -66,5 +68,28 @@ public class KeyStoreWrapper extends KeyWrapper {
     @Override
     protected Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
         return getKek(keyAlias);
+    }
+
+    private KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
+        // recreate KeyGenParameterSpec with correct keyId for symmetric encryption
+        KeyGenParameterSpec placeholder = ((KeyStoreKeyGenSpec)keyGenSpec).getKeyGenParameterSpec();
+        KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT);
+        if (placeholder.getAlgorithmParameterSpec() != null) {
+            builder.setAlgorithmParameterSpec(placeholder.getAlgorithmParameterSpec());
+        }
+        builder.setBlockModes(placeholder.getBlockModes());
+        builder.setEncryptionPaddings(placeholder.getEncryptionPaddings());
+        builder.setKeySize(placeholder.getKeySize());
+        builder.setRandomizedEncryptionRequired(placeholder.isRandomizedEncryptionRequired());
+        builder.setUserAuthenticationRequired(placeholder.isUserAuthenticationRequired());
+        builder.setUserAuthenticationValidityDurationSeconds(placeholder.getUserAuthenticationValidityDurationSeconds());
+        builder.setKeyValidityStart(placeholder.getKeyValidityStart());
+        builder.setKeyValidityForConsumptionEnd(placeholder.getKeyValidityForConsumptionEnd());
+        builder.setKeyValidityForOriginationEnd(placeholder.getKeyValidityForOriginationEnd());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setInvalidatedByBiometricEnrollment(placeholder.isInvalidatedByBiometricEnrollment());
+            builder.setUserAuthenticationValidWhileOnBody(placeholder.isUserAuthenticationValidWhileOnBody());
+        }
+        return builder.build();
     }
 }
