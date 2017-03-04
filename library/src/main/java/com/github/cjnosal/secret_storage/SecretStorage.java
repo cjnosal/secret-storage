@@ -18,6 +18,7 @@ package com.github.cjnosal.secret_storage;
 
 import android.content.Context;
 import android.os.Build;
+import android.support.annotation.IntDef;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
@@ -41,6 +42,8 @@ import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.security.GeneralSecurityException;
 import java.util.Set;
 
@@ -52,6 +55,8 @@ public class SecretStorage {
 
     // config storage
     private static final String OS_VERSION = "OS_VERSION";
+    private static final String KEY_WRAPPER_TYPE = "KEY_WRAPPER_TYPE";
+    private static final String SCHEMA_VERSION = "SCHEMA_VERSION";
     private static final String DATA_PROTECTION = "DATA_PROTECTION";
     private static final String DELIMITER = "::";
 
@@ -249,7 +254,7 @@ public class SecretStorage {
             if (keyStorage == null) {
                 keyStorage = createStorage(DataStorage.TYPE_KEYS);
             }
-            int osVersion; // OS Version when store was created // TODO migrations
+            int osVersion; // OS Version when store was created
             if (configStorage.exists(getStorageField(storeId, OS_VERSION))) {
                 osVersion = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, OS_VERSION)));
             } else {
@@ -260,13 +265,25 @@ public class SecretStorage {
                 dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(osVersion);
             }
             if (keyWrapper == null) {
-                keyWrapper = selectKeyWrapper(osVersion);
+                @KeyWrapperType int wrapperType = 0;
+                if (configStorage.exists(getStorageField(storeId, KEY_WRAPPER_TYPE))) {
+                    wrapperType = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, KEY_WRAPPER_TYPE)));
+                }
+                int schema = 0;
+                if (configStorage.exists(getStorageField(storeId, SCHEMA_VERSION))) {
+                    schema = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, SCHEMA_VERSION)));
+                }
+                if (wrapperType == 0) {
+                    // new secret storage: use os version and availability of user password to select a key wrapper type
+                    wrapperType = SecretStorage.selectKeyWrapper(osVersion, withUserPassword);
+                    schema = SecretStorage.getCurrentSchema(wrapperType);
+
+                    // TODO sign wrapperType/schema to prevent downgrade attacks?
+                    configStorage.store(getStorageField(storeId, KEY_WRAPPER_TYPE), DataEncoding.encode(wrapperType));
+                    configStorage.store(getStorageField(storeId, SCHEMA_VERSION), DataEncoding.encode(schema));
+                }
+                keyWrapper = SecretStorage.instantiateKeyWrapper(context, wrapperType, schema, configStorage, keyStorage);
             }
-
-        }
-
-        private KeyWrapper selectKeyWrapper(int osVersion) {
-            return SecretStorage.selectKeyWrapper(context, osVersion, withUserPassword, configStorage, keyStorage);
         }
 
         private DataStorage createStorage(@DataStorage.Type String type) {
@@ -274,20 +291,67 @@ public class SecretStorage {
         }
     }
 
-    static KeyWrapper selectKeyWrapper(Context context, int osVersion, boolean withUserPassword, DataStorage configStorage, DataStorage keyStorage) {
+    static @KeyWrapperType int selectKeyWrapper(int osVersion, boolean withUserPassword) {
+        // TODO select based on available algorithms instead of osVersion
+        @KeyWrapperType int wrapperType;
         if (withUserPassword) {
             if (osVersion >= Build.VERSION_CODES.M) {
-                return new SignedPasswordKeyWrapper(
-                        context,
-                        DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1(),
-                        DefaultSpecs.getAes256KeyGenSpec(),
-                        DefaultSpecs.getSha384WithEcdsaSpec(),
+                wrapperType = SignedPassword;
+            } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                wrapperType = SignedPassword;
+            } else {
+                wrapperType = Password;
+            }
+        } else {
+            if (osVersion >= Build.VERSION_CODES.M) {
+                wrapperType = KeyStore;
+            } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                wrapperType = AsymmetricKeyStore;
+            } else {
+                wrapperType = Obfuscation;
+            }
+        }
+        return wrapperType;
+    }
+
+    static int getCurrentSchema(@KeyWrapperType int wrapperType) {
+        int schema;
+        switch (wrapperType) {
+            case SignedPassword:
+                schema = 2;
+                break;
+            default:
+                schema = 1;
+                break;
+        }
+        return schema;
+    }
+
+    static KeyWrapper instantiateKeyWrapper(Context context, @KeyWrapperType int wrapperType, int schema, DataStorage configStorage, DataStorage keyStorage) throws IOException {
+
+        // instantiate a key wrapper based on selected/stored wrapperType and schema
+        if (wrapperType == Obfuscation) {
+            if (schema == 1) {
+                return new ObfuscationKeyWrapper(
+                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes128KeyGenSpec(),
                         DefaultSpecs.getAesWrapSpec(),
-                        DefaultSpecs.getEc384KeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
-            } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2 && context != null) {
+            }
+        } else if (wrapperType == Password) {
+            if (schema == 1) {
+                return new PasswordKeyWrapper(
+                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes128KeyGenSpec(),
+                        DefaultSpecs.getAesWrapSpec(),
+                        configStorage,
+                        keyStorage
+                );
+            }
+        } else if (wrapperType == SignedPassword) {
+            if (schema == 1) {
                 return new SignedPasswordKeyWrapper(
                         context,
                         DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
@@ -298,24 +362,20 @@ public class SecretStorage {
                         configStorage,
                         keyStorage
                 );
-            } else {
-                return new PasswordKeyWrapper(
-                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
-                        DefaultSpecs.getAes128KeyGenSpec(),
+            } else if (schema == 2) {
+                return new SignedPasswordKeyWrapper(
+                        context,
+                        DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1(),
+                        DefaultSpecs.getAes256KeyGenSpec(),
+                        DefaultSpecs.getSha384WithEcdsaSpec(),
                         DefaultSpecs.getAesWrapSpec(),
+                        DefaultSpecs.getEc384KeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             }
-        } else {
-            if (osVersion >= Build.VERSION_CODES.M) {
-                return new KeyStoreWrapper(
-                        DefaultSpecs.getAesGcmCipherSpec(),
-                        DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
-                        configStorage,
-                        keyStorage
-                );
-            } else if (osVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+        } else if (wrapperType == AsymmetricKeyStore) {
+            if (schema == 1) {
                 return new AsymmetricKeyStoreWrapper(
                         context,
                         DefaultSpecs.getRsaEcbPkcs1Spec(),
@@ -323,15 +383,33 @@ public class SecretStorage {
                         configStorage,
                         keyStorage
                 );
-            } else {
-                return new ObfuscationKeyWrapper(
-                        DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
-                        DefaultSpecs.getAes128KeyGenSpec(),
-                        DefaultSpecs.getAesWrapSpec(),
+            }
+        } else if (wrapperType == KeyStore) {
+            if (schema == 1) {
+                return new KeyStoreWrapper(
+                        DefaultSpecs.getAesGcmCipherSpec(),
+                        DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
                         configStorage,
                         keyStorage
                 );
             }
         }
+        throw new IllegalArgumentException("Invalid key wrapper/schema combination (wrapper:" + wrapperType + " schema:" + schema);
     }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            Obfuscation,
+            Password,
+            SignedPassword,
+            AsymmetricKeyStore,
+            KeyStore
+    })
+    @interface KeyWrapperType {}
+
+    static final int Obfuscation = 1;
+    static final int Password = 2;
+    static final int SignedPassword = 3;
+    static final int AsymmetricKeyStore = 4;
+    static final int KeyStore = 5;
 }
