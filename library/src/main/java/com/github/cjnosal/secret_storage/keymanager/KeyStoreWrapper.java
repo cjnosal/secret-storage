@@ -32,7 +32,7 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 
 @TargetApi(Build.VERSION_CODES.M)
-public class KeyStoreWrapper extends KeyWrapper {
+public class KeyStoreWrapper extends BaseKeyWrapper {
 
     // TODO backport KeyProperties
     // TODO map Ciphers to blocks/paddings/digests so KeyGenParameterSpecs can be created from CipherSpec/IntegritySpec

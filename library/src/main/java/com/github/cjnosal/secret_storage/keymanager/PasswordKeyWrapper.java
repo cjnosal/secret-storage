@@ -35,7 +35,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.login.LoginException;
 
-public class PasswordKeyWrapper extends KeyWrapper {
+public class PasswordKeyWrapper extends BaseKeyWrapper<PasswordKeyWrapper.PasswordEditor> {
 
     private static final String ENC_SALT = "ENC_SALT";
     private static final String VERIFICATION = "VERIFICATION";
@@ -111,7 +111,7 @@ public class PasswordKeyWrapper extends KeyWrapper {
         return configStorage.exists(getStorageField(keyAlias, ENC_SALT)) && configStorage.exists(getStorageField(keyAlias, VERIFICATION));
     }
 
-    boolean isUnlocked() {
+    public boolean isUnlocked() {
         return derivedEncKey != null;
     }
 

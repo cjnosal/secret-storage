@@ -111,7 +111,7 @@ public class SecretStorageTest {
 
     @Test
     public void rewrap() throws IOException, GeneralSecurityException {
-        final List<KeyWrapper> keyWrappers = Arrays.asList(
+        final List<KeyWrapper> keyWrappers = Arrays.<KeyWrapper>asList(
                 getObfuscationKeyWrapper(),
                 getPasswordKeyWrapper(),
                 getSignedPasswordKeyWrapper(),
@@ -136,7 +136,7 @@ public class SecretStorageTest {
                         .keyWrapper(k1)
                         .build();
                 if (k1 instanceof PasswordKeyWrapper && !(k1 instanceof ObfuscationKeyWrapper)) {
-                    PasswordKeyWrapper.PasswordEditor e = k1.getEditor("id", null);
+                    PasswordKeyWrapper.PasswordEditor e = ((PasswordKeyWrapper)k1).getEditor("id", null);
                     if (!e.isPasswordSet()) {
                         e.setPassword("password" + keyWrappers.indexOf(k1));
                     } else if (!e.isUnlocked()) {
@@ -151,7 +151,7 @@ public class SecretStorageTest {
                     public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
                         k1.eraseConfig("id");
                         if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
-                            PasswordKeyWrapper.PasswordEditor e = k2.getEditor("id", null);
+                            PasswordKeyWrapper.PasswordEditor e = ((PasswordKeyWrapper)k2).getEditor("id", null);
                             if (!e.isPasswordSet()) {
                                 e.setPassword("password" + keyWrappers.indexOf(k2));
                             } else if (!e.isUnlocked()) {

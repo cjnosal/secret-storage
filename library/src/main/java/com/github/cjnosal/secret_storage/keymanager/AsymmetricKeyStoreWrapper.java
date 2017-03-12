@@ -31,7 +31,7 @@ import java.security.Key;
 import java.security.KeyPair;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class AsymmetricKeyStoreWrapper extends KeyWrapper {
+public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
 
     private static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
 

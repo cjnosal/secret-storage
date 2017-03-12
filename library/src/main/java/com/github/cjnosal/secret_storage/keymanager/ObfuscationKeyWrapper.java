@@ -36,6 +36,11 @@ public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
         super(derivationSpec, keyGenSpec, keyProtectionSpec, configStorage, keyStorage);
     }
 
+    @Override
+    public boolean isUnlocked() {
+        return true;
+    }
+
     protected byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
         unlock(keyAlias);
         return super.wrapKey(keyAlias, key);
@@ -51,7 +56,7 @@ public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
     }
 
     private void unlock(String keyAlias) throws IOException, GeneralSecurityException {
-        if (!isUnlocked()) {
+        if (!super.isUnlocked()) {
             if (isPasswordSet(keyAlias)) {
                 unlock(keyAlias, "default_password");
             } else {

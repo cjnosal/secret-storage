@@ -116,7 +116,7 @@ public class SecretStorage {
     }
 
     public <E extends KeyWrapper.Editor> E getEditor() {
-        return keyWrapper.getEditor(storeId, new ReWrap() {
+        return (E) keyWrapper.getEditor(storeId, new ReWrap() {
             public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
                 SecretStorage.this.rewrap(initializer);
             }
