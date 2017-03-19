@@ -203,8 +203,17 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         public void unlock() throws GeneralSecurityException, IOException {
             BaseKeyWrapper.this.unlock(keyAlias, new UnlockParams());
         }
+
+        public void unlock(Listener listener) {
+            try {
+                unlock();
+                listener.onSuccess();
+            } catch (GeneralSecurityException | IOException e) {
+                listener.onError(e);
+            }
+        }
     }
 
-    public class UnlockParams {
+    class UnlockParams {
     }
 }

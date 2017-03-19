@@ -46,4 +46,9 @@ public interface KeyWrapper {
     interface Editor {
         void lock();
     }
+
+    interface Listener {
+        void onSuccess();
+        void onError(Exception e);
+    }
 }

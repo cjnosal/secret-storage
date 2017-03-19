@@ -154,8 +154,26 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             PasswordKeyWrapper.this.setPassword(keyAlias, password);
         }
 
+        public void setPassword(String password, Listener listener) {
+            try {
+                setPassword(password);
+                listener.onSuccess();
+            } catch (GeneralSecurityException | IOException e) {
+                listener.onError(e);
+            }
+        }
+
         public void unlock(String password) throws GeneralSecurityException, IOException {
             PasswordKeyWrapper.this.unlock(keyAlias, new PasswordParams(password));
+        }
+
+        public void unlock(String password, Listener listener) {
+            try {
+                unlock(password);
+                listener.onSuccess();
+            } catch (GeneralSecurityException | IOException e) {
+                listener.onError(e);
+            }
         }
 
         public void lock() {
@@ -178,8 +196,29 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             finishUnlock(keyAlias, unwrapCipher, wrapCipher);
         }
 
-        public boolean verifyPassword(String password) throws IOException, GeneralSecurityException {
+        public void changePassword(final @NonNull String oldPassword, final @NonNull String newPassword, Listener listener) {
+            try {
+                changePassword(oldPassword, newPassword);
+                listener.onSuccess();
+            } catch (GeneralSecurityException | IOException e) {
+                listener.onError(e);
+            }
+        }
+
+        public boolean verifyPassword(String password) throws GeneralSecurityException, IOException {
             return PasswordKeyWrapper.this.verifyPassword(keyAlias, password);
+        }
+
+        public void verifyPassword(String password, Listener listener) {
+            try {
+                if (verifyPassword(password)) {
+                    listener.onSuccess();
+                } else {
+                    throw new LoginException("Wrong password");
+                }
+            } catch (GeneralSecurityException | IOException e) {
+                listener.onError(e);
+            }
         }
 
         public boolean isUnlocked() {
