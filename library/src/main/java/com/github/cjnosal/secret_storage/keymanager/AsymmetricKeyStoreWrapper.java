@@ -62,7 +62,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     @Override
     void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!androidCrypto.hasEntry(storageField)) {
+        if (!kekExists(keyAlias)) {
             KeyPair encryptionKey = generateKeyPair(keyAlias);
             Key kek = encryptionKey.getPublic();
             Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());

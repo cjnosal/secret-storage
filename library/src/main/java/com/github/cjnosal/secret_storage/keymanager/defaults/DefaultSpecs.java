@@ -89,6 +89,21 @@ public class DefaultSpecs {
         return new KeyStoreKeyGenSpec(spec, SecurityAlgorithms.KeyGenerator_AES);
     }
 
+    @TargetApi(Build.VERSION_CODES.M)
+    public static KeyGenSpec getFingerprintKeyStoreAes256GcmKeyGenSpec() {
+        // KeyAlias and purpose will be set by KeyStoreWrapper
+        KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder("placeholder", 0)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(SecurityAlgorithms.KEY_SIZE_AES_256)
+                .setRandomizedEncryptionRequired(true)
+                .setUserAuthenticationRequired(true)
+                .setUserAuthenticationValidityDurationSeconds(-1)
+                .build();
+
+        return new KeyStoreKeyGenSpec(spec, SecurityAlgorithms.KeyGenerator_AES);
+    }
+
     public static CipherSpec getAesCbcPkcs5CipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_AES_CBC_PKCS5Padding,

@@ -41,10 +41,10 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
     // TODO unlock with fingerprint
 
-    private static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
+    protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
 
-    private final AndroidCrypto androidCrypto;
-    private final KeyGenSpec keyGenSpec;
+    protected final AndroidCrypto androidCrypto;
+    protected final KeyGenSpec keyGenSpec;
 
     public KeyStoreWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
@@ -55,7 +55,7 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     @Override
     void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!androidCrypto.hasEntry(storageField)) {
+        if (!kekExists(keyAlias)) {
             Key kek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
             Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
             finishUnlock(keyAlias, null, kekCipher);
@@ -72,7 +72,7 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }
 
-    private KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
+    protected KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {
         // recreate KeyGenParameterSpec with correct keyId for symmetric encryption
         KeyGenParameterSpec placeholder = ((KeyStoreKeyGenSpec)keyGenSpec).getKeyGenParameterSpec();
         KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(keyId, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT);
