@@ -27,7 +27,6 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapperInitializer;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
-import com.github.cjnosal.secret_storage.keymanager.ReWrap;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
@@ -116,11 +115,7 @@ public class SecretStorage {
     }
 
     public <E extends KeyWrapper.Editor> E getEditor() {
-        return (E) keyWrapper.getEditor(storeId, new ReWrap() {
-            public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
-                SecretStorage.this.rewrap(initializer);
-            }
-        });
+        return (E) keyWrapper.getEditor(storeId);
     }
 
     private void checkProtectionSpec() throws IOException {
@@ -378,6 +373,8 @@ public class SecretStorage {
             if (schema == 1) {
                 return new AsymmetricKeyStoreWrapper(
                         context,
+                        DefaultSpecs.getAesWrapSpec(),
+                        DefaultSpecs.getAes256KeyGenSpec(),
                         DefaultSpecs.getRsaEcbPkcs1Spec(),
                         DefaultSpecs.getRsa2048KeyGenSpec(),
                         configStorage,

@@ -30,6 +30,8 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.KeyPair;
 
+import javax.crypto.Cipher;
+
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
 
@@ -43,12 +45,12 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
     // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
-    public AsymmetricKeyStoreWrapper(Context context, CipherSpec keyProtectionSpec, KeyGenSpec kekSpec, DataStorage configStorage, DataStorage keyStorage) {
-        super(keyProtectionSpec, configStorage, keyStorage);
+    public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
+        super(intermediateKeyProtectionSpec, intermediateKekSpec, configStorage, keyStorage);
         this.context = context;
-        this.kekSpec = kekSpec;
+        this.kekSpec = keyStoreKekSpec;
         this.androidCrypto = new AndroidCrypto();
-        this.keyProtectionSpec = keyProtectionSpec;
+        this.keyProtectionSpec = keyStoreKeyProtectionSpec;
     }
 
     @Override
@@ -58,23 +60,18 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    protected Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
+    void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
         String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
         if (!androidCrypto.hasEntry(storageField)) {
             KeyPair encryptionKey = generateKeyPair(keyAlias);
-            return encryptionKey.getPublic();
+            Key kek = encryptionKey.getPublic();
+            Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+            finishUnlock(keyAlias, null, kekCipher);
+        } else {
+            Key kek = androidCrypto.loadPrivateKey(storageField);
+            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(keyAlias), keyProtectionSpec.getCipherTransformation());
+            finishUnlock(keyAlias, kekCipher, null);
         }
-        return androidCrypto.loadPublicKey(storageField);
-    }
-
-    @Override
-    protected Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
-        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!androidCrypto.hasEntry(storageField)) {
-            KeyPair encryptionKey = generateKeyPair(keyAlias);
-            return encryptionKey.getPrivate();
-        }
-        return androidCrypto.loadPrivateKey(storageField);
     }
 
     private KeyPair generateKeyPair(String keyAlias) throws GeneralSecurityException {

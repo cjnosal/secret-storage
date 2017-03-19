@@ -89,11 +89,11 @@ public class CompositeKeyWrapperTest {
     }
 
     private PasswordKeyWrapper.PasswordEditor getFirstEditor() {
-        return subject.getEditor("id", null).getEditor(0);
+        return (PasswordKeyWrapper.PasswordEditor) ((CompositeKeyWrapper.CompositeEditor)subject.getEditor("id")).getEditor(0);
     }
 
     private PasswordKeyWrapper.PasswordEditor getSecondEditor() {
-        return subject.getEditor("id", null).getEditor(1);
+        return (PasswordKeyWrapper.PasswordEditor) ((CompositeKeyWrapper.CompositeEditor)subject.getEditor("id")).getEditor(1);
     }
 
     @Test

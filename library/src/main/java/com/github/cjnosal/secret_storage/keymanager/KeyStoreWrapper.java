@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
+import javax.crypto.Cipher;
+
 @TargetApi(Build.VERSION_CODES.M)
 public class KeyStoreWrapper extends BaseKeyWrapper {
 
@@ -45,29 +47,29 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     private final KeyGenSpec keyGenSpec;
 
     public KeyStoreWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
-        super(keyProtectionSpec, configStorage, keyStorage);
+        super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
         this.keyGenSpec = keyGenSpec;
         this.androidCrypto = new AndroidCrypto();
+    }
+
+    @Override
+    void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
+        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
+        if (!androidCrypto.hasEntry(storageField)) {
+            Key kek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
+            Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+            finishUnlock(keyAlias, null, kekCipher);
+        } else {
+            Key kek = androidCrypto.loadSecretKey(storageField);
+            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(keyAlias), keyProtectionSpec.getCipherTransformation());
+            finishUnlock(keyAlias, kekCipher, null);
+        }
     }
 
     @Override
     public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
         super.eraseConfig(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
-    }
-
-    @Override
-    protected Key getKek(String keyAlias) throws IOException, GeneralSecurityException {
-        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!androidCrypto.hasEntry(storageField)) {
-            return androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
-        }
-        return androidCrypto.loadSecretKey(storageField);
-    }
-
-    @Override
-    protected Key getKdk(String keyAlias) throws IOException, GeneralSecurityException {
-        return getKek(keyAlias);
     }
 
     private KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {

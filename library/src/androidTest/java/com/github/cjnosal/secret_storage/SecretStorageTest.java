@@ -21,6 +21,7 @@ import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
+import com.github.cjnosal.secret_storage.keymanager.BaseKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapperInitializer;
@@ -103,6 +104,7 @@ public class SecretStorageTest {
         SecretStorage secretStorage2 = defaultBuilder("id2")
                 .keyWrapper(getObfuscationKeyWrapper())
                 .build();
+        ((BaseKeyWrapper.NoParamsEditor)secretStorage2.getEditor()).unlock();
         secretStorage1.copyTo(secretStorage2);
 
         assertEquals(new String(secretStorage2.load("mysecret1")), "message1");
@@ -132,16 +134,18 @@ public class SecretStorageTest {
                 configStorage.clear();
                 androidCrypto.clear();
 
-                SecretStorage secretStorage = defaultBuilder("id")
+                final SecretStorage secretStorage = defaultBuilder("id")
                         .keyWrapper(k1)
                         .build();
                 if (k1 instanceof PasswordKeyWrapper && !(k1 instanceof ObfuscationKeyWrapper)) {
-                    PasswordKeyWrapper.PasswordEditor e = ((PasswordKeyWrapper)k1).getEditor("id", null);
+                    PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor) k1.getEditor("id");
                     if (!e.isPasswordSet()) {
                         e.setPassword("password" + keyWrappers.indexOf(k1));
                     } else if (!e.isUnlocked()) {
                         e.unlock("password" + keyWrappers.indexOf(k1));
                     }
+                } else {
+                    ((BaseKeyWrapper.NoParamsEditor)k1.getEditor("id")).unlock();
                 }
                 secretStorage.store("my secret", "message".getBytes());
 
@@ -151,12 +155,14 @@ public class SecretStorageTest {
                     public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
                         k1.eraseConfig("id");
                         if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
-                            PasswordKeyWrapper.PasswordEditor e = ((PasswordKeyWrapper)k2).getEditor("id", null);
+                            PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor)k2.getEditor("id");
                             if (!e.isPasswordSet()) {
                                 e.setPassword("password" + keyWrappers.indexOf(k2));
                             } else if (!e.isUnlocked()) {
                                 e.unlock("password" + keyWrappers.indexOf(k2));
                             }
+                        } else {
+                            ((BaseKeyWrapper.NoParamsEditor)k2.getEditor("id")).unlock();
                         }
                         return k2;
                     }
@@ -185,6 +191,12 @@ public class SecretStorageTest {
         s2.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password2");
         s3.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password3");
         s4.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password4");
+        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
 
         s1.store("secret1", "message1".getBytes());
         s2.store("secret1", "message2".getBytes());
@@ -201,11 +213,23 @@ public class SecretStorageTest {
         s2.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
         s3.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
         s4.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
+        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
+        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
+        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
+        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
+        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
+        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
 
         s1.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password");
         s2.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password2");
         s3.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password3");
         s4.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password4");
+        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
 
         assertEquals("message1", new String(s1.load("secret1")));
         assertEquals("message2", new String(s2.load("secret1")));
@@ -261,9 +285,11 @@ public class SecretStorageTest {
     public void savedKeyWrapperIgnoresOsVersion() throws Exception {
         configStorage.store("id::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1)); // Selects Obfuscation
         SecretStorage secretStorage = new SecretStorage.Builder(context, "id").configStorage(configStorage).keyStorage(keyStorage).dataStorage(dataStorage).build();
+        ((BaseKeyWrapper.NoParamsEditor)secretStorage.getEditor()).unlock();
         secretStorage.store("key", Encoding.utf8Decode("value"));
 
         secretStorage = new SecretStorage.Builder(context, "id").configStorage(configStorage).keyStorage(keyStorage).dataStorage(dataStorage).build();
+        ((BaseKeyWrapper.NoParamsEditor)secretStorage.getEditor()).unlock();
         String value = Encoding.utf8Encode(secretStorage.load("key"));
         assertEquals("value", value);
     }

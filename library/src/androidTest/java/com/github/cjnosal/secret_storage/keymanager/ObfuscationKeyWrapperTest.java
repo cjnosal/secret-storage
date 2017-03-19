@@ -33,7 +33,6 @@ import javax.crypto.SecretKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ObfuscationKeyWrapperTest {
 
@@ -57,6 +56,8 @@ public class ObfuscationKeyWrapperTest {
                 configStorage,
                 keyStorage
         );
+        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor("id");
+        editor.unlock();
     }
 
     @Test
@@ -83,6 +84,8 @@ public class ObfuscationKeyWrapperTest {
                 configStorage,
                 keyStorage
         );
+        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor("id");
+        editor.unlock();
 
         SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(enc, unwrappedEnc);
@@ -137,13 +140,5 @@ public class ObfuscationKeyWrapperTest {
         subject.storeDataEncryptionKey("id", enc);
         subject.storeDataSigningKey("id", sig);
         assertTrue(subject.dataKeysExist("id"));
-    }
-
-    @Test
-    public void getEditor() throws Exception {
-        try {
-            subject.getEditor("test", null);
-            fail("No editor available for this manager");
-        } catch (UnsupportedOperationException expected) {}
     }
 }

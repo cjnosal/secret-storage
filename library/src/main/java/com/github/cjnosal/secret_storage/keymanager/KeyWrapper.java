@@ -23,7 +23,7 @@ import java.security.GeneralSecurityException;
 
 import javax.crypto.SecretKey;
 
-public interface KeyWrapper<E extends KeyWrapper.Editor> {
+public interface KeyWrapper {
 
     boolean isUnlocked();
 
@@ -37,12 +37,13 @@ public interface KeyWrapper<E extends KeyWrapper.Editor> {
 
     boolean dataKeysExist(String storeId);
 
-    E getEditor(String storeId, ReWrap reWrap);
+    KeyWrapper.Editor getEditor(String storeId);
 
     void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException;
 
     void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException;
 
-    class Editor {
+    interface Editor {
+        void lock();
     }
 }

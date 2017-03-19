@@ -25,7 +25,7 @@ import java.util.List;
 import javax.crypto.SecretKey;
 import javax.security.auth.login.LoginException;
 
-public class CompositeKeyWrapper implements KeyWrapper<CompositeKeyWrapper.CompositeEditor> {
+public class CompositeKeyWrapper implements KeyWrapper {
 
     List<KeyWrapper> keyWrappers;
 
@@ -73,8 +73,8 @@ public class CompositeKeyWrapper implements KeyWrapper<CompositeKeyWrapper.Compo
     }
 
     @Override
-    public CompositeEditor getEditor(String storeId, ReWrap reWrap) {
-        return new CompositeEditor(storeId, reWrap);
+    public KeyWrapper.Editor getEditor(String storeId) {
+        return new CompositeEditor(storeId);
     }
 
     @Override
@@ -100,18 +100,23 @@ public class CompositeKeyWrapper implements KeyWrapper<CompositeKeyWrapper.Compo
         throw new LoginException("No key wrappers are unlocked");
     }
 
-    public class CompositeEditor extends KeyWrapper.Editor {
+    public class CompositeEditor implements KeyWrapper.Editor {
 
         private String storeId;
-        private ReWrap reWrap;
 
-        public CompositeEditor(String storeId, ReWrap reWrap) {
+        public CompositeEditor(String storeId) {
             this.storeId = storeId;
-            this.reWrap = reWrap;
         }
 
-        public <E extends KeyWrapper.Editor> E getEditor(int index) {
-            return (E) CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId, reWrap);
+        public KeyWrapper.Editor getEditor(int index) {
+            return CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId);
+        }
+
+        @Override
+        public void lock() {
+            for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
+                getEditor(i).lock();
+            }
         }
     }
 }

@@ -34,6 +34,33 @@ import javax.crypto.SecretKey;
 
 public class KeyWrap {
 
+    public Cipher initWrapCipher(Key kek, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        AlgorithmParameterSpec algorithmParameterSpec = null;
+        if (paramAlgorithm != null) {
+            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(paramAlgorithm);
+        }
+        cipher.init(Cipher.WRAP_MODE, kek, algorithmParameterSpec);
+        return cipher;
+    }
+
+    public Cipher initUnwrapCipher(Key kek, AlgorithmParameters params, @SecurityAlgorithms.Cipher String algorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.UNWRAP_MODE, kek, params);
+        return cipher;
+    }
+
+    public byte[] wrap(Cipher cipher, SecretKey secret) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException {
+        byte[] wrappedKey = cipher.wrap(secret);
+        byte[] paramBytes;
+        if (cipher.getParameters() != null) {
+            paramBytes = cipher.getParameters().getEncoded();
+        } else {
+            paramBytes = new byte[0];
+        }
+        return ByteArrayUtil.join(paramBytes, wrappedKey);
+    }
+
     public byte[] wrap(Key kek, SecretKey secret, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException {
         Cipher cipher = Cipher.getInstance(algorithm);
         AlgorithmParameterSpec algorithmParameterSpec = null;
@@ -49,6 +76,11 @@ public class KeyWrap {
             paramBytes = new byte[0];
         }
         return ByteArrayUtil.join(paramBytes, wrappedKey);
+    }
+
+    public SecretKey unwrap(Cipher cipher, byte[] cipherText, @SecurityAlgorithms.KeyGenerator String keyAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {
+        byte[][] splitBytes = ByteArrayUtil.split(cipherText);
+        return (SecretKey) cipher.unwrap(splitBytes[1], keyAlgorithm, Cipher.SECRET_KEY);
     }
 
     public SecretKey unwrap(Key kek, byte[] cipherText, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm, @SecurityAlgorithms.KeyGenerator String keyAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {

@@ -24,8 +24,6 @@ import com.github.cjnosal.secret_storage.storage.DataStorage;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-import javax.crypto.SecretKey;
-
 /**
  * This KeyWrapper is NOT SECURE!
  * Should only be used when AndroidKeyStore is not available and a user password can not be requested.
@@ -37,31 +35,16 @@ public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public boolean isUnlocked() {
-        return true;
+    public KeyWrapper.Editor getEditor(String storeId) {
+        return new NoParamsEditor(storeId);
     }
 
-    protected byte[] wrapKey(String keyAlias, SecretKey key) throws GeneralSecurityException, IOException {
-        unlock(keyAlias);
-        return super.wrapKey(keyAlias, key);
-    }
-
-    protected SecretKey unwrapKey(String keyAlias, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
-        unlock(keyAlias);
-        return super.unwrapKey(keyAlias, wrappedKey, keyType);
-    }
-
-    public PasswordEditor getEditor(String storeId, ReWrap reWrap) {
-        throw new UnsupportedOperationException("No editor available for this KeyManager");
-    }
-
-    private void unlock(String keyAlias) throws IOException, GeneralSecurityException {
-        if (!super.isUnlocked()) {
-            if (isPasswordSet(keyAlias)) {
-                unlock(keyAlias, "default_password");
-            } else {
-                setPassword(keyAlias, "default_password");
-            }
+    void unlock(String keyAlias, UnlockParams unlockParams) throws IOException, GeneralSecurityException {
+        if (isPasswordSet(keyAlias)) {
+            super.unlock(keyAlias, new PasswordParams("default_password"));
+        } else {
+            setPassword(keyAlias, "default_password");
         }
     }
+
 }
