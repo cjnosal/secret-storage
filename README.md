@@ -5,15 +5,15 @@ A key-protection strategy will be selected to make use of a user password, Andro
 ## Gradle
 ### Jitpack
 ```
-	allprojects {
-		repositories {
-			maven { url 'https://jitpack.io' }
-		}
-	}
+    allprojects {
+        repositories {
+            maven { url 'https://jitpack.io' }
+        }
+    }
     
     dependencies {
-	        compile 'com.github.cjnosal:secret-storage:v1.0-alpha.4'
-	}
+        compile 'com.github.cjnosal:secret-storage:v1.0-alpha.4'
+    }
 ```
 ### Download aar file
 ```
@@ -65,21 +65,34 @@ SecretStorage secretStorage = new new SecretStorage.Builder(context, id)
 ```
 
 ## Usage
+### Unlock/Lock
+SecretStorage must be unlocked before storing or loading values. Different KeyWrappers require different parameters to unlock.
+#### KeyStoreWrapper/AsymmetricKeyStoreWrapper/ObfuscationKeyWrapper
+```
+secretStorage.getEditor().unlock();
+```
+#### PasswordKeyWrapper/SignedPasswordKeyWrapper
+If no password has been set:
+```
+secretStorage.getEditor().setPassword(password);
+```
+If a password has been set:
+```
+secretStorage.getEditor().unlock(password);
+```
+#### FingerprintWrapper:
+```
+secretStorage.getEditor().unlock(context, cancellationSignal, listener, handler);
+```
 ### Store/Load Data
 ```
 secretStorage.store("mySecret", Encoding.utf8decode("sensitive materials"));
 String mySecret = Encoding.utf8encode(secretStorage.load("mySecret"));
 ```
-### Manage user password
-```
-PasswordEditor editor = secretStorage.getEditor();
-editor.setPassword("1234");
-editor.lock();
-editor.unlock("1234");
-editor.changePassword("1234", "3456");
-```
 ## Key Protection Strategies
-User data is protected with encrypt-then-mac. The cipher and mac keys are then wrapped using the most secure method available.
+User data is protected with encrypt-then-mac. The cipher and mac keys are then wrapped with an intermediate key-encryption-key which is held in memory while the KeyWrapper is unlocked. The intermediate key is in turn wrapped using the most secure method available.
+### FingerprintWrapper (API >= 23)
+Generate an AES key in the AndroidKeyStore, requiring fingerprint verification to unlock
 ### KeystoreWrapper (API >= 23 when configured without a user password)
 Generate an AES key in the AndroidKeyStore
 ### AsymmetricKeyStoreWrapper (API >= 18 when configured without a user password)
