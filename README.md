@@ -31,11 +31,13 @@ A key-protection strategy will be selected to make use of a user password, Andro
 ## Setup
 ### Default key protection strategy and storage without a user password (insecure below jelly bean)
 ```
-SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").build();
+KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, false);
+SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").keyWrapper(keyWrapper).build();
 ```
 ### Default key protection strategy and storage with a user password
 ```
-SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").withUserPassword(true).build();
+KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, true);
+SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").keyWrapper(keyWrapper).build();
 ```
 ### Overridden key protection strategy and storage
 ```

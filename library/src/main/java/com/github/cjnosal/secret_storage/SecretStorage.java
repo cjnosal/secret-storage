@@ -19,6 +19,8 @@ package com.github.cjnosal.secret_storage;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
@@ -84,10 +86,32 @@ public class SecretStorage {
         dataStorage.store(getStorageField(storeId, id), cipherText);
     }
 
-    public byte[] load(String id) throws GeneralSecurityException, IOException {
+    public @Result int storeValue(String id, byte[] plainText) {
+        try {
+            store(id, plainText);
+            return Success;
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            return SecurityError;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
+        }
+    }
+
+    public @NonNull byte[] load(String id) throws GeneralSecurityException, IOException {
         checkProtectionSpec();
         byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
         return decrypt(cipherText);
+    }
+
+    public @Nullable byte[] loadValue(String id) {
+        try {
+            return load(id);
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     // decrypt and copy all data to another SecretStorage instance
@@ -97,6 +121,20 @@ public class SecretStorage {
         for (String s : entries) {
             String key = getField(s);
             other.store(key, load(key));
+        }
+    }
+
+    // decrypt and copy all data to another SecretStorage instance
+    public @Result int copyValuesTo(SecretStorage other) {
+        try {
+            copyTo(other);
+            return Success;
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            return SecurityError;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
         }
     }
 
@@ -111,6 +149,19 @@ public class SecretStorage {
             keyWrapper.storeDataSigningKey(storeId, signingKey);
         } else {
             keyWrapper = initializer.initKeyWrapper();
+        }
+    }
+
+    public @Result int rewrapValues(KeyWrapperInitializer initializer) {
+        try {
+            rewrap(initializer);
+            return Success;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            return SecurityError;
         }
     }
 
@@ -191,7 +242,6 @@ public class SecretStorage {
         // Used for choosing defaults
         private final Context context;
         private DataStorage keyStorage;
-        private boolean withUserPassword;
 
         public Builder(Context context, String storeId) {
             this.context = context;
@@ -218,27 +268,25 @@ public class SecretStorage {
             return this;
         }
 
-        public Builder withUserPassword(boolean withUserPassword) {
-            this.withUserPassword = withUserPassword;
-            return this;
-        }
-
         public Builder dataProtectionSpec(DataProtectionSpec dataProtectionSpec) {
             this.dataProtectionSpec = dataProtectionSpec;
             return this;
         }
 
-        public SecretStorage build() throws IOException {
+        public SecretStorage build() {
             validateArguments();
             return new SecretStorage(storeId, dataStorage, configStorage, dataProtectionSpec, keyWrapper);
         }
 
-        private void validateArguments() throws IOException {
+        private void validateArguments() {
             if (context == null) {
                 throw new IllegalArgumentException("Non-null Context required");
             }
             if (storeId == null || storeId.isEmpty()) {
                 throw new IllegalArgumentException("Non-empty store ID required");
+            }
+            if (keyWrapper == null) {
+                throw new IllegalArgumentException("KeyWrapper required");
             }
             if (configStorage == null) {
                 configStorage = createStorage(DataStorage.TYPE_CONF);
@@ -249,41 +297,43 @@ public class SecretStorage {
             if (keyStorage == null) {
                 keyStorage = createStorage(DataStorage.TYPE_KEYS);
             }
-            int osVersion; // OS Version when store was created
-            if (configStorage.exists(getStorageField(storeId, OS_VERSION))) {
-                osVersion = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, OS_VERSION)));
-            } else {
-                osVersion = Build.VERSION.SDK_INT;
-                configStorage.store(getStorageField(storeId, OS_VERSION), DataEncoding.encode(osVersion));
-            }
             if (dataProtectionSpec == null) {
-                dataProtectionSpec = DefaultSpecs.getDataProtectionSpec(osVersion);
-            }
-            if (keyWrapper == null) {
-                @KeyWrapperType int wrapperType = 0;
-                if (configStorage.exists(getStorageField(storeId, KEY_WRAPPER_TYPE))) {
-                    wrapperType = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, KEY_WRAPPER_TYPE)));
-                }
-                int schema = 0;
-                if (configStorage.exists(getStorageField(storeId, SCHEMA_VERSION))) {
-                    schema = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, SCHEMA_VERSION)));
-                }
-                if (wrapperType == 0) {
-                    // new secret storage: use os version and availability of user password to select a key wrapper type
-                    wrapperType = SecretStorage.selectKeyWrapper(osVersion, withUserPassword);
-                    schema = SecretStorage.getCurrentSchema(wrapperType);
-
-                    // TODO sign wrapperType/schema to prevent downgrade attacks?
-                    configStorage.store(getStorageField(storeId, KEY_WRAPPER_TYPE), DataEncoding.encode(wrapperType));
-                    configStorage.store(getStorageField(storeId, SCHEMA_VERSION), DataEncoding.encode(schema));
-                }
-                keyWrapper = SecretStorage.instantiateKeyWrapper(context, wrapperType, schema, configStorage, keyStorage);
+                dataProtectionSpec = DefaultSpecs.getDefaultDataProtectionSpec();
             }
         }
 
         private DataStorage createStorage(@DataStorage.Type String type) {
             return DefaultStorage.createStorage(context, storeId, type);
         }
+    }
+
+    public static KeyWrapper selectKeyWrapper(Context context, String storeId, DataStorage configStorage, DataStorage keyStorage, boolean withUserPassword) throws IOException {
+        int osVersion; // OS Version when store was created
+        if (configStorage.exists(getStorageField(storeId, OS_VERSION))) {
+            osVersion = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, OS_VERSION)));
+        } else {
+            osVersion = Build.VERSION.SDK_INT;
+            configStorage.store(getStorageField(storeId, OS_VERSION), DataEncoding.encode(osVersion));
+        }
+
+        @KeyWrapperType int wrapperType = 0;
+        if (configStorage.exists(getStorageField(storeId, KEY_WRAPPER_TYPE))) {
+            wrapperType = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, KEY_WRAPPER_TYPE)));
+        }
+        int schema = 0;
+        if (configStorage.exists(getStorageField(storeId, SCHEMA_VERSION))) {
+            schema = DataEncoding.decodeInt(configStorage.load(getStorageField(storeId, SCHEMA_VERSION)));
+        }
+        if (wrapperType == 0) {
+            // new secret storage: use os version and availability of user password to select a key wrapper type
+            wrapperType = SecretStorage.selectKeyWrapper(osVersion, withUserPassword);
+            schema = SecretStorage.getCurrentSchema(wrapperType);
+
+            // TODO sign wrapperType/schema to prevent downgrade attacks?
+            configStorage.store(getStorageField(storeId, KEY_WRAPPER_TYPE), DataEncoding.encode(wrapperType));
+            configStorage.store(getStorageField(storeId, SCHEMA_VERSION), DataEncoding.encode(schema));
+        }
+        return SecretStorage.instantiateKeyWrapper(context, wrapperType, schema, configStorage, keyStorage);
     }
 
     static @KeyWrapperType int selectKeyWrapper(int osVersion, boolean withUserPassword) {
@@ -409,4 +459,16 @@ public class SecretStorage {
     static final int SignedPassword = 3;
     static final int AsymmetricKeyStore = 4;
     static final int KeyStore = 5;
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            Success,
+            IoError,
+            SecurityError
+    })
+    public @interface Result {}
+
+    public static final int Success = 0;
+    public static final int IoError = 1;
+    public static final int SecurityError = 2;
 }

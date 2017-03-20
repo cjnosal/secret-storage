@@ -33,7 +33,6 @@ import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
-import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,6 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 public class SecretStorageTest {
 
@@ -284,14 +284,8 @@ public class SecretStorageTest {
     @Test // run on 18+ emulator
     public void savedKeyWrapperIgnoresOsVersion() throws Exception {
         configStorage.store("id::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1)); // Selects Obfuscation
-        SecretStorage secretStorage = new SecretStorage.Builder(context, "id").configStorage(configStorage).keyStorage(keyStorage).dataStorage(dataStorage).build();
-        ((BaseKeyWrapper.NoParamsEditor)secretStorage.getEditor()).unlock();
-        secretStorage.store("key", Encoding.utf8Decode("value"));
-
-        secretStorage = new SecretStorage.Builder(context, "id").configStorage(configStorage).keyStorage(keyStorage).dataStorage(dataStorage).build();
-        ((BaseKeyWrapper.NoParamsEditor)secretStorage.getEditor()).unlock();
-        String value = Encoding.utf8Encode(secretStorage.load("key"));
-        assertEquals("value", value);
+        KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, false);
+        assertTrue(keyWrapper instanceof ObfuscationKeyWrapper);
     }
 
 }

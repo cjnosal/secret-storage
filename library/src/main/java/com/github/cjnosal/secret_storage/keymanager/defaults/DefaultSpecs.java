@@ -60,6 +60,13 @@ public class DefaultSpecs {
         return new DataProtectionSpec(cipher, integrity, keygen, keygen);
     }
 
+    public static DataProtectionSpec getDefaultDataProtectionSpec() {
+        CipherSpec cipher = getAesGcmCipherSpec();
+        IntegritySpec integrity = getHmacSha384IntegritySpec();
+        KeyGenSpec keygen = getAes256KeyGenSpec();
+        return new DataProtectionSpec(cipher, integrity, keygen, keygen);
+    }
+
     public static KeyGenSpec getAes128KeyGenSpec() {
         return new KeyGenSpec(SecurityAlgorithms.KEY_SIZE_AES_128, SecurityAlgorithms.KeyGenerator_AES);
     }
