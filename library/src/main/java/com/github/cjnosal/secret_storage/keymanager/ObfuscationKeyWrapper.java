@@ -40,10 +40,17 @@ public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
     }
 
     void unlock(String keyAlias, UnlockParams unlockParams) throws IOException, GeneralSecurityException {
-        if (isPasswordSet(keyAlias)) {
-            super.unlock(keyAlias, new PasswordParams("default_password"));
-        } else {
-            setPassword(keyAlias, "default_password");
+        char[] defaultPassword = new char[] {'d', 'e', 'f', 'a', 'u', 'l', 't', '_', 'o', 'b', 'f', 'u', 's', 'c', 'a', 't', 'i', 'o', 'n'};
+        try {
+            if (isPasswordSet(keyAlias)) {
+                super.unlock(keyAlias, new PasswordParams(defaultPassword));
+            } else {
+                setPassword(keyAlias, defaultPassword);
+            }
+        } finally {
+            for (int i = 0; i < defaultPassword.length; ++i) {
+                defaultPassword[i] = ' ';
+            }
         }
     }
 

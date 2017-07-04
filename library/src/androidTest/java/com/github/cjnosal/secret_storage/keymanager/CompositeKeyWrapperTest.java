@@ -79,8 +79,8 @@ public class CompositeKeyWrapperTest {
         );
 
         subject = new CompositeKeyWrapper(keyWrappers);
-        getFirstEditor().setPassword("password1");
-        getSecondEditor().setPassword("password2");
+        getFirstEditor().setPassword("password1".toCharArray());
+        getSecondEditor().setPassword("password2".toCharArray());
 
         keyGenerator = KeyGenerator.getInstance(SecurityAlgorithms.KeyGenerator_AES);
         keyGenerator.init(SecurityAlgorithms.KEY_SIZE_AES_256);
@@ -119,7 +119,7 @@ public class CompositeKeyWrapperTest {
         SecretKey unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(sig, unwrappedSig);
 
-        getFirstEditor().unlock("password1");
+        getFirstEditor().unlock("password1".toCharArray());
         getSecondEditor().lock();
 
         unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);

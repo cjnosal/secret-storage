@@ -62,13 +62,17 @@ public class Encoding {
     }
 
     public static String hexEncode(byte[] bytes) {
+        return new String(hexEncodeChars(bytes));
+    }
+
+    public static char[] hexEncodeChars(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
         for (int i = 0; i < bytes.length; i++) {
             int v = bytes[i] & 0xFF;
             hexChars[i * 2] = hexArray[v >>> 4];
             hexChars[i * 2 + 1] = hexArray[v & 0x0F];
         }
-        return new String(hexChars);
+        return hexChars;
     }
 
     public static byte[] hexDecode(String s) {

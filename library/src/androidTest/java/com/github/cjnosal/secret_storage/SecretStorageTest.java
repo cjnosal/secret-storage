@@ -128,7 +128,7 @@ public class SecretStorageTest {
         SecretStorage secretStorage1 = defaultBuilder("id")
                 .keyWrapper(getPasswordKeyWrapper())
                 .build();
-        secretStorage1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password");
+        secretStorage1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password".toCharArray());
         secretStorage1.store("mysecret1", "message1".getBytes());
         secretStorage1.store("mysecret2", "message2".getBytes());
 
@@ -171,9 +171,9 @@ public class SecretStorageTest {
                 if (k1 instanceof PasswordKeyWrapper && !(k1 instanceof ObfuscationKeyWrapper)) {
                     PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor) k1.getEditor("id");
                     if (!e.isPasswordSet()) {
-                        e.setPassword("password" + keyWrappers.indexOf(k1));
+                        e.setPassword(("password" + keyWrappers.indexOf(k1)).toCharArray());
                     } else if (!e.isUnlocked()) {
-                        e.unlock("password" + keyWrappers.indexOf(k1));
+                        e.unlock(("password" + keyWrappers.indexOf(k1)).toCharArray());
                     }
                 } else {
                     ((BaseKeyWrapper.NoParamsEditor)k1.getEditor("id")).unlock();
@@ -188,9 +188,9 @@ public class SecretStorageTest {
                         if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
                             PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor)k2.getEditor("id");
                             if (!e.isPasswordSet()) {
-                                e.setPassword("password" + keyWrappers.indexOf(k2));
+                                e.setPassword(("password" + keyWrappers.indexOf(k2)).toCharArray());
                             } else if (!e.isUnlocked()) {
-                                e.unlock("password" + keyWrappers.indexOf(k2));
+                                e.unlock(("password" + keyWrappers.indexOf(k2)).toCharArray());
                             }
                         } else {
                             ((BaseKeyWrapper.NoParamsEditor)k2.getEditor("id")).unlock();
@@ -218,10 +218,10 @@ public class SecretStorageTest {
         SecretStorage s9 = defaultBuilder("id9").keyWrapper(getObfuscationKeyWrapper()).build();
         SecretStorage s10 = defaultBuilder("id10").keyWrapper(getObfuscationKeyWrapper()).build();
 
-        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password");
-        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password2");
-        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password3");
-        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password4");
+        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password".toCharArray());
+        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password2".toCharArray());
+        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password3".toCharArray());
+        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password4".toCharArray());
         s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
         s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
         s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
@@ -251,10 +251,10 @@ public class SecretStorageTest {
         s9.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
         s10.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
 
-        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password");
-        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password2");
-        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password3");
-        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password4");
+        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password".toCharArray());
+        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password2".toCharArray());
+        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password3".toCharArray());
+        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password4".toCharArray());
         s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
         s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
         s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();

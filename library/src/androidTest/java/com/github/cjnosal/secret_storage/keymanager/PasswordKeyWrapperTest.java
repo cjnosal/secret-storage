@@ -70,7 +70,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void storeAndLoad() throws Exception {
-        subject.setPassword("id", "password");
+        subject.setPassword("id", "password".toCharArray());
 
         subject.storeDataEncryptionKey("id", enc);
         assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
@@ -88,7 +88,7 @@ public class PasswordKeyWrapperTest {
                 configStorage,
                 keyStorage
         );
-        ((PasswordKeyWrapper.PasswordEditor)subject.getEditor("id")).unlock("password");
+        ((PasswordKeyWrapper.PasswordEditor)subject.getEditor("id")).unlock("password".toCharArray());
 
         SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(enc, unwrappedEnc);
@@ -99,7 +99,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void eraseConfig() throws Exception {
-        subject.setPassword("id", "password");
+        subject.setPassword("id", "password".toCharArray());
 
         subject.storeDataEncryptionKey("id", enc);
         subject.storeDataSigningKey("id", sig);
@@ -114,7 +114,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void eraseKeys() throws Exception {
-        subject.setPassword("id", "password");
+        subject.setPassword("id", "password".toCharArray());
 
         subject.storeDataEncryptionKey("id", enc);
         subject.storeDataSigningKey("id", sig);
@@ -127,7 +127,7 @@ public class PasswordKeyWrapperTest {
 
     @Test
     public void keysExist() throws Exception {
-        subject.setPassword("id", "password");
+        subject.setPassword("id", "password".toCharArray());
         assertFalse(subject.dataKeysExist("id"));
 
         subject.storeDataEncryptionKey("id", enc);
@@ -141,7 +141,7 @@ public class PasswordKeyWrapperTest {
         assertFalse(editor.isPasswordSet());
         assertFalse(editor.isUnlocked());
 
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
 
         assertTrue(editor.isPasswordSet());
         assertTrue(editor.isUnlocked());
@@ -150,10 +150,10 @@ public class PasswordKeyWrapperTest {
     @Test
     public void getEditor_withPassword_setPasswordFails() throws Exception {
         PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("id");
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
 
         try {
-            editor.setPassword("password2");
+            editor.setPassword("password2".toCharArray());
             fail("Password already set");
         } catch (LoginException expected) {}
     }
@@ -163,22 +163,22 @@ public class PasswordKeyWrapperTest {
         PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("id");
 
         try {
-            editor.verifyPassword("password");
+            editor.verifyPassword("password".toCharArray());
             fail("Password not set");
         } catch (LoginException expected) {}
 
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
         editor.lock();
 
-        assertFalse(editor.verifyPassword("1234"));
-        assertTrue(editor.verifyPassword("password"));
+        assertFalse(editor.verifyPassword("1234".toCharArray()));
+        assertTrue(editor.verifyPassword("password".toCharArray()));
         assertFalse(editor.isUnlocked());
     }
 
     @Test
     public void getEditor_lock() throws Exception {
         PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("id");
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
 
         editor.lock();
         assertTrue(editor.isPasswordSet());
@@ -190,19 +190,19 @@ public class PasswordKeyWrapperTest {
         PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("id");
 
         try {
-            editor.unlock("password");
+            editor.unlock("password".toCharArray());
             fail("Password not set");
         } catch (LoginException expected) {}
 
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
         editor.lock();
 
         try {
-            editor.unlock("password2");
+            editor.unlock("password2".toCharArray());
             fail("Wrong password");
         } catch (LoginException expected) {}
 
-        editor.unlock("password");
+        editor.unlock("password".toCharArray());
         assertTrue(editor.isUnlocked());
     }
 
@@ -211,22 +211,22 @@ public class PasswordKeyWrapperTest {
         final PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("id");
 
         try {
-            editor.changePassword(null, "password");
+            editor.changePassword(null, "password".toCharArray());
             fail("Password not set");
         } catch (LoginException expected) {}
 
-        editor.setPassword("password");
+        editor.setPassword("password".toCharArray());
         editor.lock();
 
         try {
-            editor.changePassword("1234", "password2");
+            editor.changePassword("1234".toCharArray(), "password2".toCharArray());
             fail("Wrong password");
         } catch (LoginException expected) {}
 
-        editor.changePassword("password", "password2");
+        editor.changePassword("password".toCharArray(), "password2".toCharArray());
         assertTrue(editor.isUnlocked());
         assertTrue(editor.isPasswordSet());
-        assertTrue(editor.verifyPassword("password2"));
+        assertTrue(editor.verifyPassword("password2".toCharArray()));
     }
 
 

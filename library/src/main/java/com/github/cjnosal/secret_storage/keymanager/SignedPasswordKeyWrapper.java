@@ -64,7 +64,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    protected byte[] derive(String keyAlias, String password, byte[] salt) throws GeneralSecurityException, IOException {
+    protected byte[] derive(String keyAlias, char[] password, byte[] salt) throws GeneralSecurityException, IOException {
 
         PrivateKey signingKey;
         if (!isPasswordSet(keyAlias)) {
@@ -79,13 +79,30 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());
 
-        PBEKeySpec firstSpec = new PBEKeySpec(password.toCharArray(), salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
-        byte[] firstHash = factory.generateSecret(firstSpec).getEncoded();
+        PBEKeySpec firstSpec = new PBEKeySpec(password, salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
+        byte[] firstHash;
+        try {
+            firstHash = factory.generateSecret(firstSpec).getEncoded();
+        } finally {
+            firstSpec.clearPassword();
+            for (int i = 0; i < password.length; i++) {
+                password[i] = ' ';
+            }
+        }
         byte[] signature = derivationIntegrityStrategy.sign(signingKey, derivationIntegritySpec, firstHash);
-        String signatureString = Encoding.base64Encode(signature);
-
-        PBEKeySpec secondSpec = new PBEKeySpec(signatureString.toCharArray(), salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
-        return factory.generateSecret(secondSpec).getEncoded();
+        char[] signatureString = Encoding.hexEncodeChars(signature);
+        PBEKeySpec secondSpec = new PBEKeySpec(signatureString, salt, derivationSpec.getRounds() / 2, keyGenSpec.getKeySize() * 2);
+        try {
+            return factory.generateSecret(secondSpec).getEncoded();
+        } finally {
+            secondSpec.clearPassword();
+            for (int i = 0; i < signatureString.length; i++) {
+                signatureString[i] = ' ';
+            }
+            for (int i = 0; i < signature.length; i++) {
+                signature[i] = 0;
+            }
+        }
     }
 
 }
