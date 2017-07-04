@@ -120,7 +120,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
     }
 
-    protected boolean kekExists(String keyAlias) throws IOException {
+    protected boolean kekExists(String keyAlias) {
         return keyStorage.exists(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
     }
 

@@ -18,7 +18,7 @@ package com.github.cjnosal.secret_storage.storage.encoding;
 
 import android.util.Base64;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 public class Encoding {
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -105,20 +105,10 @@ public class Encoding {
     }
 
     public static byte[] utf8Decode(String s) {
-        byte[] decoded = null;
-        try {
-            decoded = s.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-        }
-        return decoded;
+        return s.getBytes(Charset.forName("UTF-8"));
     }
 
     public static String utf8Encode(byte[] bytes) {
-        String encoded = null;
-        try {
-            encoded = new String(bytes, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-        }
-        return encoded;
+        return new String(bytes, Charset.forName("UTF-8"));
     }
 }
