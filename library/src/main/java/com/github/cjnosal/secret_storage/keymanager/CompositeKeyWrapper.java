@@ -23,6 +23,7 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 import javax.security.auth.login.LoginException;
 
 public class CompositeKeyWrapper implements KeyWrapper {
@@ -78,14 +79,14 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         for (KeyWrapper kw : keyWrappers) {
             kw.eraseConfig(keyAlias);
         }
     }
 
     @Override
-    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         for (KeyWrapper kw : keyWrappers) {
             kw.eraseKeys(keyAlias);
         }
@@ -113,7 +114,7 @@ public class CompositeKeyWrapper implements KeyWrapper {
         }
 
         @Override
-        public void lock() {
+        public void lock() throws DestroyFailedException {
             for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
                 getEditor(i).lock();
             }

@@ -30,6 +30,7 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapperInitializer;
 import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.crypto.KeyDestroyer;
 import com.github.cjnosal.secret_storage.keymanager.crypto.PRNGFixes;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
@@ -49,6 +50,7 @@ import java.security.GeneralSecurityException;
 import java.util.Set;
 
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 
 import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
 
@@ -74,7 +76,7 @@ public class SecretStorage {
         PRNGFixes.apply();
     }
 
-    public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
+    public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException, DestroyFailedException {
         byte[] cipherText = encrypt(plainText);
         dataStorage.store(getStorageField(storeId, id), cipherText);
     }
@@ -83,7 +85,7 @@ public class SecretStorage {
         try {
             store(id, plainText);
             return Success;
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | DestroyFailedException e) {
             e.printStackTrace();
             return SecurityError;
         } catch (IOException e) {
@@ -92,7 +94,7 @@ public class SecretStorage {
         }
     }
 
-    public @NonNull byte[] load(String id) throws GeneralSecurityException, IOException {
+    public @NonNull byte[] load(String id) throws GeneralSecurityException, IOException, DestroyFailedException {
         byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
         return decrypt(cipherText);
     }
@@ -100,14 +102,14 @@ public class SecretStorage {
     public @Nullable byte[] loadValue(String id) {
         try {
             return load(id);
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (GeneralSecurityException | IOException | DestroyFailedException e) {
             e.printStackTrace();
         }
         return null;
     }
 
     // decrypt and copy all data to another SecretStorage instance
-    public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
+    public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException, DestroyFailedException {
         Set<String> entries = dataStorage.entries();
         for (String s : entries) {
             String key = getField(s);
@@ -120,7 +122,7 @@ public class SecretStorage {
         try {
             copyTo(other);
             return Success;
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | DestroyFailedException e) {
             e.printStackTrace();
             return SecurityError;
         } catch (IOException e) {
@@ -130,13 +132,15 @@ public class SecretStorage {
     }
 
     // decrypt and copy data encryption keys to another KeyManager instance
-    public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
+    public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException, DestroyFailedException {
         if (keyWrapper.dataKeysExist(storeId)) {
             @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
             @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
             keyWrapper = initializer.initKeyWrapper();
             keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
             keyWrapper.storeDataSigningKey(storeId, signingKey);
+            KeyDestroyer.destroy(encryptionKey);
+            KeyDestroyer.destroy(signingKey);
         } else {
             keyWrapper = initializer.initKeyWrapper();
         }
@@ -149,7 +153,7 @@ public class SecretStorage {
         } catch (IOException e) {
             e.printStackTrace();
             return IoError;
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | DestroyFailedException e) {
             e.printStackTrace();
             return SecurityError;
         }
@@ -159,16 +163,26 @@ public class SecretStorage {
         return (E) keyWrapper.getEditor(storeId);
     }
 
-    private byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+    private byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException, DestroyFailedException {
         @KeyPurpose.DataSecrecy SecretKey encryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey signingKey = prepareDataSigningKey();
-        return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
+        try {
+            return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
+        } finally {
+            KeyDestroyer.destroy(encryptionKey);
+            KeyDestroyer.destroy(signingKey);
+        }
     }
 
-    private byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+    private byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException, DestroyFailedException {
         @KeyPurpose.DataSecrecy SecretKey decryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey verificationKey = prepareDataSigningKey();
-        return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
+        try {
+            return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
+        } finally {
+            KeyDestroyer.destroy(decryptionKey);
+            KeyDestroyer.destroy(verificationKey);
+        }
     }
 
     private SecretKey prepareDataEncryptionKey() throws GeneralSecurityException, IOException {

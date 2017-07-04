@@ -19,6 +19,8 @@ package com.github.cjnosal.secret_storage.keymanager;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
+import javax.security.auth.DestroyFailedException;
+
 public interface KeyWrapperInitializer {
-    KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException;
+    KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException, DestroyFailedException;
 }

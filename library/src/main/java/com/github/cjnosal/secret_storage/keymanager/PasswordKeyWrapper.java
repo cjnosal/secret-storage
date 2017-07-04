@@ -35,6 +35,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.DestroyFailedException;
 import javax.security.auth.login.LoginException;
 
 public class PasswordKeyWrapper extends BaseKeyWrapper {
@@ -55,7 +56,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         super.eraseConfig(keyAlias);
         configStorage.delete(getStorageField(keyAlias, VERIFICATION));
         configStorage.delete(getStorageField(keyAlias, ENC_SALT));
@@ -176,7 +177,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             }
         }
 
-        public void lock() {
+        public void lock() throws DestroyFailedException {
             PasswordKeyWrapper.this.lock();
         }
 

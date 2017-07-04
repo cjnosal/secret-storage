@@ -31,6 +31,7 @@ import java.security.Key;
 import java.security.KeyPair;
 
 import javax.crypto.Cipher;
+import javax.security.auth.DestroyFailedException;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
@@ -54,7 +55,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         super.eraseConfig(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }

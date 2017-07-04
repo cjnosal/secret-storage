@@ -16,7 +16,10 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
+import android.os.Build;
+
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.crypto.KeyDestroyer;
 import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
 import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
@@ -32,6 +35,8 @@ import java.security.Key;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
 import javax.security.auth.login.LoginException;
 
 import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
@@ -68,8 +73,12 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return keyWrapperKek != null;
     }
 
-    void lock() {
-        keyWrapperKek = null;
+    void lock() throws DestroyFailedException {
+        try {
+            KeyDestroyer.destroy(keyWrapperKek);
+        } finally {
+            keyWrapperKek = null;
+        }
     }
 
     // must call finishUnlock(String, Cipher, Cipher)
@@ -115,12 +124,12 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return new NoParamsEditor(storeId);
     }
 
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         eraseKeys(keyAlias);
         configStorage.delete(getStorageField(keyAlias, KEY_PROTECTION));
     }
 
-    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         lock();
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_ENCRYPTION_KEY));
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_SIGNING_KEY));
@@ -190,7 +199,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
             this.keyAlias = keyAlias;
         }
 
-        public void lock() {
+        public void lock() throws DestroyFailedException {
             BaseKeyWrapper.this.lock();
         }
     }

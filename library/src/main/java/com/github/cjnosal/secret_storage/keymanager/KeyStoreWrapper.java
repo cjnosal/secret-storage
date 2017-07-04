@@ -32,6 +32,7 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 
 import javax.crypto.Cipher;
+import javax.security.auth.DestroyFailedException;
 
 @TargetApi(Build.VERSION_CODES.M)
 public class KeyStoreWrapper extends BaseKeyWrapper {
@@ -67,7 +68,7 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         super.eraseConfig(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
     }

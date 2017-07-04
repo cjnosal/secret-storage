@@ -41,6 +41,8 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.security.auth.DestroyFailedException;
+
 import static junit.framework.Assert.assertEquals;
 
 public class SecretStorageTest {
@@ -125,7 +127,7 @@ public class SecretStorageTest {
     }
 
     @Test
-    public void copyTo() throws IOException, GeneralSecurityException {
+    public void copyTo() throws IOException, GeneralSecurityException, DestroyFailedException {
         SecretStorage secretStorage1 = defaultBuilder("id")
                 .keyWrapper(getPasswordKeyWrapper())
                 .build();
@@ -144,7 +146,7 @@ public class SecretStorageTest {
     }
 
     @Test
-    public void rewrap() throws IOException, GeneralSecurityException {
+    public void rewrap() throws IOException, GeneralSecurityException, DestroyFailedException {
         final List<KeyWrapper> keyWrappers = Arrays.<KeyWrapper>asList(
                 getObfuscationKeyWrapper(),
                 getPasswordKeyWrapper(),
@@ -184,7 +186,7 @@ public class SecretStorageTest {
                 secretStorage.rewrap(new KeyWrapperInitializer() {
 
                     @Override
-                    public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
+                    public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException, DestroyFailedException {
                         k1.eraseConfig("id");
                         if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
                             PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor)k2.getEditor("id");
@@ -205,7 +207,7 @@ public class SecretStorageTest {
     }
 
     @Test
-    public void sharedResourcesShouldNotInterfere() throws IOException, GeneralSecurityException {
+    public void sharedResourcesShouldNotInterfere() throws IOException, GeneralSecurityException, DestroyFailedException {
         androidCrypto.clear();
 
         SecretStorage s1 = defaultBuilder("id1").keyWrapper(getPasswordKeyWrapper()).build();

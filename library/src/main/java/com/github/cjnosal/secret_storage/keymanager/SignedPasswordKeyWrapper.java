@@ -36,6 +36,7 @@ import java.security.PrivateKey;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import javax.security.auth.DestroyFailedException;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
@@ -58,7 +59,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException {
         super.eraseConfig(keyAlias);
         androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
     }

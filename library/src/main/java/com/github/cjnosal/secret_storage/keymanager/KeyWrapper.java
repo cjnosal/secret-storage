@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 
 public interface KeyWrapper {
 
@@ -39,12 +40,12 @@ public interface KeyWrapper {
 
     KeyWrapper.Editor getEditor(String storeId);
 
-    void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException;
+    void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException;
 
-    void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException;
+    void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException, DestroyFailedException;
 
     interface Editor {
-        void lock();
+        void lock() throws DestroyFailedException;
     }
 
     interface Listener {
