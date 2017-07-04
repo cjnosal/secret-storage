@@ -43,7 +43,6 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     private final KeyGenSpec kekSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
-    // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
 
     public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(intermediateKeyProtectionSpec, intermediateKekSpec, configStorage, keyStorage);

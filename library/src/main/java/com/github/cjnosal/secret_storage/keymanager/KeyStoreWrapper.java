@@ -38,8 +38,6 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
 
     // TODO backport KeyProperties
     // TODO map Ciphers to blocks/paddings/digests so KeyGenParameterSpecs can be created from CipherSpec/IntegritySpec
-    // TODO expose parameter for setUserAuthenticationRequired to allow the app to use KeyGuardManager.createConfirmDeviceCredentialIntent
-    // TODO unlock with fingerprint
 
     protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
 
