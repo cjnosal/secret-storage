@@ -17,7 +17,6 @@
 package com.github.cjnosal.secret_storage;
 
 import android.content.Context;
-import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
@@ -29,10 +28,10 @@ import com.github.cjnosal.secret_storage.keymanager.ObfuscationKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
+import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
-import com.github.cjnosal.secret_storage.storage.encoding.DataEncoding;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +42,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
 
 public class SecretStorageTest {
 
@@ -67,29 +65,63 @@ public class SecretStorageTest {
 
     private SecretStorage.Builder defaultBuilder(String id) {
         return new SecretStorage.Builder(context, id)
+                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
                 .keyStorage(keyStorage)
-                .configStorage(configStorage)
                 .dataStorage(dataStorage);
     }
 
     private ObfuscationKeyWrapper getObfuscationKeyWrapper() throws IOException {
-        return (ObfuscationKeyWrapper) SecretStorage.instantiateKeyWrapper(context, SecretStorage.Obfuscation, 1, configStorage, keyStorage);
+        return new ObfuscationKeyWrapper(
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                configStorage,
+                keyStorage
+        );
     }
 
     private PasswordKeyWrapper getPasswordKeyWrapper() throws IOException {
-        return (PasswordKeyWrapper) SecretStorage.instantiateKeyWrapper(context, SecretStorage.Password, 1, configStorage, keyStorage);
+        return new PasswordKeyWrapper(
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                configStorage,
+                keyStorage
+        );
     }
 
     private SignedPasswordKeyWrapper getSignedPasswordKeyWrapper() throws IOException {
-        return (SignedPasswordKeyWrapper) SecretStorage.instantiateKeyWrapper(context, SecretStorage.SignedPassword, 1, configStorage, keyStorage);
+        return new SignedPasswordKeyWrapper(
+                context,
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getSha256WithRsaSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
+                configStorage,
+                keyStorage
+        );
     }
 
     private AsymmetricKeyStoreWrapper getAsymmetricKeyStoreWrapper() throws IOException {
-        return (AsymmetricKeyStoreWrapper) SecretStorage.instantiateKeyWrapper(context, SecretStorage.AsymmetricKeyStore, 1, configStorage, keyStorage);
+        return new AsymmetricKeyStoreWrapper(
+                context,
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getAes256KeyGenSpec(),
+                DefaultSpecs.getRsaEcbPkcs1Spec(),
+                DefaultSpecs.getRsa2048KeyGenSpec(),
+                configStorage,
+                keyStorage
+        );
     }
 
     private KeyStoreWrapper getKeyStoreWrapper() throws IOException {
-        return (KeyStoreWrapper) SecretStorage.instantiateKeyWrapper(context, SecretStorage.KeyStore, 1, configStorage, keyStorage);
+        return new KeyStoreWrapper(
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
+                configStorage,
+                keyStorage
+        );
     }
 
     @Test
@@ -241,51 +273,6 @@ public class SecretStorageTest {
         assertEquals("message8", new String(s8.load("secret1")));
         assertEquals("message9", new String(s9.load("secret1")));
         assertEquals("message10", new String(s10.load("secret1")));
-    }
-
-    @Test
-    public void defaultBuilders() throws IOException {
-        int wrapperType;
-        wrapperType = SecretStorage.selectKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR1, false);
-        assertEquals(SecretStorage.Obfuscation, wrapperType);
-
-        wrapperType = SecretStorage.selectKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR2, false);
-        assertEquals(SecretStorage.AsymmetricKeyStore, wrapperType);
-
-        wrapperType = SecretStorage.selectKeyWrapper(Build.VERSION_CODES.M, false);
-        assertEquals(SecretStorage.KeyStore, wrapperType);
-
-        wrapperType = SecretStorage.selectKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR1, true);
-        assertEquals(SecretStorage.Password, wrapperType);
-
-        wrapperType = SecretStorage.selectKeyWrapper(Build.VERSION_CODES.JELLY_BEAN_MR2, true);
-        assertEquals(SecretStorage.SignedPassword, wrapperType);
-    }
-
-    @Test
-    public void defaultSchemas() throws IOException {
-        int schema;
-        schema = SecretStorage.getCurrentSchema(SecretStorage.Obfuscation);
-        assertEquals(1, schema);
-
-        schema = SecretStorage.getCurrentSchema(SecretStorage.AsymmetricKeyStore);
-        assertEquals(1, schema);
-
-        schema = SecretStorage.getCurrentSchema(SecretStorage.KeyStore);
-        assertEquals(1, schema);
-
-        schema = SecretStorage.getCurrentSchema(SecretStorage.Password);
-        assertEquals(1, schema);
-
-        schema = SecretStorage.getCurrentSchema(SecretStorage.SignedPassword);
-        assertEquals(2, schema);
-    }
-
-    @Test // run on 18+ emulator
-    public void savedKeyWrapperIgnoresOsVersion() throws Exception {
-        configStorage.store("id::OS_VERSION", DataEncoding.encode(Build.VERSION_CODES.JELLY_BEAN_MR1)); // Selects Obfuscation
-        KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, false);
-        assertTrue(keyWrapper instanceof ObfuscationKeyWrapper);
     }
 
 }
