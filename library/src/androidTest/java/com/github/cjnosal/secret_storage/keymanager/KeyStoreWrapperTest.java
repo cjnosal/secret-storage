@@ -74,7 +74,6 @@ public class KeyStoreWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(configStorage.exists("id::KEY_PROTECTION"));
         assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertTrue(androidCrypto.hasEntry("id::ENCRYPTION_KEY"));
 
@@ -104,7 +103,6 @@ public class KeyStoreWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(configStorage.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
         assertFalse(androidCrypto.hasEntry("id::ENCRYPTION_KEY"));

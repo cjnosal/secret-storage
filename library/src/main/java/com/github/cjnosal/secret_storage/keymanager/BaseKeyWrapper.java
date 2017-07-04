@@ -22,7 +22,6 @@ import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
@@ -34,17 +33,12 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.login.LoginException;
 
-import static com.github.cjnosal.secret_storage.storage.encoding.Encoding.utf8Decode;
-
 public abstract class BaseKeyWrapper implements KeyWrapper {
 
     // key storage
     private static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
     private static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
     private static final String WRAPPED_KEYWRAPPER_KEY = "WRAPPED_KEYWRAPPER_KEY";
-
-    // config storage
-    private static final String KEY_PROTECTION = "KEY_PROTECTION";
     private static final String DELIMITER = "::";
 
     protected final KeyWrap keyWrap = new KeyWrap();
@@ -117,7 +111,6 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
         eraseKeys(keyAlias);
-        configStorage.delete(getStorageField(keyAlias, KEY_PROTECTION));
     }
 
     public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
@@ -144,7 +137,6 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     protected void finishUnlock(String keyAlias, Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
-        checkProtectionSpec(keyAlias);
         if (unwrapCipher != null) {
             byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
             keyWrapperKek = keyWrap.unwrap(unwrapCipher, wrappedKey, kekGenSpec.getKeygenAlgorithm());
@@ -164,19 +156,6 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     private SecretKey unwrapKey(Key kek, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
         return keyWrap.unwrap(kek, wrappedKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm(), keyType);
-    }
-
-    private void checkProtectionSpec(String storeId) throws IOException {
-        if (configStorage.exists(getStorageField(storeId, KEY_PROTECTION))) {
-            // TODO migrate on mismatch
-            String storedStrategy = Encoding.utf8Encode(configStorage.load(getStorageField(storeId, KEY_PROTECTION)));
-            String strategy = keyProtectionSpec.toString();
-            if (!strategy.equals(storedStrategy)) {
-                throw new IllegalArgumentException("Wrong key protection strategy (expected " + storedStrategy + " but was " + strategy);
-            }
-        } else {
-            configStorage.store(getStorageField(storeId, KEY_PROTECTION), utf8Decode(keyProtectionSpec.toString()));
-        }
     }
 
     static String getStorageField(String storeId, String field) {

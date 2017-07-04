@@ -1,7 +1,7 @@
 # Secret Storage
 Secret Storage is an Android library for encrypting and storing local secrets such as account credentials or authentication tokens.
 
-A key-protection strategy will be selected to make use of a user password, AndroidKeyStore, or both.
+A key-protection strategy can be selected to make use of a user password, AndroidKeyStore, or both.
 ## Gradle
 ### Jitpack
 ```
@@ -29,18 +29,13 @@ A key-protection strategy will be selected to make use of a user password, Andro
     }
 ```
 ## Setup
-### Default key protection strategy and storage without a user password (insecure below jelly bean)
-```
-KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, false);
-SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").keyWrapper(keyWrapper).build();
-```
-### Default key protection strategy and storage with a user password
-```
-KeyWrapper keyWrapper = SecretStorage.selectKeyWrapper(context, "id", configStorage, keyStorage, true);
-SecretStorage secretStorage = new SecretStorage.Builder(context, "storageId").keyWrapper(keyWrapper).build();
-```
+
 ### Overridden key protection strategy and storage
 ```
+DataStorage keyStorage = new PreferenceStorage(context, "keys");
+DataStorage configStorage = new PreferenceStorage(context, "conf");
+DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
+
 KeyWrapper keyWrapper = new SignedPasswordKeyWrapper(
     context,
     DefaultSpecs.getPasswordDerivationSpec(),
@@ -52,14 +47,8 @@ KeyWrapper keyWrapper = new SignedPasswordKeyWrapper(
 ProtectionSpec dataProtectionSpec = new ProtectionSpec(
     DefaultSpecs.getAesGcmCipherSpec(), 
     DefaultSpecs.getStrongHmacShaIntegritySpec());
-    
-DataStorage keyStorage = new PreferenceStorage(context, "keys");
-DataStorage configStorage = new PreferenceStorage(context, "conf");
-DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
 
-SecretStorage secretStorage = new new SecretStorage.Builder(context, id)
-    .keyStorage(keyStorage)
-    .configStorage(configStorage)
+SecretStorage secretStorage = new new SecretStorage.Builder(id)
     .dataStorage(dataStorage)
     .keyWrapper(keyWrapper)
     .dataProtectionSpec(dataProtectionSpec)

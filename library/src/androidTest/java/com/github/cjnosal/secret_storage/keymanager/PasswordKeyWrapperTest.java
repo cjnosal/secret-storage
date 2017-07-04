@@ -73,7 +73,6 @@ public class PasswordKeyWrapperTest {
         subject.setPassword("id", "password");
 
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(configStorage.exists("id::KEY_PROTECTION"));
         assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
 
         subject.storeDataSigningKey("id", sig);
@@ -109,7 +108,6 @@ public class PasswordKeyWrapperTest {
 
         assertFalse(configStorage.exists("id::ENC_SALT"));
         assertFalse(configStorage.exists("id::VERIFICATION"));
-        assertFalse(configStorage.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
     }

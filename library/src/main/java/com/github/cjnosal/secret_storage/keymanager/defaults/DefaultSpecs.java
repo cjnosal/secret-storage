@@ -42,28 +42,18 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyStoreKeyG
  */
 public class DefaultSpecs {
 
-    public static DataProtectionSpec getDataProtectionSpec(int osVersion) {
-        CipherSpec cipher;
-        IntegritySpec integrity;
-        KeyGenSpec keygen;
-        if (osVersion >= Build.VERSION_CODES.M) {
-            // Use authenticated-encryption primitive when available
-            // MacStrategy is redundant but avoids special handling for particular strategies
-            cipher = getAesGcmCipherSpec();
-            integrity = getHmacSha384IntegritySpec();
-            keygen = getAes256KeyGenSpec();
-        } else {
-            cipher = getAesCbcPkcs5CipherSpec();
-            integrity = getHmacSha256IntegritySpec();
-            keygen = getAes128KeyGenSpec();
-        }
-        return new DataProtectionSpec(cipher, integrity, keygen, keygen);
-    }
-
     public static DataProtectionSpec getDefaultDataProtectionSpec() {
         CipherSpec cipher = getAesGcmCipherSpec();
         IntegritySpec integrity = getHmacSha384IntegritySpec();
         KeyGenSpec keygen = getAes256KeyGenSpec();
+        return new DataProtectionSpec(cipher, integrity, keygen, keygen);
+    }
+
+    @Deprecated // use getDefaultDataProtectionSpec on M+
+    public static DataProtectionSpec getLegacyDataProtectionSpec() {
+        CipherSpec cipher = getAesCbcPkcs5CipherSpec();
+        IntegritySpec integrity = getHmacSha256IntegritySpec();
+        KeyGenSpec keygen = getAes128KeyGenSpec();
         return new DataProtectionSpec(cipher, integrity, keygen, keygen);
     }
 

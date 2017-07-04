@@ -75,7 +75,6 @@ public class ObfuscationKeyWrapperTest {
 
         assertTrue(configStorage.exists("id::ENC_SALT"));
         assertTrue(configStorage.exists("id::VERIFICATION"));
-        assertTrue(configStorage.exists("id::KEY_PROTECTION"));
 
         subject = new ObfuscationKeyWrapper(
                 DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
@@ -108,7 +107,6 @@ public class ObfuscationKeyWrapperTest {
 
         assertFalse(configStorage.exists("id::ENC_SALT"));
         assertFalse(configStorage.exists("id::VERIFICATION"));
-        assertFalse(configStorage.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
     }

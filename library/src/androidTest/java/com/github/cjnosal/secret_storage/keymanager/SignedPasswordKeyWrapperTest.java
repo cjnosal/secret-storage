@@ -80,7 +80,6 @@ public class SignedPasswordKeyWrapperTest {
         subject.setPassword("id", "password");
 
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(configStorage.exists("id::KEY_PROTECTION"));
         assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertTrue(androidCrypto.hasEntry("id::DEVICE_BINDING"));
 
@@ -120,7 +119,6 @@ public class SignedPasswordKeyWrapperTest {
 
         assertFalse(configStorage.exists("id::ENC_SALT"));
         assertFalse(configStorage.exists("id::VERIFICATION"));
-        assertFalse(configStorage.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
         assertFalse(androidCrypto.hasEntry("id::DEVICE_BINDING"));

@@ -99,9 +99,7 @@ public class CompositeKeyWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(configStorage1.exists("id::KEY_PROTECTION"));
         assertTrue(keyStorage1.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(configStorage2.exists("id::KEY_PROTECTION"));
         assertTrue(keyStorage2.exists("id::WRAPPED_ENCRYPTION_KEY"));
 
         subject.storeDataSigningKey("id", sig);
@@ -140,13 +138,11 @@ public class CompositeKeyWrapperTest {
 
         assertFalse(configStorage1.exists("id::ENC_SALT"));
         assertFalse(configStorage1.exists("id::VERIFICATION"));
-        assertFalse(configStorage1.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage1.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage1.exists("id::WRAPPED_SIGNING_KEY"));
 
         assertFalse(configStorage2.exists("id::ENC_SALT"));
         assertFalse(configStorage2.exists("id::VERIFICATION"));
-        assertFalse(configStorage2.exists("id::KEY_PROTECTION"));
         assertFalse(keyStorage2.exists("id::WRAPPED_ENCRYPTION_KEY"));
         assertFalse(keyStorage2.exists("id::WRAPPED_SIGNING_KEY"));
     }
