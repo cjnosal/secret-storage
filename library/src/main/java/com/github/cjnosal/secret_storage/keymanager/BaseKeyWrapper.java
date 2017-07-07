@@ -111,10 +111,10 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
         eraseKeys(keyAlias);
+        lock();
     }
 
     public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
-        lock();
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_ENCRYPTION_KEY));
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_SIGNING_KEY));
         keyStorage.delete(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));

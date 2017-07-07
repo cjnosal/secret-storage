@@ -99,6 +99,65 @@ public class SecretStorage {
         return null;
     }
 
+    public void delete(String id) throws IOException {
+        if (dataStorage == null) {
+            throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
+        }
+        dataStorage.delete(getStorageField(storeId, id));
+    }
+
+    public @Result int deleteValue(String id) {
+        try {
+            delete(id);
+            return Success;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
+        }
+    }
+
+    // erase encrypted data and wrapped keys
+    public void clear() throws IOException, GeneralSecurityException {
+        if (dataStorage != null) {
+            dataStorage.clear();
+        }
+        keyWrapper.eraseKeys(storeId);
+    }
+
+    // erase encrypted data and wrapped keys
+    public @Result int clearValues() {
+        try {
+            clear();
+            return Success;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            return SecurityError;
+        }
+    }
+
+    // erase encrypted data, wrapped keys, configuration, keystore values
+    public void reset() throws IOException, GeneralSecurityException {
+        clear();
+        keyWrapper.eraseConfig(storeId);
+    }
+
+    // erase encrypted data, wrapped keys, configuration, keystore values
+    public @Result int resetValues() {
+        try {
+            reset();
+            return Success;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return IoError;
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            return SecurityError;
+        }
+    }
+
     // decrypt and copy all data to another SecretStorage instance
     public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
         if (dataStorage == null) {
