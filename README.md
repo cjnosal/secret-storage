@@ -12,7 +12,7 @@ A key-protection strategy can be selected to make use of a user password, Androi
     }
     
     dependencies {
-        compile 'com.github.cjnosal:secret-storage:v1.0-alpha.4'
+        compile 'com.github.cjnosal:secret-storage:v1.0-beta.4'
     }
 ```
 ### Download aar file
