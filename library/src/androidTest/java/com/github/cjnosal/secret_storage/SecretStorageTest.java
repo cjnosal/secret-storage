@@ -69,7 +69,7 @@ public class SecretStorageTest {
                 .dataStorage(dataStorage);
     }
 
-    private ObfuscationKeyWrapper getObfuscationKeyWrapper() throws IOException {
+    private ObfuscationKeyWrapper getObfuscationKeyWrapper(){
         return new ObfuscationKeyWrapper(
                 DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
                 DefaultSpecs.getAes128KeyGenSpec(),
@@ -79,7 +79,7 @@ public class SecretStorageTest {
         );
     }
 
-    private PasswordKeyWrapper getPasswordKeyWrapper() throws IOException {
+    private PasswordKeyWrapper getPasswordKeyWrapper() {
         return new PasswordKeyWrapper(
                 DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
                 DefaultSpecs.getAes128KeyGenSpec(),
@@ -89,7 +89,7 @@ public class SecretStorageTest {
         );
     }
 
-    private SignedPasswordKeyWrapper getSignedPasswordKeyWrapper() throws IOException {
+    private SignedPasswordKeyWrapper getSignedPasswordKeyWrapper() {
         return new SignedPasswordKeyWrapper(
                 context,
                 DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
@@ -102,7 +102,7 @@ public class SecretStorageTest {
         );
     }
 
-    private AsymmetricKeyStoreWrapper getAsymmetricKeyStoreWrapper() throws IOException {
+    private AsymmetricKeyStoreWrapper getAsymmetricKeyStoreWrapper() {
         return new AsymmetricKeyStoreWrapper(
                 context,
                 DefaultSpecs.getAesWrapSpec(),
@@ -114,7 +114,7 @@ public class SecretStorageTest {
         );
     }
 
-    private KeyStoreWrapper getKeyStoreWrapper() throws IOException {
+    private KeyStoreWrapper getKeyStoreWrapper() {
         return new KeyStoreWrapper(
                 DefaultSpecs.getAesGcmCipherSpec(),
                 DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec(),
@@ -272,6 +272,19 @@ public class SecretStorageTest {
         assertEquals("message8", new String(s8.load("secret1")));
         assertEquals("message9", new String(s9.load("secret1")));
         assertEquals("message10", new String(s10.load("secret1")));
+    }
+
+    @Test
+    public void encryptWithExternalStorage() throws GeneralSecurityException, IOException {
+        SecretStorage noDataStorage = new SecretStorage.Builder("id")
+                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
+                .keyWrapper(getObfuscationKeyWrapper())
+                .build();
+
+        noDataStorage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+
+        byte[] cipherText = noDataStorage.encrypt("Hello World".getBytes());
+        assertEquals("Hello World", new String(noDataStorage.decrypt(cipherText)));
     }
 
 }

@@ -45,13 +45,13 @@ public class SecretStorage {
     private static final String DELIMITER = "::";
 
     private final String storeId;
-    private final DataStorage dataStorage;
+    private final @Nullable DataStorage dataStorage;
     private final DataProtectionSpec dataProtectionSpec;
     private final DataKeyGenerator dataKeyGenerator;
     private final ProtectionStrategy dataProtectionStrategy;
     private KeyWrapper keyWrapper;
 
-    public SecretStorage(String storeId, DataStorage dataStorage, DataProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
+    public SecretStorage(String storeId, @Nullable DataStorage dataStorage, DataProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
         this.storeId = storeId;
         this.dataStorage = dataStorage;
         this.dataProtectionSpec = dataProtectionSpec;
@@ -62,6 +62,9 @@ public class SecretStorage {
     }
 
     public void store(String id, byte[] plainText) throws GeneralSecurityException, IOException {
+        if (dataStorage == null) {
+            throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
+        }
         byte[] cipherText = encrypt(plainText);
         dataStorage.store(getStorageField(storeId, id), cipherText);
     }
@@ -80,6 +83,9 @@ public class SecretStorage {
     }
 
     public @NonNull byte[] load(String id) throws GeneralSecurityException, IOException {
+        if (dataStorage == null) {
+            throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
+        }
         byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
         return decrypt(cipherText);
     }
@@ -95,6 +101,9 @@ public class SecretStorage {
 
     // decrypt and copy all data to another SecretStorage instance
     public void copyTo(SecretStorage other) throws GeneralSecurityException, IOException {
+        if (dataStorage == null) {
+            throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
+        }
         Set<String> entries = dataStorage.entries();
         for (String s : entries) {
             String key = getField(s);
@@ -146,16 +155,34 @@ public class SecretStorage {
         return (E) keyWrapper.getEditor(storeId);
     }
 
-    private byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+    public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy SecretKey encryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey signingKey = prepareDataSigningKey();
         return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
     }
 
-    private byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+    public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy SecretKey decryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey verificationKey = prepareDataSigningKey();
         return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
+    }
+
+    public @Nullable byte[] encryptValue(byte[] plainText) {
+        try {
+            return encrypt(plainText);
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public @Nullable byte[] decryptValue(byte[] cipherText) {
+        try {
+            return decrypt(cipherText);
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private SecretKey prepareDataEncryptionKey() throws GeneralSecurityException, IOException {
@@ -235,9 +262,6 @@ public class SecretStorage {
             }
             if (dataProtectionSpec == null) {
                 throw new IllegalArgumentException("DataProtectionSpec required");
-            }
-            if (dataStorage == null) {
-                throw new IllegalArgumentException("DataStorage required");
             }
         }
     }
