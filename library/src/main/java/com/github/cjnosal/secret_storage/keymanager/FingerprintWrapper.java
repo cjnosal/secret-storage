@@ -94,6 +94,23 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         }
     }
 
+    private EnrollmentStatus getEnrollmentStatus(Context context) {
+        FingerprintManagerCompat fingerprintManagerCompat = FingerprintManagerCompat.from(context);
+        KeyguardManager keyguardManager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return EnrollmentStatus.NOT_SUPPORTED;
+        } else if (!fingerprintManagerCompat.isHardwareDetected()) {
+            return EnrollmentStatus.NOT_SUPPORTED;
+        } else if (!keyguardManager.isDeviceSecure()) {
+            return EnrollmentStatus.NO_LOCKSCREEN;
+        } else if (!fingerprintManagerCompat.hasEnrolledFingerprints()) {
+            return EnrollmentStatus.NO_FINGER_ENROLLED;
+        } else {
+            return EnrollmentStatus.ENROLLED;
+        }
+    }
+
     public class FingerprintEditor extends BaseEditor {
 
         public FingerprintEditor(String keyAlias) {
@@ -126,6 +143,10 @@ public class FingerprintWrapper extends KeyStoreWrapper {
 
         public boolean isInitialized() {
             return kekExists(keyAlias);
+        }
+
+        public EnrollmentStatus getEnrollmentStatus(Context context) {
+            return FingerprintWrapper.this.getEnrollmentStatus(context);
         }
     }
 
@@ -248,6 +269,13 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         NoHardware,
         NoFingerprint,
         NoLockscreen
+    }
+
+    public enum EnrollmentStatus {
+        NOT_SUPPORTED,
+        NO_LOCKSCREEN,
+        NO_FINGER_ENROLLED,
+        ENROLLED
     }
 
     public class FingerprintException extends GeneralSecurityException {
