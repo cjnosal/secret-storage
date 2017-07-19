@@ -112,14 +112,13 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
-        eraseKeys(keyAlias);
+        keyStorage.delete(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
         lock();
     }
 
     public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
         keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_ENCRYPTION_KEY));
         keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_SIGNING_KEY));
-        keyStorage.delete(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
     }
 
     public void setStorageScope(String dekScope, String kekScope) {

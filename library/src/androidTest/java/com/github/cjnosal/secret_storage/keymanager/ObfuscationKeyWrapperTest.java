@@ -107,8 +107,9 @@ public class ObfuscationKeyWrapperTest {
 
         assertFalse(configStorage.exists("id::kek::ENC_SALT"));
         assertFalse(configStorage.exists("id::kek::VERIFICATION"));
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::kek::WRAPPED_KEYWRAPPER_KEY"));
     }
 
     @Test

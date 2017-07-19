@@ -130,14 +130,14 @@ public class CompositeKeyWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(keyStorage.exists("id::shared::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::shared::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::shared::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::shared::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::kek0::WRAPPED_KEYWRAPPER_KEY"));
+        assertFalse(keyStorage.exists("id::kek1::WRAPPED_KEYWRAPPER_KEY"));
         assertFalse(configStorage.exists("id::kek0::ENC_SALT"));
         assertFalse(configStorage.exists("id::kek0::VERIFICATION"));
-        assertFalse(configStorage.exists("id::kek0::WRAPPED_KEYWRAPPER_KEY"));
         assertFalse(configStorage.exists("id::kek1::ENC_SALT"));
         assertFalse(configStorage.exists("id::kek1::VERIFICATION"));
-        assertFalse(configStorage.exists("id::kek1::WRAPPED_KEYWRAPPER_KEY"));
     }
 
     @Test
@@ -185,6 +185,28 @@ public class CompositeKeyWrapperTest {
         unwrappedSig = subject.loadDataSigningKey("id2", SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(sig, unwrappedSig);
         getFirstEditor().lock();
+    }
+
+    @Test
+    public void resetWithUnlockedWrapper() throws Exception {
+        subject.storeDataEncryptionKey("id", enc);
+        subject.storeDataSigningKey("id", sig);
+        getFirstEditor().eraseConfig();
+        getFirstEditor().setPassword("password3".toCharArray());
+        getSecondEditor().lock();
+
+        SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(enc, unwrappedEnc);
+        SecretKey unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(sig, unwrappedSig);
+        getFirstEditor().lock();
+
+        getSecondEditor().unlock("password2".toCharArray());
+        unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(enc, unwrappedEnc);
+        unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(sig, unwrappedSig);
+        getSecondEditor().lock();
     }
 
 }

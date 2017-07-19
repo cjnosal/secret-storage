@@ -103,8 +103,9 @@ public class KeyStoreWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::kek::WRAPPED_KEYWRAPPER_KEY"));
         assertFalse(androidCrypto.hasEntry("id::kek::ENCRYPTION_KEY"));
     }
 
