@@ -132,8 +132,8 @@ public class CompositeKeyWrapper implements KeyWrapper {
             this.storeId = storeId;
         }
 
-        public KeyWrapper.Editor getEditor(int index) {
-            return CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId);
+        public <E extends KeyWrapper.Editor> E getEditor(int index) {
+            return (E) CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId);
         }
 
         @Override
