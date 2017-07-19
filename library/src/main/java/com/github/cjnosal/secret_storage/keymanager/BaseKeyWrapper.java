@@ -46,16 +46,18 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     protected final KeyGenSpec kekGenSpec;
     protected final DataStorage configStorage;
     protected final DataStorage keyStorage;
-    protected final DataKeyGenerator dataKeyGenerator;
 
+    private KekProvider kekProvider;
     private SecretKey keyWrapperKek;
+    private String kekScope = "kek";
+    private String dekScope = "dek";
 
     public BaseKeyWrapper(CipherSpec keyProtectionSpec, KeyGenSpec kekGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         this.keyProtectionSpec = keyProtectionSpec;
         this.kekGenSpec = kekGenSpec;
         this.configStorage = configStorage;
         this.keyStorage = keyStorage;
-        this.dataKeyGenerator = new DataKeyGenerator();
+        this.kekProvider = new KekProvider(new DataKeyGenerator());
     }
 
     public boolean isUnlocked() {
@@ -73,7 +75,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         if (!isUnlocked()) {
             throw new LoginException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY));
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY));
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
     }
 
@@ -81,7 +83,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         if (!isUnlocked()) {
             throw new LoginException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY));
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
     }
 
@@ -90,7 +92,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
             throw new LoginException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY), wrappedKey);
+        keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY), wrappedKey);
     }
 
     public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
@@ -98,11 +100,11 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
             throw new LoginException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(getStorageField(storeId, WRAPPED_SIGNING_KEY), wrappedKey);
+        keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY), wrappedKey);
     }
 
     public boolean dataKeysExist(String storeId) {
-        return keyStorage.exists(getStorageField(storeId, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, WRAPPED_SIGNING_KEY));
+        return keyStorage.exists(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY));
     }
 
     public KeyWrapper.Editor getEditor(String storeId) {
@@ -115,17 +117,22 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
-        keyStorage.delete(getStorageField(keyAlias, WRAPPED_ENCRYPTION_KEY));
-        keyStorage.delete(getStorageField(keyAlias, WRAPPED_SIGNING_KEY));
-        keyStorage.delete(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
+        keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_ENCRYPTION_KEY));
+        keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_SIGNING_KEY));
+        keyStorage.delete(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
+    }
+
+    public void setStorageScope(String dekScope, String kekScope) {
+        this.dekScope = dekScope;
+        this.kekScope = kekScope;
     }
 
     protected boolean kekExists(String keyAlias) {
-        return keyStorage.exists(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
+        return keyStorage.exists(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
     }
 
     protected AlgorithmParameters getKekCipherParams(String keyAlias) throws IOException, GeneralSecurityException {
-        byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
+        byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
         byte[][] splitBytes = ByteArrayUtil.split(wrappedKey);
 
         AlgorithmParameters params = null;
@@ -138,15 +145,15 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     protected void finishUnlock(String keyAlias, Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
         if (unwrapCipher != null) {
-            byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY));
+            byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
             keyWrapperKek = keyWrap.unwrap(unwrapCipher, wrappedKey, kekGenSpec.getKeygenAlgorithm());
         } else {
-            keyWrapperKek = dataKeyGenerator.generateDataKey(kekGenSpec.getKeygenAlgorithm(), kekGenSpec.getKeySize());
+            keyWrapperKek = kekProvider.getSecretKey(kekGenSpec);
         }
 
         if (wrapCipher != null) {
             byte[] wrappedKey = keyWrap.wrap(wrapCipher, keyWrapperKek);
-            keyStorage.store(getStorageField(keyAlias, WRAPPED_KEYWRAPPER_KEY), wrappedKey);
+            keyStorage.store(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY), wrappedKey);
         }
     }
 
@@ -158,8 +165,20 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return keyWrap.unwrap(kek, wrappedKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm(), keyType);
     }
 
-    static String getStorageField(String storeId, String field) {
-        return storeId + DELIMITER + field;
+    String getStorageField(String storeId, String field) {
+        return getStorageField(storeId, kekScope, field);
+    }
+
+    String getStorageField(String storeId, String scope, String field) {
+        return storeId + DELIMITER + scope + DELIMITER + field;
+    }
+
+    void setKekProvider(KekProvider provider) {
+        this.kekProvider = provider;
+    }
+
+    SecretKey getIntermediateKek() {
+        return keyWrapperKek;
     }
 
     abstract class BaseEditor implements KeyWrapper.Editor {

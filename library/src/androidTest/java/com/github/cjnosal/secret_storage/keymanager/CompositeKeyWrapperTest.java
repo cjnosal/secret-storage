@@ -40,10 +40,8 @@ import static org.junit.Assert.assertTrue;
 public class CompositeKeyWrapperTest {
 
     private Context context;
-    private DataStorage configStorage1;
-    private DataStorage configStorage2;
-    private DataStorage keyStorage1;
-    private DataStorage keyStorage2;
+    private DataStorage configStorage;
+    private DataStorage keyStorage;
     private CompositeKeyWrapper subject;
     private KeyGenerator keyGenerator;
     private SecretKey enc;
@@ -52,29 +50,25 @@ public class CompositeKeyWrapperTest {
     @Before
     public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        configStorage1 = new PreferenceStorage(context, "testConfig1");
-        configStorage1.clear();
-        keyStorage1 = new PreferenceStorage(context, "testKeys1");
-        keyStorage1.clear();
-        configStorage2 = new PreferenceStorage(context, "testConfig2");
-        configStorage2.clear();
-        keyStorage2 = new PreferenceStorage(context, "testKeys2");
-        keyStorage2.clear();
+        configStorage = new PreferenceStorage(context, "testConfig1");
+        configStorage.clear();
+        keyStorage = new PreferenceStorage(context, "testKeys1");
+        keyStorage.clear();
 
         List<KeyWrapper> keyWrappers = Arrays.<KeyWrapper>asList(
                 new PasswordKeyWrapper(
                         DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
                         DefaultSpecs.getAes128KeyGenSpec(),
                         DefaultSpecs.getAesWrapSpec(),
-                        configStorage1,
-                        keyStorage1
+                        configStorage,
+                        keyStorage
                 ),
                 new PasswordKeyWrapper(
                         DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
                         DefaultSpecs.getAes128KeyGenSpec(),
                         DefaultSpecs.getAesWrapSpec(),
-                        configStorage2,
-                        keyStorage2
+                        configStorage,
+                        keyStorage
                 )
         );
 
@@ -99,17 +93,17 @@ public class CompositeKeyWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage1.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage2.exists("id::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::shared::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::kek0::WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(keyStorage.exists("id::kek1::WRAPPED_KEYWRAPPER_KEY"));
 
         subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage1.exists("id::WRAPPED_SIGNING_KEY"));
-        assertTrue(keyStorage2.exists("id::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::shared::WRAPPED_SIGNING_KEY"));
 
-        assertTrue(configStorage1.exists("id::ENC_SALT"));
-        assertTrue(configStorage1.exists("id::VERIFICATION"));
-        assertTrue(configStorage2.exists("id::ENC_SALT"));
-        assertTrue(configStorage2.exists("id::VERIFICATION"));
+        assertTrue(configStorage.exists("id::kek0::ENC_SALT"));
+        assertTrue(configStorage.exists("id::kek0::VERIFICATION"));
+        assertTrue(configStorage.exists("id::kek1::ENC_SALT"));
+        assertTrue(configStorage.exists("id::kek1::VERIFICATION"));
 
         getFirstEditor().lock();
 
@@ -136,15 +130,14 @@ public class CompositeKeyWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(configStorage1.exists("id::ENC_SALT"));
-        assertFalse(configStorage1.exists("id::VERIFICATION"));
-        assertFalse(keyStorage1.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage1.exists("id::WRAPPED_SIGNING_KEY"));
-
-        assertFalse(configStorage2.exists("id::ENC_SALT"));
-        assertFalse(configStorage2.exists("id::VERIFICATION"));
-        assertFalse(keyStorage2.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage2.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::shared::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::shared::WRAPPED_SIGNING_KEY"));
+        assertFalse(configStorage.exists("id::kek0::ENC_SALT"));
+        assertFalse(configStorage.exists("id::kek0::VERIFICATION"));
+        assertFalse(configStorage.exists("id::kek0::WRAPPED_KEYWRAPPER_KEY"));
+        assertFalse(configStorage.exists("id::kek1::ENC_SALT"));
+        assertFalse(configStorage.exists("id::kek1::VERIFICATION"));
+        assertFalse(configStorage.exists("id::kek1::WRAPPED_KEYWRAPPER_KEY"));
     }
 
     @Test
@@ -154,10 +147,8 @@ public class CompositeKeyWrapperTest {
 
         subject.eraseKeys("id");
 
-        assertFalse(keyStorage1.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage1.exists("id::WRAPPED_SIGNING_KEY"));
-        assertFalse(keyStorage2.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage2.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::shared::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::shared::WRAPPED_SIGNING_KEY"));
     }
 
     @Test
@@ -167,6 +158,33 @@ public class CompositeKeyWrapperTest {
         subject.storeDataEncryptionKey("id", enc);
         subject.storeDataSigningKey("id", sig);
         assertTrue(subject.dataKeysExist("id"));
+    }
+
+    @Test
+    public void kekSharing() throws Exception {
+        getFirstEditor().lock();
+        getSecondEditor().lock();
+
+        getFirstEditor().unlock("password1".toCharArray());
+        subject.storeDataEncryptionKey("id", enc);
+        subject.storeDataSigningKey("id", sig);
+        getFirstEditor().lock();
+
+        getSecondEditor().unlock("password2".toCharArray());
+        SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(enc, unwrappedEnc);
+        SecretKey unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(sig, unwrappedSig);
+        subject.storeDataEncryptionKey("id2", enc);
+        subject.storeDataSigningKey("id2", sig);
+        getSecondEditor().lock();
+
+        getFirstEditor().unlock("password1".toCharArray());
+        unwrappedEnc = subject.loadDataEncryptionKey("id2", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(enc, unwrappedEnc);
+        unwrappedSig = subject.loadDataSigningKey("id2", SecurityAlgorithms.KeyGenerator_AES);
+        assertEquals(sig, unwrappedSig);
+        getFirstEditor().lock();
     }
 
 }

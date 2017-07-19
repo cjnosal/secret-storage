@@ -17,6 +17,8 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import com.github.cjnosal.secret_storage.annotations.KeyPurpose;
+import com.github.cjnosal.secret_storage.keymanager.data.DataKeyGenerator;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -27,10 +29,18 @@ import javax.security.auth.login.LoginException;
 
 public class CompositeKeyWrapper implements KeyWrapper {
 
-    List<KeyWrapper> keyWrappers;
+    private final List<KeyWrapper> keyWrappers;
 
     public CompositeKeyWrapper(List<KeyWrapper> keyWrappers) {
         this.keyWrappers = keyWrappers;
+        KekProvider kekProvider = new CompositeKekProvider(new DataKeyGenerator());
+        int index = 0;
+        for (KeyWrapper kw : keyWrappers) {
+            ((BaseKeyWrapper) kw).setKekProvider(kekProvider);
+            ((BaseKeyWrapper) kw).setStorageScope("shared", "kek" + index);
+            index++;
+        }
+        // TODO validate all keywrappers use same key storage, same key protection
     }
 
     @Override
@@ -55,21 +65,22 @@ public class CompositeKeyWrapper implements KeyWrapper {
 
     @Override
     public void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
-        for (KeyWrapper kw : keyWrappers) {
-            kw.storeDataEncryptionKey(storeId, key);
-        }
+        getUnlockedWrapper().storeDataEncryptionKey(storeId, key);
     }
 
     @Override
     public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
-        for (KeyWrapper kw : keyWrappers) {
-            kw.storeDataSigningKey(storeId, key);
-        }
+        getUnlockedWrapper().storeDataSigningKey(storeId, key);
     }
 
     @Override
     public boolean dataKeysExist(String storeId) {
-        return keyWrappers.get(0).dataKeysExist(storeId);
+        for (KeyWrapper kw : keyWrappers) {
+            if (kw.dataKeysExist(storeId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -92,12 +103,25 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     private KeyWrapper getUnlockedWrapper() throws LoginException {
+        boolean kekExists = hasKek();
         for (KeyWrapper kw : keyWrappers) {
-            if (kw.isUnlocked()) {
+            if (kw.isUnlocked() && (!kekExists || ((BaseKeyWrapper)kw).getIntermediateKek() != null)) {
                 return kw;
             }
         }
         throw new LoginException("No key wrappers are unlocked");
+    }
+
+    private boolean hasKek() {
+        for (KeyWrapper kw : keyWrappers) {
+            if (kw.isUnlocked()) {
+                SecretKey key = ((BaseKeyWrapper)kw).getIntermediateKek();
+                if (key != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public class CompositeEditor implements KeyWrapper.Editor {
@@ -129,6 +153,24 @@ public class CompositeKeyWrapper implements KeyWrapper {
             for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
                 getEditor(i).eraseConfig();
             }
+        }
+    }
+
+    private class CompositeKekProvider extends KekProvider {
+
+        CompositeKekProvider(DataKeyGenerator generator) {
+            super(generator);
+        }
+
+        @Override
+        public SecretKey getSecretKey(KeyGenSpec spec) throws GeneralSecurityException {
+            SecretKey secretKey;
+            if (hasKek()) {
+                secretKey = ((BaseKeyWrapper) getUnlockedWrapper()).getIntermediateKek();
+            } else {
+                secretKey = super.getSecretKey(spec);
+            }
+            return secretKey;
         }
     }
 }

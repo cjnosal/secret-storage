@@ -80,14 +80,14 @@ public class SignedPasswordKeyWrapperTest {
         subject.setPassword("id", "password".toCharArray());
 
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(androidCrypto.hasEntry("id::DEVICE_BINDING"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(androidCrypto.hasEntry("id::kek::DEVICE_BINDING"));
 
         subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
 
-        assertTrue(configStorage.exists("id::ENC_SALT"));
-        assertTrue(configStorage.exists("id::VERIFICATION"));
+        assertTrue(configStorage.exists("id::kek::ENC_SALT"));
+        assertTrue(configStorage.exists("id::kek::VERIFICATION"));
 
         subject = new SignedPasswordKeyWrapper(
                 context,
@@ -117,11 +117,11 @@ public class SignedPasswordKeyWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(configStorage.exists("id::ENC_SALT"));
-        assertFalse(configStorage.exists("id::VERIFICATION"));
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
-        assertFalse(androidCrypto.hasEntry("id::DEVICE_BINDING"));
+        assertFalse(configStorage.exists("id::kek::ENC_SALT"));
+        assertFalse(configStorage.exists("id::kek::VERIFICATION"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(androidCrypto.hasEntry("id::kek::DEVICE_BINDING"));
     }
 
     @Test
@@ -133,8 +133,8 @@ public class SignedPasswordKeyWrapperTest {
 
         subject.eraseKeys("id");
 
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
     }
 
     @Test

@@ -68,13 +68,13 @@ public class ObfuscationKeyWrapperTest {
         SecretKey sig = keyGenerator.generateKey();
 
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
 
         subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
 
-        assertTrue(configStorage.exists("id::ENC_SALT"));
-        assertTrue(configStorage.exists("id::VERIFICATION"));
+        assertTrue(configStorage.exists("id::kek::ENC_SALT"));
+        assertTrue(configStorage.exists("id::kek::VERIFICATION"));
 
         subject = new ObfuscationKeyWrapper(
                 DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
@@ -105,10 +105,10 @@ public class ObfuscationKeyWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(configStorage.exists("id::ENC_SALT"));
-        assertFalse(configStorage.exists("id::VERIFICATION"));
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(configStorage.exists("id::kek::ENC_SALT"));
+        assertFalse(configStorage.exists("id::kek::VERIFICATION"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
     }
 
     @Test
@@ -123,8 +123,8 @@ public class ObfuscationKeyWrapperTest {
 
         subject.eraseKeys("id");
 
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
     }
 
     @Test

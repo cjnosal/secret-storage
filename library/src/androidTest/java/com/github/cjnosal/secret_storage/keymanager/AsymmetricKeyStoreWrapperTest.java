@@ -77,11 +77,11 @@ public class AsymmetricKeyStoreWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(androidCrypto.hasEntry("id::ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(androidCrypto.hasEntry("id::kek::ENCRYPTION_KEY"));
 
         subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
 
         subject = new AsymmetricKeyStoreWrapper(
                 context,
@@ -109,9 +109,9 @@ public class AsymmetricKeyStoreWrapperTest {
 
         subject.eraseConfig("id");
 
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
-        assertFalse(androidCrypto.hasEntry("id::ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(androidCrypto.hasEntry("id::kek::ENCRYPTION_KEY"));
     }
 
     @Test
@@ -121,8 +121,8 @@ public class AsymmetricKeyStoreWrapperTest {
 
         subject.eraseKeys("id");
 
-        assertFalse(keyStorage.exists("id::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
     }
 
     @Test
