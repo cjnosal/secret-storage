@@ -99,6 +99,13 @@ public class SecretStorage {
         return null;
     }
 
+    public boolean exists(String id) {
+        if (dataStorage == null) {
+            return false;
+        }
+        return dataStorage.exists(getStorageField(storeId, id));
+    }
+
     public void delete(String id) throws IOException {
         if (dataStorage == null) {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
