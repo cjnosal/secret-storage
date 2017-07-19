@@ -54,21 +54,7 @@ public class FingerprintWrapper extends KeyStoreWrapper {
     void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
         FingerprintParams fingerprintParams = (FingerprintParams) params;
         FingerprintManagerCompat fingerprintManagerCompat = FingerprintManagerCompat.from(fingerprintParams.getContext());
-        KeyguardManager keyguardManager = (KeyguardManager) fingerprintParams.getContext().getSystemService(Context.KEYGUARD_SERVICE);
-
-        if (!fingerprintManagerCompat.isHardwareDetected()) {
-            throw new FingerprintException(Type.NoHardware, -1, "No fingerprint sensor on device");
-        }
-        if (!fingerprintManagerCompat.hasEnrolledFingerprints()) {
-            throw new FingerprintException(Type.NoFingerprint, -1, "User has not enrolled a fingerprint");
-        }
-        if (fingerprintParams.getContext().checkSelfPermission(Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
-            throw new FingerprintException(Type.NoPermission, -1, "User has not granted fingerprint permission");
-        }
-        if (!keyguardManager.isDeviceSecure()) {
-            // TODO required?
-            throw new FingerprintException(Type.NoLockscreen, -1, "User has not set up a lockscreen");
-        }
+        checkFingerprintStatus(fingerprintParams, fingerprintManagerCompat);
 
         FingerprintCallback fingerprintCallback;
         Cipher kekCipher;
@@ -84,6 +70,20 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         }
 
         fingerprintManagerCompat.authenticate(new FingerprintManagerCompat.CryptoObject(kekCipher), 0, fingerprintParams.getCancellationSignal(), fingerprintCallback, fingerprintParams.getHandler());
+    }
+
+    private void checkFingerprintStatus(FingerprintParams fingerprintParams, FingerprintManagerCompat fingerprintManagerCompat) throws FingerprintException {
+        KeyguardManager keyguardManager = (KeyguardManager) fingerprintParams.getContext().getSystemService(Context.KEYGUARD_SERVICE);
+
+        if (!fingerprintManagerCompat.isHardwareDetected()) {
+            throw new FingerprintException(Type.NoHardware, -1, "No fingerprint sensor on device");
+        }
+        if (!keyguardManager.isDeviceSecure()) {
+            throw new FingerprintException(Type.NoLockscreen, -1, "User has not set up a lockscreen");
+        }
+        if (!fingerprintManagerCompat.hasEnrolledFingerprints()) {
+            throw new FingerprintException(Type.NoFingerprint, -1, "User has not enrolled a fingerprint");
+        }
     }
 
     public class FingerprintEditor extends BaseEditor {
@@ -220,8 +220,7 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         Failure,
         NoHardware,
         NoFingerprint,
-        NoLockscreen,
-        NoPermission
+        NoLockscreen
     }
 
     public class FingerprintException extends GeneralSecurityException {
