@@ -30,7 +30,6 @@ import org.junit.Test;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.security.auth.login.LoginException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -168,7 +167,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.setPassword("password2".toCharArray());
             fail("Password already set");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.PasswordAlreadySetException expected) {}
     }
 
     @Test
@@ -178,7 +177,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.verifyPassword("password".toCharArray());
             fail("Password not set");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.PasswordNotSetException expected) {}
 
         editor.setPassword("password".toCharArray());
         editor.lock();
@@ -205,7 +204,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.unlock("password".toCharArray());
             fail("Password not set");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.PasswordNotSetException expected) {}
 
         editor.setPassword("password".toCharArray());
         editor.lock();
@@ -213,7 +212,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.unlock("password2".toCharArray());
             fail("Wrong password");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.WrongPasswordException expected) {}
 
         editor.unlock("password".toCharArray());
         assertTrue(editor.isUnlocked());
@@ -226,7 +225,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.changePassword(null, "password".toCharArray());
             fail("Password not set");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.PasswordNotSetException expected) {}
 
         editor.setPassword("password".toCharArray());
         editor.lock();
@@ -234,7 +233,7 @@ public class SignedPasswordKeyWrapperTest {
         try {
             editor.changePassword("1234".toCharArray(), "password2".toCharArray());
             fail("Wrong password");
-        } catch (LoginException expected) {}
+        } catch (PasswordKeyWrapper.WrongPasswordException expected) {}
 
         editor.changePassword("password".toCharArray(), "password2".toCharArray());
         assertTrue(editor.isUnlocked());

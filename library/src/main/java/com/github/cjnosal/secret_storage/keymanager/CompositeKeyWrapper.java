@@ -25,7 +25,6 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 import javax.crypto.SecretKey;
-import javax.security.auth.login.LoginException;
 
 public class CompositeKeyWrapper implements KeyWrapper {
 
@@ -102,14 +101,14 @@ public class CompositeKeyWrapper implements KeyWrapper {
         }
     }
 
-    private KeyWrapper getUnlockedWrapper() throws LoginException {
+    private KeyWrapper getUnlockedWrapper() throws GeneralSecurityException {
         boolean kekExists = hasKek();
         for (KeyWrapper kw : keyWrappers) {
             if (kw.isUnlocked() && (!kekExists || ((BaseKeyWrapper)kw).getIntermediateKek() != null)) {
                 return kw;
             }
         }
-        throw new LoginException("No key wrappers are unlocked");
+        throw new GeneralSecurityException("No key wrappers are unlocked");
     }
 
     private boolean hasKek() {

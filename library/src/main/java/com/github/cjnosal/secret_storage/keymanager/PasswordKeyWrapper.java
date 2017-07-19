@@ -35,7 +35,6 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.login.LoginException;
 
 public class PasswordKeyWrapper extends BaseKeyWrapper {
 
@@ -72,7 +71,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             Cipher kekCipher = keyWrap.initWrapCipher(derivedEncKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
             finishUnlock(keyAlias, null, kekCipher);
         } else {
-            throw new LoginException("Password already set. Use unlock.");
+            throw new PasswordAlreadySetException("Password already set. Use unlock.");
         }
     }
 
@@ -97,14 +96,14 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     @NonNull
     private Key getUnlockKey(String keyAlias, char[] password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet(keyAlias)) {
-            throw new LoginException("No password set. Use setPassword.");
+            throw new PasswordNotSetException("No password set. Use setPassword.");
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
 
         byte[] generated = derive(keyAlias, password, encSalt);
         if (!MessageDigest.isEqual(verification, getVerification(generated))) {
-            throw new LoginException("Wrong password");
+            throw new WrongPasswordException("Wrong password");
         }
         return getDerivedEncKey(generated);
     }
@@ -128,7 +127,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
     private boolean verifyPassword(String keyAlias, char[] password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet(keyAlias)) {
-            throw new LoginException("No password set. Use setPassword.");
+            throw new PasswordNotSetException("No password set. Use setPassword.");
         }
         byte[] encSalt = configStorage.load(getStorageField(keyAlias, ENC_SALT));
         byte[] verification = configStorage.load(getStorageField(keyAlias, VERIFICATION));
@@ -185,7 +184,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
         public void changePassword(final @NonNull char[] oldPassword, final @NonNull char[] newPassword) throws GeneralSecurityException, IOException {
             if (!isPasswordSet()) {
-                throw new LoginException("No password set. Use setPassword.");
+                throw new PasswordNotSetException("No password set. Use setPassword.");
             }
             AlgorithmParameters kekCipherParams = getKekCipherParams(keyAlias);
             Key oldKey = PasswordKeyWrapper.this.getUnlockKey(keyAlias, oldPassword);
@@ -217,7 +216,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
                 if (verifyPassword(password)) {
                     listener.onSuccess();
                 } else {
-                    throw new LoginException("Wrong password");
+                    throw new WrongPasswordException("Wrong password");
                 }
             } catch (GeneralSecurityException | IOException e) {
                 listener.onError(e);
@@ -238,6 +237,22 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
         public char[] getPassword() {
             return password;
+        }
+    }
+
+    public class WrongPasswordException extends GeneralSecurityException {
+        public WrongPasswordException(String message) {
+            super(message);
+        }
+    }
+    public class PasswordNotSetException extends GeneralSecurityException {
+        public PasswordNotSetException(String message) {
+            super(message);
+        }
+    }
+    public class PasswordAlreadySetException extends GeneralSecurityException {
+        public PasswordAlreadySetException(String message) {
+            super(message);
         }
     }
 }

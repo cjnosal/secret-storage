@@ -31,7 +31,6 @@ import java.security.Key;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.security.auth.login.LoginException;
 
 public abstract class BaseKeyWrapper implements KeyWrapper {
 
@@ -73,7 +72,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
-            throw new LoginException("KeyWrapper not unlocked");
+            throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY));
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
@@ -81,7 +80,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
-            throw new LoginException("KeyWrapper not unlocked");
+            throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY));
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
@@ -89,7 +88,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
-            throw new LoginException("KeyWrapper not unlocked");
+            throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
         keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY), wrappedKey);
@@ -97,7 +96,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
-            throw new LoginException("KeyWrapper not unlocked");
+            throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
         keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY), wrappedKey);
