@@ -183,10 +183,6 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             }
         }
 
-        public void lock() {
-            PasswordKeyWrapper.this.lock();
-        }
-
         public void changePassword(final @NonNull char[] oldPassword, final @NonNull char[] newPassword) throws GeneralSecurityException, IOException {
             if (!isPasswordSet()) {
                 throw new LoginException("No password set. Use setPassword.");
@@ -226,10 +222,6 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             } catch (GeneralSecurityException | IOException e) {
                 listener.onError(e);
             }
-        }
-
-        public boolean isUnlocked() {
-            return PasswordKeyWrapper.this.isUnlocked();
         }
 
         public boolean isPasswordSet() {

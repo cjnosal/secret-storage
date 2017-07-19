@@ -45,6 +45,8 @@ public interface KeyWrapper {
 
     interface Editor {
         void lock();
+        boolean isUnlocked();
+        void eraseConfig() throws GeneralSecurityException, IOException;
     }
 
     interface Listener {

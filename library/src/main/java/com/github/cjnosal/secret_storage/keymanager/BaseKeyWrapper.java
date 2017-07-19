@@ -172,6 +172,14 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         public void lock() {
             BaseKeyWrapper.this.lock();
         }
+
+        public boolean isUnlocked() {
+            return BaseKeyWrapper.this.isUnlocked();
+        }
+
+        public void eraseConfig() throws GeneralSecurityException, IOException {
+            BaseKeyWrapper.this.eraseConfig(keyAlias);
+        }
     }
 
     public class NoParamsEditor extends BaseEditor {

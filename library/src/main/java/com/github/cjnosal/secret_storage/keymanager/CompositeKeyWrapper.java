@@ -118,5 +118,17 @@ public class CompositeKeyWrapper implements KeyWrapper {
                 getEditor(i).lock();
             }
         }
+
+        @Override
+        public boolean isUnlocked() {
+            return CompositeKeyWrapper.this.isUnlocked();
+        }
+
+        @Override
+        public void eraseConfig() throws GeneralSecurityException, IOException {
+            for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
+                getEditor(i).eraseConfig();
+            }
+        }
     }
 }
