@@ -16,11 +16,9 @@
 
 package com.github.cjnosal.secret_storage.keymanager;
 
-import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.KeyguardManager;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -124,6 +122,10 @@ public class FingerprintWrapper extends KeyStoreWrapper {
             } catch (GeneralSecurityException | IOException e) {
                 listener.onError(e);
             }
+        }
+
+        public boolean isInitialized() {
+            return kekExists(keyAlias);
         }
     }
 
