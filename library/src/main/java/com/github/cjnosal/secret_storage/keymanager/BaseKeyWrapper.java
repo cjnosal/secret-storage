@@ -22,6 +22,7 @@ import com.github.cjnosal.secret_storage.keymanager.keywrap.KeyWrap;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
+import com.github.cjnosal.secret_storage.storage.ScopedDataStorage;
 import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
@@ -38,24 +39,21 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     private static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
     private static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
     private static final String WRAPPED_KEYWRAPPER_KEY = "WRAPPED_KEYWRAPPER_KEY";
-    private static final String DELIMITER = "::";
 
     protected final KeyWrap keyWrap = new KeyWrap();
     protected final CipherSpec keyProtectionSpec;
     protected final KeyGenSpec kekGenSpec;
-    protected final DataStorage configStorage;
-    protected final DataStorage keyStorage;
+    protected final ScopedDataStorage configStorage;
+    protected final ScopedDataStorage keyStorage;
 
     private KekProvider kekProvider;
     private SecretKey keyWrapperKek;
-    private String kekScope = "kek";
-    private String dekScope = "dek";
 
     public BaseKeyWrapper(CipherSpec keyProtectionSpec, KeyGenSpec kekGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         this.keyProtectionSpec = keyProtectionSpec;
         this.kekGenSpec = kekGenSpec;
-        this.configStorage = configStorage;
-        this.keyStorage = keyStorage;
+        this.configStorage = new ScopedDataStorage("kek", configStorage);
+        this.keyStorage = new ScopedDataStorage("dek", keyStorage);
         this.kekProvider = new KekProvider(new DataKeyGenerator());
     }
 
@@ -68,69 +66,70 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     // must call finishUnlock(String, Cipher, Cipher)
-    abstract void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException;
+    abstract void unlock(UnlockParams params) throws IOException, GeneralSecurityException;
 
-    public @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
+    public @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String keyType) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY));
+        byte[] wrappedKey = keyStorage.load(WRAPPED_ENCRYPTION_KEY);
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
     }
 
-    public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
+    public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY));
+        byte[] wrappedKey = keyStorage.load(WRAPPED_SIGNING_KEY);
         return unwrapKey(keyWrapperKek, wrappedKey, keyType);
     }
 
-    public void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
+    public void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY), wrappedKey);
+        keyStorage.store(WRAPPED_ENCRYPTION_KEY, wrappedKey);
     }
 
-    public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
+    public void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY), wrappedKey);
+        keyStorage.store(WRAPPED_SIGNING_KEY, wrappedKey);
     }
 
-    public boolean dataKeysExist(String storeId) {
-        return keyStorage.exists(getStorageField(storeId, dekScope, WRAPPED_ENCRYPTION_KEY)) && keyStorage.exists(getStorageField(storeId, dekScope, WRAPPED_SIGNING_KEY));
+    public boolean dataKeysExist() {
+        return keyStorage.exists(WRAPPED_ENCRYPTION_KEY) && keyStorage.exists(WRAPPED_SIGNING_KEY);
     }
 
-    public KeyWrapper.Editor getEditor(String storeId) {
-        return new NoParamsEditor(storeId);
+    public KeyWrapper.Editor getEditor() {
+        return new NoParamsEditor();
     }
 
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
-        keyStorage.delete(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
+    public void eraseConfig() throws GeneralSecurityException, IOException {
+        configStorage.delete(WRAPPED_KEYWRAPPER_KEY);
         lock();
     }
 
-    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
-        keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_ENCRYPTION_KEY));
-        keyStorage.delete(getStorageField(keyAlias, dekScope, WRAPPED_SIGNING_KEY));
+    public void eraseKeys() throws GeneralSecurityException, IOException {
+        keyStorage.delete(WRAPPED_ENCRYPTION_KEY);
+        keyStorage.delete(WRAPPED_SIGNING_KEY);
     }
 
-    public void setStorageScope(String dekScope, String kekScope) {
-        this.dekScope = dekScope;
-        this.kekScope = kekScope;
+    // TODO can this be done on initialization?
+    public void setStorageScope(String keyScope, String configScope) {
+        keyStorage.setScope(keyScope);
+        configStorage.setScope(configScope);
     }
 
-    protected boolean kekExists(String keyAlias) {
-        return keyStorage.exists(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
+    protected boolean kekExists() {
+        return configStorage.exists(WRAPPED_KEYWRAPPER_KEY);
     }
 
-    protected AlgorithmParameters getKekCipherParams(String keyAlias) throws IOException, GeneralSecurityException {
-        byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
+    protected AlgorithmParameters getKekCipherParams() throws IOException, GeneralSecurityException {
+        byte[] wrappedKey = configStorage.load(WRAPPED_KEYWRAPPER_KEY);
         byte[][] splitBytes = ByteArrayUtil.split(wrappedKey);
 
         AlgorithmParameters params = null;
@@ -141,9 +140,9 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return params;
     }
 
-    protected void finishUnlock(String keyAlias, Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
+    protected void finishUnlock(Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
         if (unwrapCipher != null) {
-            byte[] wrappedKey = keyStorage.load(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY));
+            byte[] wrappedKey = configStorage.load(WRAPPED_KEYWRAPPER_KEY);
             keyWrapperKek = keyWrap.unwrap(unwrapCipher, wrappedKey, kekGenSpec.getKeygenAlgorithm());
         } else {
             keyWrapperKek = kekProvider.getSecretKey(kekGenSpec);
@@ -151,7 +150,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
         if (wrapCipher != null) {
             byte[] wrappedKey = keyWrap.wrap(wrapCipher, keyWrapperKek);
-            keyStorage.store(getStorageField(keyAlias, kekScope, WRAPPED_KEYWRAPPER_KEY), wrappedKey);
+            configStorage.store(WRAPPED_KEYWRAPPER_KEY, wrappedKey);
         }
     }
 
@@ -163,14 +162,6 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return keyWrap.unwrap(kek, wrappedKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm(), keyType);
     }
 
-    String getStorageField(String storeId, String field) {
-        return getStorageField(storeId, kekScope, field);
-    }
-
-    String getStorageField(String storeId, String scope, String field) {
-        return storeId + DELIMITER + scope + DELIMITER + field;
-    }
-
     void setKekProvider(KekProvider provider) {
         this.kekProvider = provider;
     }
@@ -180,11 +171,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     abstract class BaseEditor implements KeyWrapper.Editor {
-        protected final String keyAlias;
-
-        public BaseEditor(String keyAlias) {
-            this.keyAlias = keyAlias;
-        }
+        public BaseEditor() {}
 
         public void lock() {
             BaseKeyWrapper.this.lock();
@@ -195,17 +182,15 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         }
 
         public void eraseConfig() throws GeneralSecurityException, IOException {
-            BaseKeyWrapper.this.eraseConfig(keyAlias);
+            BaseKeyWrapper.this.eraseConfig();
         }
     }
 
     public class NoParamsEditor extends BaseEditor {
-        public NoParamsEditor(String keyAlias) {
-            super(keyAlias);
-        }
+        public NoParamsEditor() {}
 
         public void unlock() throws GeneralSecurityException, IOException {
-            BaseKeyWrapper.this.unlock(keyAlias, new UnlockParams());
+            BaseKeyWrapper.this.unlock(new UnlockParams());
         }
 
         public void unlock(Listener listener) {

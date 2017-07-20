@@ -41,18 +41,13 @@ import javax.crypto.SecretKey;
 
 public class SecretStorage {
 
-    // data storage
-    private static final String DELIMITER = "::";
-
-    private final String storeId;
     private final @Nullable DataStorage dataStorage;
     private final DataProtectionSpec dataProtectionSpec;
     private final DataKeyGenerator dataKeyGenerator;
     private final ProtectionStrategy dataProtectionStrategy;
     private KeyWrapper keyWrapper;
 
-    public SecretStorage(String storeId, @Nullable DataStorage dataStorage, DataProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
-        this.storeId = storeId;
+    public SecretStorage(@Nullable DataStorage dataStorage, DataProtectionSpec dataProtectionSpec, KeyWrapper keyWrapper) {
         this.dataStorage = dataStorage;
         this.dataProtectionSpec = dataProtectionSpec;
         this.dataKeyGenerator = new DataKeyGenerator();
@@ -66,7 +61,7 @@ public class SecretStorage {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
         }
         byte[] cipherText = encrypt(plainText);
-        dataStorage.store(getStorageField(storeId, id), cipherText);
+        dataStorage.store(id, cipherText);
     }
 
     public @Result int storeValue(String id, byte[] plainText) {
@@ -86,7 +81,7 @@ public class SecretStorage {
         if (dataStorage == null) {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
         }
-        byte[] cipherText = dataStorage.load(getStorageField(storeId, id));
+        byte[] cipherText = dataStorage.load(id);
         return decrypt(cipherText);
     }
 
@@ -103,14 +98,14 @@ public class SecretStorage {
         if (dataStorage == null) {
             return false;
         }
-        return dataStorage.exists(getStorageField(storeId, id));
+        return dataStorage.exists(id);
     }
 
     public void delete(String id) throws IOException {
         if (dataStorage == null) {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
         }
-        dataStorage.delete(getStorageField(storeId, id));
+        dataStorage.delete(id);
     }
 
     public @Result int deleteValue(String id) {
@@ -128,7 +123,7 @@ public class SecretStorage {
         if (dataStorage != null) {
             dataStorage.clear();
         }
-        keyWrapper.eraseKeys(storeId);
+        keyWrapper.eraseKeys();
     }
 
     // erase encrypted data and wrapped keys
@@ -148,8 +143,8 @@ public class SecretStorage {
     // erase encrypted data, wrapped keys, configuration, keystore values
     public void reset() throws IOException, GeneralSecurityException {
         clear();
-        keyWrapper.eraseConfig(storeId);
-        keyWrapper.eraseKeys(storeId);
+        keyWrapper.eraseConfig();
+        keyWrapper.eraseKeys();
     }
 
     // erase encrypted data, wrapped keys, configuration, keystore values
@@ -173,8 +168,7 @@ public class SecretStorage {
         }
         Set<String> entries = dataStorage.entries();
         for (String s : entries) {
-            String key = getField(s);
-            other.store(key, load(key));
+            other.store(s, load(s));
         }
     }
 
@@ -194,12 +188,12 @@ public class SecretStorage {
 
     // decrypt and copy data encryption keys to another KeyManager instance
     public void rewrap(KeyWrapperInitializer initializer) throws IOException, GeneralSecurityException {
-        if (keyWrapper.dataKeysExist(storeId)) {
-            @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
-            @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
+        if (keyWrapper.dataKeysExist()) {
+            @KeyPurpose.DataSecrecy SecretKey encryptionKey = keyWrapper.loadDataEncryptionKey(dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
+            @KeyPurpose.DataIntegrity SecretKey signingKey = keyWrapper.loadDataSigningKey(dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
             keyWrapper = initializer.initKeyWrapper();
-            keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
-            keyWrapper.storeDataSigningKey(storeId, signingKey);
+            keyWrapper.storeDataEncryptionKey(encryptionKey);
+            keyWrapper.storeDataSigningKey(signingKey);
         } else {
             keyWrapper = initializer.initKeyWrapper();
         }
@@ -219,7 +213,7 @@ public class SecretStorage {
     }
 
     public <E extends KeyWrapper.Editor> E getEditor() {
-        return (E) keyWrapper.getEditor(storeId);
+        return (E) keyWrapper.getEditor();
     }
 
     public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
@@ -254,22 +248,22 @@ public class SecretStorage {
 
     private SecretKey prepareDataEncryptionKey() throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy SecretKey encryptionKey;
-        if (keyWrapper.dataKeysExist(storeId)) {
-            encryptionKey = keyWrapper.loadDataEncryptionKey(storeId, dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
+        if (keyWrapper.dataKeysExist()) {
+            encryptionKey = keyWrapper.loadDataEncryptionKey(dataProtectionSpec.getCipherKeyGenSpec().getKeygenAlgorithm());
         } else {
             encryptionKey = generateDataEncryptionKey();
-            keyWrapper.storeDataEncryptionKey(storeId, encryptionKey);
+            keyWrapper.storeDataEncryptionKey(encryptionKey);
         }
         return encryptionKey;
     }
 
     private SecretKey prepareDataSigningKey() throws GeneralSecurityException, IOException {
         @KeyPurpose.DataIntegrity SecretKey signingKey;
-        if (keyWrapper.dataKeysExist(storeId)) {
-            signingKey = keyWrapper.loadDataSigningKey(storeId, dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
+        if (keyWrapper.dataKeysExist()) {
+            signingKey = keyWrapper.loadDataSigningKey(dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm());
         } else {
             signingKey = generateDataSigningKey();
-            keyWrapper.storeDataSigningKey(storeId, signingKey);
+            keyWrapper.storeDataSigningKey(signingKey);
         }
         return signingKey;
     }
@@ -282,22 +276,12 @@ public class SecretStorage {
         return dataKeyGenerator.generateDataKey(dataProtectionSpec.getIntegrityKeyGenSpec().getKeygenAlgorithm(), dataProtectionSpec.getIntegrityKeyGenSpec().getKeySize());
     }
 
-    private static String getStorageField(String storeId, String field) {
-        return storeId + DELIMITER + field;
-    }
-
-    private static String getField(String storageField) {
-        return storageField.substring(storageField.indexOf(DELIMITER) + DELIMITER.length());
-    }
-
     public static class Builder {
-        private String storeId;
         private DataStorage dataStorage;
         private DataProtectionSpec dataProtectionSpec;
         private KeyWrapper keyWrapper;
 
-        public Builder(String storeId) {
-            this.storeId = storeId;
+        public Builder() {
         }
 
         public Builder dataStorage(DataStorage dataStorage) {
@@ -317,13 +301,10 @@ public class SecretStorage {
 
         public SecretStorage build() {
             validateArguments();
-            return new SecretStorage(storeId, dataStorage, dataProtectionSpec, keyWrapper);
+            return new SecretStorage(dataStorage, dataProtectionSpec, keyWrapper);
         }
 
         private void validateArguments() {
-            if (storeId == null || storeId.isEmpty()) {
-                throw new IllegalArgumentException("Non-empty store ID required");
-            }
             if (keyWrapper == null) {
                 throw new IllegalArgumentException("KeyWrapper required");
             }

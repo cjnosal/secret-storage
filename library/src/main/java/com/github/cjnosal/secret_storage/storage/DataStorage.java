@@ -37,4 +37,6 @@ public interface DataStorage {
     void delete(@NonNull String id) throws IOException;
     void clear() throws IOException;
     Set<String> entries();
+
+    String getSeparator();
 }

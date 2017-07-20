@@ -24,6 +24,7 @@ import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 import com.github.cjnosal.secret_storage.storage.util.PreferenceOutputStream;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -105,5 +106,10 @@ public class PreferenceStorage implements DataStorage {
     @Override
     public Set<String> entries() {
         return preferences.getAll().keySet();
+    }
+
+    @Override
+    public String getSeparator() {
+        return File.pathSeparator;
     }
 }

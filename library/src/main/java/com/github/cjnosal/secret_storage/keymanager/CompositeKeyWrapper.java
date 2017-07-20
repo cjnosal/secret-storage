@@ -33,12 +33,10 @@ public class CompositeKeyWrapper implements KeyWrapper {
     public CompositeKeyWrapper(List<KeyWrapper> keyWrappers) {
         this.keyWrappers = keyWrappers;
         KekProvider kekProvider = new CompositeKekProvider(new DataKeyGenerator());
-        int index = 0;
         for (KeyWrapper kw : keyWrappers) {
             ((BaseKeyWrapper) kw).setKekProvider(kekProvider);
-            ((BaseKeyWrapper) kw).setStorageScope("shared", "kek" + index);
-            index++;
         }
+        setStorageScope("shared", "kek");
         // TODO validate all keywrappers use same key storage, same key protection
     }
 
@@ -53,29 +51,29 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     @Override
-    public SecretKey loadDataEncryptionKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
-        return getUnlockedWrapper().loadDataEncryptionKey(storeId, keyType);
+    public SecretKey loadDataEncryptionKey(String keyType) throws GeneralSecurityException, IOException {
+        return getUnlockedWrapper().loadDataEncryptionKey(keyType);
     }
 
     @Override
-    public SecretKey loadDataSigningKey(String storeId, String keyType) throws GeneralSecurityException, IOException {
-        return getUnlockedWrapper().loadDataSigningKey(storeId, keyType);
+    public SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException {
+        return getUnlockedWrapper().loadDataSigningKey(keyType);
     }
 
     @Override
-    public void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
-        getUnlockedWrapper().storeDataEncryptionKey(storeId, key);
+    public void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
+        getUnlockedWrapper().storeDataEncryptionKey(key);
     }
 
     @Override
-    public void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
-        getUnlockedWrapper().storeDataSigningKey(storeId, key);
+    public void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
+        getUnlockedWrapper().storeDataSigningKey(key);
     }
 
     @Override
-    public boolean dataKeysExist(String storeId) {
+    public boolean dataKeysExist() {
         for (KeyWrapper kw : keyWrappers) {
-            if (kw.dataKeysExist(storeId)) {
+            if (kw.dataKeysExist()) {
                 return true;
             }
         }
@@ -83,21 +81,30 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     @Override
-    public KeyWrapper.Editor getEditor(String storeId) {
-        return new CompositeEditor(storeId);
+    public KeyWrapper.Editor getEditor() {
+        return new CompositeEditor();
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseConfig() throws GeneralSecurityException, IOException {
         for (KeyWrapper kw : keyWrappers) {
-            kw.eraseConfig(keyAlias);
+            kw.eraseConfig();
         }
     }
 
     @Override
-    public void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException {
+    public void eraseKeys() throws GeneralSecurityException, IOException {
         for (KeyWrapper kw : keyWrappers) {
-            kw.eraseKeys(keyAlias);
+            kw.eraseKeys();
+        }
+    }
+
+    @Override
+    public void setStorageScope(String keyScope, String configScope) {
+        int index = 0;
+        for (KeyWrapper kw : keyWrappers) {
+            kw.setStorageScope(keyScope, configScope + index);
+            index++;
         }
     }
 
@@ -125,14 +132,10 @@ public class CompositeKeyWrapper implements KeyWrapper {
 
     public class CompositeEditor implements KeyWrapper.Editor {
 
-        private String storeId;
-
-        public CompositeEditor(String storeId) {
-            this.storeId = storeId;
-        }
+        public CompositeEditor() {}
 
         public <E extends KeyWrapper.Editor> E getEditor(int index) {
-            return (E) CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId);
+            return (E) CompositeKeyWrapper.this.keyWrappers.get(index).getEditor();
         }
 
         public int getKeyWrapperCount() {

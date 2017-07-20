@@ -75,7 +75,6 @@ public class SecretManager {
         }
 
         secretStorage = new SecretStorage(
-                "secrets",
                 dataStorage,
                 dataProtectionSpec,
                 keyWrapper);

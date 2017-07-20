@@ -153,4 +153,9 @@ public class FileStorage implements DataStorage {
         }
         return new HashSet<>();
     }
+
+    @Override
+    public String getSeparator() {
+        return File.separator;
+    }
 }

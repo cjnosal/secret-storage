@@ -76,17 +76,18 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void storeAndLoad() throws Exception {
-        subject.setPassword("id", "password".toCharArray());
+        subject.setPassword("password".toCharArray());
 
-        subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(androidCrypto.hasEntry("id::kek::DEVICE_BINDING"));
+        subject.storeDataEncryptionKey(enc);
+        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(androidCrypto.hasEntry("kek:DEVICE_BINDING"));
 
-        subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        subject.storeDataSigningKey(sig);
+        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
 
-        assertTrue(configStorage.exists("id::kek::ENC_SALT"));
-        assertTrue(configStorage.exists("id::kek::VERIFICATION"));
+        assertTrue(configStorage.exists("kek:ENC_SALT"));
+        assertTrue(configStorage.exists("kek:VERIFICATION"));
 
         subject = new SignedPasswordKeyWrapper(
                 context,
@@ -98,58 +99,62 @@ public class SignedPasswordKeyWrapperTest {
                 configStorage,
                 keyStorage
         );
-        ((PasswordKeyWrapper.PasswordEditor) subject.getEditor("id")).unlock("password".toCharArray());
+        ((PasswordKeyWrapper.PasswordEditor) subject.getEditor()).unlock("password".toCharArray());
 
-        SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        SecretKey unwrappedEnc = subject.loadDataEncryptionKey(SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(enc, unwrappedEnc);
 
-        SecretKey unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        SecretKey unwrappedSig = subject.loadDataSigningKey(SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(sig, unwrappedSig);
     }
 
     @Test
     public void eraseConfig() throws Exception {
-        subject.setPassword("id", "password".toCharArray());
+        subject.setPassword("password".toCharArray());
 
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
 
-        subject.eraseConfig("id");
+        subject.eraseConfig();
 
-        assertFalse(configStorage.exists("id::kek::ENC_SALT"));
-        assertFalse(configStorage.exists("id::kek::VERIFICATION"));
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
-        assertFalse(keyStorage.exists("id::kek::WRAPPED_KEYWRAPPER_KEY"));
-        assertFalse(androidCrypto.hasEntry("id::kek::DEVICE_BINDING"));
+        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertFalse(configStorage.exists("kek:ENC_SALT"));
+        assertFalse(configStorage.exists("kek:VERIFICATION"));
+        assertFalse(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertFalse(androidCrypto.hasEntry("kek:DEVICE_BINDING"));
     }
 
     @Test
     public void eraseKeys() throws Exception {
-        subject.setPassword("id", "password".toCharArray());
+        subject.setPassword("password".toCharArray());
 
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
 
-        subject.eraseKeys("id");
+        subject.eraseKeys();
 
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertTrue(configStorage.exists("kek:ENC_SALT"));
+        assertTrue(configStorage.exists("kek:VERIFICATION"));
+        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(androidCrypto.hasEntry("kek:DEVICE_BINDING"));
     }
 
     @Test
     public void keysExist() throws Exception {
-        subject.setPassword("id", "password".toCharArray());
-        assertFalse(subject.dataKeysExist("id"));
+        subject.setPassword("password".toCharArray());
+        assertFalse(subject.dataKeysExist());
 
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
-        assertTrue(subject.dataKeysExist("id"));
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
+        assertTrue(subject.dataKeysExist());
     }
 
     @Test
     public void getEditor_noPassword_setPassword() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
         assertFalse(editor.isPasswordSet());
         assertFalse(editor.isUnlocked());
 
@@ -161,7 +166,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void getEditor_withPassword_setPasswordFails() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
         editor.setPassword("password".toCharArray());
 
         try {
@@ -172,7 +177,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void getEditor_verifyPassword() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
 
         try {
             editor.verifyPassword("password".toCharArray());
@@ -189,7 +194,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void getEditor_lock() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
         editor.setPassword("password".toCharArray());
 
         editor.lock();
@@ -199,7 +204,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void getEditor_unlock() throws Exception {
-        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
 
         try {
             editor.unlock("password".toCharArray());
@@ -220,7 +225,7 @@ public class SignedPasswordKeyWrapperTest {
 
     @Test
     public void getEditor_changePassword() throws Exception {
-        final PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor("test");
+        final PasswordKeyWrapper.PasswordEditor editor = (PasswordKeyWrapper.PasswordEditor) subject.getEditor();
 
         try {
             editor.changePassword(null, "password".toCharArray());

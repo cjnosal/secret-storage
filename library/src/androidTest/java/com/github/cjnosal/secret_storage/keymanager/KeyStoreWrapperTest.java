@@ -62,7 +62,7 @@ public class KeyStoreWrapperTest {
                 configStorage,
                 keyStorage
         );
-        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor("id");
+        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor();
         editor.unlock();
 
         keyGenerator = KeyGenerator.getInstance(SecurityAlgorithms.KeyGenerator_AES);
@@ -73,12 +73,12 @@ public class KeyStoreWrapperTest {
 
     @Test
     public void storeAndLoad() throws Exception {
-        subject.storeDataEncryptionKey("id", enc);
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(androidCrypto.hasEntry("id::kek::ENCRYPTION_KEY"));
+        subject.storeDataEncryptionKey(enc);
+        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
 
-        subject.storeDataSigningKey("id", sig);
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        subject.storeDataSigningKey(sig);
+        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
 
         subject = new KeyStoreWrapper(
                 DefaultSpecs.getAesGcmCipherSpec(),
@@ -86,47 +86,49 @@ public class KeyStoreWrapperTest {
                 configStorage,
                 keyStorage
         );
-        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor("id");
+        BaseKeyWrapper.NoParamsEditor editor = (BaseKeyWrapper.NoParamsEditor) subject.getEditor();
         editor.unlock();
 
-        SecretKey unwrappedEnc = subject.loadDataEncryptionKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        SecretKey unwrappedEnc = subject.loadDataEncryptionKey(SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(enc, unwrappedEnc);
 
-        SecretKey unwrappedSig = subject.loadDataSigningKey("id", SecurityAlgorithms.KeyGenerator_AES);
+        SecretKey unwrappedSig = subject.loadDataSigningKey(SecurityAlgorithms.KeyGenerator_AES);
         assertEquals(sig, unwrappedSig);
     }
 
     @Test
     public void eraseConfig() throws Exception {
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
 
-        subject.eraseConfig("id");
+        subject.eraseConfig();
 
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
-        assertFalse(keyStorage.exists("id::kek::WRAPPED_KEYWRAPPER_KEY"));
-        assertFalse(androidCrypto.hasEntry("id::kek::ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertFalse(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertFalse(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
     }
 
     @Test
     public void eraseKeys() throws Exception {
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
 
-        subject.eraseKeys("id");
+        subject.eraseKeys();
 
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("id::dek::WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
     }
 
     @Test
     public void keysExist() throws Exception {
-        assertFalse(subject.dataKeysExist("id"));
+        assertFalse(subject.dataKeysExist());
 
-        subject.storeDataEncryptionKey("id", enc);
-        subject.storeDataSigningKey("id", sig);
-        assertTrue(subject.dataKeysExist("id"));
+        subject.storeDataEncryptionKey(enc);
+        subject.storeDataSigningKey(sig);
+        assertTrue(subject.dataKeysExist());
     }
 
 }

@@ -62,23 +62,23 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
-        super.eraseConfig(keyAlias);
-        androidCrypto.deleteEntry(getStorageField(keyAlias, DEVICE_BINDING));
+    public void eraseConfig() throws GeneralSecurityException, IOException {
+        super.eraseConfig();
+        androidCrypto.deleteEntry(configStorage.getScopedId(DEVICE_BINDING));
     }
 
     @Override
-    protected byte[] derive(String keyAlias, char[] password, byte[] salt) throws GeneralSecurityException, IOException {
+    protected byte[] derive(char[] password, byte[] salt) throws GeneralSecurityException, IOException {
 
         PrivateKey signingKey;
-        if (!isPasswordSet(keyAlias)) {
+        if (!isPasswordSet()) {
             signingKey = androidCrypto.generateKeyPair(
                     context,
-                    getStorageField(keyAlias, DEVICE_BINDING),
+                    configStorage.getScopedId(DEVICE_BINDING),
                     integrityKeyGenSpec.getKeygenAlgorithm())
                     .getPrivate();
         } else {
-            signingKey = androidCrypto.loadPrivateKey(getStorageField(keyAlias, DEVICE_BINDING));
+            signingKey = androidCrypto.loadPrivateKey(configStorage.getScopedId(DEVICE_BINDING));
         }
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(derivationSpec.getKeygenAlgorithm());

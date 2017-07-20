@@ -48,38 +48,38 @@ public class FingerprintWrapper extends KeyStoreWrapper {
     }
 
     @Override
-    public Editor getEditor(String storeId) {
-        return new FingerprintEditor(storeId);
+    public Editor getEditor() {
+        return new FingerprintEditor();
     }
 
     @Override
-    void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
+    void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
         FingerprintParams fingerprintParams = (FingerprintParams) params;
         FingerprintManagerCompat fingerprintManagerCompat = FingerprintManagerCompat.from(fingerprintParams.getContext());
         checkFingerprintStatus(fingerprintParams, fingerprintManagerCompat);
 
         FingerprintCallback fingerprintCallback;
         Cipher kekCipher;
-        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!kekExists(keyAlias)) {
+        String storageField = configStorage.getScopedId(ENCRYPTION_KEY);
+        if (!kekExists()) {
             Key kek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
             kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
-            fingerprintCallback = new FingerprintCallback(keyAlias, fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), true);
+            fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), true);
         } else {
             Key kek = androidCrypto.loadSecretKey(storageField);
-            kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(keyAlias), keyProtectionSpec.getCipherTransformation());
-            fingerprintCallback = new FingerprintCallback(keyAlias, fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
+            kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+            fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
         }
 
         fingerprintManagerCompat.authenticate(new FingerprintManagerCompat.CryptoObject(kekCipher), 0, fingerprintParams.getCancellationSignal(), fingerprintCallback, fingerprintParams.getHandler());
     }
 
-    void verify(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
+    void verify(UnlockParams params) throws IOException, GeneralSecurityException {
         FingerprintParams fingerprintParams = (FingerprintParams) params;
         FingerprintManagerCompat fingerprintManagerCompat = FingerprintManagerCompat.from(fingerprintParams.getContext());
         checkFingerprintStatus(fingerprintParams, fingerprintManagerCompat);
 
-        FingerprintCallback fingerprintCallback = new FingerprintCallback(keyAlias, fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
+        FingerprintCallback fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
 
         fingerprintManagerCompat.authenticate(null, 0, fingerprintParams.getCancellationSignal(), fingerprintCallback, fingerprintParams.getHandler());
     }
@@ -100,48 +100,46 @@ public class FingerprintWrapper extends KeyStoreWrapper {
 
     public class FingerprintEditor extends BaseEditor {
 
-        public FingerprintEditor(String keyAlias) {
-            super(keyAlias);
+        public FingerprintEditor() {
+            super();
         }
 
         public void unlock(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull FingerprintManagerCompat.AuthenticationCallback authenticationCallback, @Nullable Handler handler) throws IOException, GeneralSecurityException {
-            FingerprintWrapper.this.unlock(keyAlias, new FingerprintParams(context, null, cancellationSignal, authenticationCallback, handler));
+            FingerprintWrapper.this.unlock(new FingerprintParams(context, null, cancellationSignal, authenticationCallback, handler));
         }
 
         public void unlock(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull Listener listener, @Nullable Handler handler) {
             try {
-                FingerprintWrapper.this.unlock(keyAlias, new FingerprintParams(context, listener, cancellationSignal, null, handler));
+                FingerprintWrapper.this.unlock(new FingerprintParams(context, listener, cancellationSignal, null, handler));
             } catch (GeneralSecurityException | IOException e) {
                 listener.onError(e);
             }
         }
 
         public void verify(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull FingerprintManagerCompat.AuthenticationCallback authenticationCallback, @Nullable Handler handler) throws IOException, GeneralSecurityException {
-            FingerprintWrapper.this.verify(keyAlias, new FingerprintParams(context, null, cancellationSignal, authenticationCallback, handler));
+            FingerprintWrapper.this.verify(new FingerprintParams(context, null, cancellationSignal, authenticationCallback, handler));
         }
 
         public void verify(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull Listener listener, @Nullable Handler handler) {
             try {
-                FingerprintWrapper.this.verify(keyAlias, new FingerprintParams(context, listener, cancellationSignal, null, handler));
+                FingerprintWrapper.this.verify(new FingerprintParams(context, listener, cancellationSignal, null, handler));
             } catch (GeneralSecurityException | IOException e) {
                 listener.onError(e);
             }
         }
 
         public boolean isInitialized() {
-            return kekExists(keyAlias);
+            return kekExists();
         }
     }
 
     class FingerprintCallback extends FingerprintManagerCompat.AuthenticationCallback {
 
-        private final String keyAlias;
         private final FingerprintManagerCompat.AuthenticationCallback wrappedCallback;
         private Listener listener;
         private final boolean firstUnlock;
 
-        public FingerprintCallback(String keyAlias, @Nullable FingerprintManagerCompat.AuthenticationCallback wrappedCallback, @Nullable Listener listener, boolean firstUnlock) {
-            this.keyAlias = keyAlias;
+        public FingerprintCallback(@Nullable FingerprintManagerCompat.AuthenticationCallback wrappedCallback, @Nullable Listener listener, boolean firstUnlock) {
             this.wrappedCallback = wrappedCallback;
             this.listener = listener;
             this.firstUnlock = firstUnlock;
@@ -173,9 +171,9 @@ public class FingerprintWrapper extends KeyStoreWrapper {
                 FingerprintManagerCompat.CryptoObject cryptoObject = result.getCryptoObject();
                 if (cryptoObject != null) {
                     if (firstUnlock) {
-                        finishUnlock(keyAlias, null, cryptoObject.getCipher());
+                        finishUnlock(null, cryptoObject.getCipher());
                     } else {
-                        finishUnlock(keyAlias, cryptoObject.getCipher(), null);
+                        finishUnlock(cryptoObject.getCipher(), null);
                     }
                 }
                 if (wrappedCallback != null) {

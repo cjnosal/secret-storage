@@ -27,21 +27,23 @@ public interface KeyWrapper {
 
     boolean isUnlocked();
 
-    @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String storeId, String keyType) throws GeneralSecurityException, IOException;
+    @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String keyType) throws GeneralSecurityException, IOException;
 
-    @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String storeId, String keyType) throws GeneralSecurityException, IOException;
+    @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException;
 
-    void storeDataEncryptionKey(String storeId, @KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException;
+    void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException;
 
-    void storeDataSigningKey(String storeId, @KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException;
+    void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException;
 
-    boolean dataKeysExist(String storeId);
+    boolean dataKeysExist();
 
-    KeyWrapper.Editor getEditor(String storeId);
+    KeyWrapper.Editor getEditor();
 
-    void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException;
+    void eraseConfig() throws GeneralSecurityException, IOException;
 
-    void eraseKeys(String keyAlias) throws GeneralSecurityException, IOException;
+    void eraseKeys() throws GeneralSecurityException, IOException;
+
+    void setStorageScope(String keyScope, String configScope);
 
     interface Editor {
         void lock();

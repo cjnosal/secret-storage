@@ -44,7 +44,7 @@ KeyWrapper keyWrapper = new SignedPasswordKeyWrapper(
 
 ProtectionSpec dataProtectionSpec = DefaultSpecs.getDefaultDataProtectionSpec();
 
-SecretStorage secretStorage = new new SecretStorage.Builder(id)
+SecretStorage secretStorage = new new SecretStorage.Builder()
     .dataStorage(dataStorage)
     .keyWrapper(keyWrapper)
     .dataProtectionSpec(dataProtectionSpec)
@@ -69,7 +69,7 @@ ProtectionSpec dataProtectionSpec = new ProtectionSpec(
     DefaultSpecs.getAesGcmCipherSpec(), 
     DefaultSpecs.getStrongHmacShaIntegritySpec());
 
-SecretStorage secretStorage = new new SecretStorage.Builder(id)
+SecretStorage secretStorage = new new SecretStorage.Builder()
     .dataStorage(dataStorage)
     .keyWrapper(keyWrapper)
     .dataProtectionSpec(dataProtectionSpec)

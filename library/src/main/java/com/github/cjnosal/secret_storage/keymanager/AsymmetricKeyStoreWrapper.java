@@ -57,28 +57,28 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig(String keyAlias) throws GeneralSecurityException, IOException {
-        super.eraseConfig(keyAlias);
-        androidCrypto.deleteEntry(getStorageField(keyAlias, ENCRYPTION_KEY));
+    public void eraseConfig() throws GeneralSecurityException, IOException {
+        super.eraseConfig();
+        androidCrypto.deleteEntry(configStorage.getScopedId(ENCRYPTION_KEY));
     }
 
     @Override
-    void unlock(String keyAlias, UnlockParams params) throws IOException, GeneralSecurityException {
-        String storageField = getStorageField(keyAlias, ENCRYPTION_KEY);
-        if (!kekExists(keyAlias)) {
-            KeyPair encryptionKey = generateKeyPair(keyAlias);
+    void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
+        String storageField = configStorage.getScopedId(ENCRYPTION_KEY);
+        if (!kekExists()) {
+            KeyPair encryptionKey = generateKeyPair();
             Key kek = encryptionKey.getPublic();
             Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
-            finishUnlock(keyAlias, null, kekCipher);
+            finishUnlock(null, kekCipher);
         } else {
             Key kek = androidCrypto.loadPrivateKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(keyAlias), keyProtectionSpec.getCipherTransformation());
-            finishUnlock(keyAlias, kekCipher, null);
+            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+            finishUnlock(kekCipher, null);
         }
     }
 
-    private KeyPair generateKeyPair(String keyAlias) throws GeneralSecurityException {
-        return androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY),
+    private KeyPair generateKeyPair() throws GeneralSecurityException {
+        return androidCrypto.generateKeyPair(context, configStorage.getScopedId(ENCRYPTION_KEY),
                 kekSpec.getKeygenAlgorithm());
     }
 
