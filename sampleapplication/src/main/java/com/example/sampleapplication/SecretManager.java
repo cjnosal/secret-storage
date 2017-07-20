@@ -130,7 +130,7 @@ public class SecretManager {
     }
 
     private PasswordKeyWrapper.PasswordEditor getPasswordEditor() {
-        return secretStorage.<CompositeKeyWrapper.CompositeEditor>getEditor().getEditor(0);
+        return getCompositeEditor().getEditor(0);
     }
 
     //endregion manage password
@@ -158,11 +158,11 @@ public class SecretManager {
     }
 
     public boolean isFingerprintAuthenticationEnabled() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getFingerprintEditor().isInitialized();
+        return getCompositeEditor().getKeyWrapperCount() == 2 && getFingerprintEditor().isInitialized();
     }
 
     private FingerprintWrapper.FingerprintEditor getFingerprintEditor() {
-        return secretStorage.<CompositeKeyWrapper.CompositeEditor>getEditor().getEditor(1);
+        return getCompositeEditor().getEditor(1);
     }
 
     //endregion manage fingerprint

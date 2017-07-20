@@ -135,6 +135,10 @@ public class CompositeKeyWrapper implements KeyWrapper {
             return (E) CompositeKeyWrapper.this.keyWrappers.get(index).getEditor(storeId);
         }
 
+        public int getKeyWrapperCount() {
+            return CompositeKeyWrapper.this.keyWrappers.size();
+        }
+
         @Override
         public void lock() {
             for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
