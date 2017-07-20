@@ -39,6 +39,10 @@ import javax.crypto.Cipher;
 @TargetApi(Build.VERSION_CODES.M)
 public class FingerprintWrapper extends KeyStoreWrapper {
 
+    public FingerprintWrapper(KeyStoreWrapper.CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
+        this(cryptoConfig.getKeyProtectionSpec(), cryptoConfig.getKeyGenSpec(), configStorage, keyStorage);
+    }
+
     public FingerprintWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
     }

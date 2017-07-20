@@ -44,6 +44,10 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
 
+    public AsymmetricKeyStoreWrapper(Context context, CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
+        this(context, cryptoConfig.getIntermediateKeyProtectionSpec(), cryptoConfig.getIntermediateKekSpec(), cryptoConfig.getKeyStoreKeyProtectionSpec(), cryptoConfig.getKeyStoreKekSpec(), configStorage, keyStorage);
+    }
+
     public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(intermediateKeyProtectionSpec, intermediateKekSpec, configStorage, keyStorage);
         this.context = context;
@@ -76,5 +80,35 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     private KeyPair generateKeyPair(String keyAlias) throws GeneralSecurityException {
         return androidCrypto.generateKeyPair(context, getStorageField(keyAlias, ENCRYPTION_KEY),
                 kekSpec.getKeygenAlgorithm());
+    }
+
+    public static class CryptoConfig {
+        private final CipherSpec intermediateKeyProtectionSpec;
+        private final KeyGenSpec intermediateKekSpec;
+        private final CipherSpec keyStoreKeyProtectionSpec;
+        private final KeyGenSpec keyStoreKekSpec;
+
+        public CryptoConfig(CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec) {
+            this.intermediateKeyProtectionSpec = intermediateKeyProtectionSpec;
+            this.intermediateKekSpec = intermediateKekSpec;
+            this.keyStoreKeyProtectionSpec = keyStoreKeyProtectionSpec;
+            this.keyStoreKekSpec = keyStoreKekSpec;
+        }
+
+        public CipherSpec getIntermediateKeyProtectionSpec() {
+            return intermediateKeyProtectionSpec;
+        }
+
+        public KeyGenSpec getIntermediateKekSpec() {
+            return intermediateKekSpec;
+        }
+
+        public CipherSpec getKeyStoreKeyProtectionSpec() {
+            return keyStoreKeyProtectionSpec;
+        }
+
+        public KeyGenSpec getKeyStoreKekSpec() {
+            return keyStoreKekSpec;
+        }
     }
 }

@@ -30,10 +30,6 @@ import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
 import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintStatus;
 import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintUtil;
 import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
-import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
@@ -57,35 +53,17 @@ public class SecretManager {
 
         PasswordKeyWrapper passwordKeyWrapper;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            KeyDerivationSpec keyDerivationSpec = DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1();
-            KeyGenSpec keyGenSpec = DefaultSpecs.getAes128KeyGenSpec();
-            CipherSpec keyProtectionSpec = DefaultSpecs.getAesWrapSpec();
-
-            passwordKeyWrapper = new PasswordKeyWrapper(keyDerivationSpec, keyGenSpec, keyProtectionSpec, configStorage, keyStorage);
+            passwordKeyWrapper = new PasswordKeyWrapper(DefaultSpecs.getPasswordCryptoConfig(), configStorage, keyStorage);
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            passwordKeyWrapper = new SignedPasswordKeyWrapper(applicationContext, DefaultSpecs.getLegacySignedPasswordCryptoConfig(), configStorage, keyStorage);
         } else {
-            KeyDerivationSpec keyDerivationSpec = DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1();
-            KeyGenSpec derivedKeyGenSpec = DefaultSpecs.getAes256KeyGenSpec();
-            IntegritySpec deviceBindingSpec = DefaultSpecs.getSha256WithRsaSpec();
-            CipherSpec keyProtectionSpec;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                keyProtectionSpec = DefaultSpecs.getAesGcmCipherSpec();
-            } else {
-                keyProtectionSpec = DefaultSpecs.getAesWrapSpec();
-            }
-            KeyGenSpec deviceBindingKeyGenSpec = DefaultSpecs.getRsa2048KeyGenSpec();
-
-            passwordKeyWrapper = new SignedPasswordKeyWrapper(applicationContext, keyDerivationSpec, derivedKeyGenSpec, deviceBindingSpec, keyProtectionSpec, deviceBindingKeyGenSpec, configStorage, keyStorage);
+            passwordKeyWrapper = new SignedPasswordKeyWrapper(applicationContext, DefaultSpecs.getSignedPasswordCryptoConfig(), configStorage, keyStorage);
         }
 
         KeyWrapper keyWrapper;
         DataProtectionSpec dataProtectionSpec;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            FingerprintWrapper fingerprintWrapper = new FingerprintWrapper(
-                    DefaultSpecs.getAesGcmCipherSpec(),
-                    DefaultSpecs.getFingerprintKeyStoreAes256GcmKeyGenSpec(),
-                    configStorage,
-                    keyStorage
-            );
+            FingerprintWrapper fingerprintWrapper = new FingerprintWrapper(DefaultSpecs.getFingerprintCryptoConfig(), configStorage, keyStorage);
             keyWrapper = new CompositeKeyWrapper(Arrays.<KeyWrapper>asList(passwordKeyWrapper, fingerprintWrapper));
             dataProtectionSpec = DefaultSpecs.getDefaultDataProtectionSpec();
         } else {

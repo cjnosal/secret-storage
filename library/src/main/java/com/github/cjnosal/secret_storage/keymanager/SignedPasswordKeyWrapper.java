@@ -48,6 +48,10 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
 
+    public SignedPasswordKeyWrapper(Context context, CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
+        this(context, cryptoConfig.getDerivationSpec(), cryptoConfig.getKeyGenSpec(), cryptoConfig.getDerivationIntegritySpec(), cryptoConfig.getKeyProtectionSpec(), cryptoConfig.getIntegrityKeyGenSpec(), configStorage, keyStorage);
+    }
+
     public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyGenSpec integrityKeyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyDerivationSpec, derivedKeyGenSpec, keyProtectionSpec, configStorage, keyStorage);
         this.context = context;
@@ -102,6 +106,25 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
             for (int i = 0; i < signature.length; i++) {
                 signature[i] = 0;
             }
+        }
+    }
+
+    public static class CryptoConfig extends PasswordKeyWrapper.CryptoConfig {
+        private final IntegritySpec derivationIntegritySpec;
+        private final KeyGenSpec integrityKeyGenSpec;
+
+        public CryptoConfig(KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyGenSpec integrityKeyGenSpec) {
+            super(keyDerivationSpec, derivedKeyGenSpec, keyProtectionSpec);
+            this.derivationIntegritySpec = derivationIntegritySpec;
+            this.integrityKeyGenSpec = integrityKeyGenSpec;
+        }
+
+        public IntegritySpec getDerivationIntegritySpec() {
+            return derivationIntegritySpec;
+        }
+
+        public KeyGenSpec getIntegrityKeyGenSpec() {
+            return integrityKeyGenSpec;
         }
     }
 

@@ -44,6 +44,10 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     protected final AndroidCrypto androidCrypto;
     protected final KeyGenSpec keyGenSpec;
 
+    public KeyStoreWrapper(FingerprintWrapper.CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
+        this(cryptoConfig.getKeyProtectionSpec(), cryptoConfig.getKeyGenSpec(), configStorage, keyStorage);
+    }
+
     public KeyStoreWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
         this.keyGenSpec = keyGenSpec;
@@ -91,5 +95,23 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
             builder.setUserAuthenticationValidWhileOnBody(placeholder.isUserAuthenticationValidWhileOnBody());
         }
         return builder.build();
+    }
+
+    public static class CryptoConfig {
+        private final CipherSpec keyProtectionSpec;
+        private final KeyGenSpec keyGenSpec;
+
+        public CryptoConfig(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec) {
+            this.keyProtectionSpec = keyProtectionSpec;
+            this.keyGenSpec = keyGenSpec;
+        }
+
+        public CipherSpec getKeyProtectionSpec() {
+            return keyProtectionSpec;
+        }
+
+        public KeyGenSpec getKeyGenSpec() {
+            return keyGenSpec;
+        }
     }
 }

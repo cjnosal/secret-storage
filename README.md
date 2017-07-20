@@ -30,6 +30,27 @@ A key-protection strategy can be selected to make use of a user password, Androi
 ```
 ## Setup
 
+### Default key protection strategy
+```
+DataStorage keyStorage = new PreferenceStorage(context, "keys");
+DataStorage configStorage = new PreferenceStorage(context, "conf");
+DataStorage dataStorage = new FileStorage(context.getFilesDir() + "/data");
+
+KeyWrapper keyWrapper = new SignedPasswordKeyWrapper(
+    context,
+    DefaultSpecs.getSignedPasswordCryptoConfig(),
+    configStorage,
+    keyStorage);
+
+ProtectionSpec dataProtectionSpec = DefaultSpecs.getDefaultDataProtectionSpec();
+
+SecretStorage secretStorage = new new SecretStorage.Builder(id)
+    .dataStorage(dataStorage)
+    .keyWrapper(keyWrapper)
+    .dataProtectionSpec(dataProtectionSpec)
+    .build();
+```
+
 ### Overridden key protection strategy and storage
 ```
 DataStorage keyStorage = new PreferenceStorage(context, "keys");
@@ -79,6 +100,11 @@ secretStorage.getEditor().unlock(context, cancellationSignal, listener, handler)
 ```
 secretStorage.store("mySecret", Encoding.utf8decode("sensitive materials"));
 String mySecret = Encoding.utf8encode(secretStorage.load("mySecret"));
+```
+### Encrypt/Decrypt Data to be stored outside of SecretStorage
+```
+byte[] cipherText = secretStorage.encrypt(Encoding.utf8decode("sensitive materials"));
+String mySecret = Encoding.utf8encode(secretStorage.decrypt(cipherText));
 ```
 ## Key Protection Strategies
 User data is protected with encrypt-then-mac. The cipher and mac keys are then wrapped with an intermediate key-encryption-key which is held in memory while the KeyWrapper is unlocked. The intermediate key is in turn wrapped using the most secure method available.

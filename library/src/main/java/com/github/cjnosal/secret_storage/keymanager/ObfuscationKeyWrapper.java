@@ -28,7 +28,12 @@ import java.security.GeneralSecurityException;
  * This KeyWrapper is NOT SECURE!
  * Should only be used when AndroidKeyStore is not available and a user password can not be requested.
  */
+@Deprecated
 public class ObfuscationKeyWrapper extends PasswordKeyWrapper {
+
+    public ObfuscationKeyWrapper(PasswordKeyWrapper.CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
+        this(cryptoConfig.getDerivationSpec(), cryptoConfig.getKeyGenSpec(), cryptoConfig.getKeyProtectionSpec(), configStorage, keyStorage);
+    }
 
     public ObfuscationKeyWrapper(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(derivationSpec, keyGenSpec, keyProtectionSpec, configStorage, keyStorage);

@@ -46,6 +46,10 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     final KeyDerivationSpec derivationSpec;
     final KeyGenSpec keyGenSpec;
 
+    public PasswordKeyWrapper(CryptoConfig config, DataStorage configStorage, DataStorage keyStorage) {
+        this(config.getDerivationSpec(), config.getKeyGenSpec(), config.getKeyProtectionSpec(), configStorage, keyStorage);
+    }
+
     public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
         this.derivationSpec = derivationSpec;
@@ -253,6 +257,30 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     public class PasswordAlreadySetException extends GeneralSecurityException {
         public PasswordAlreadySetException(String message) {
             super(message);
+        }
+    }
+
+    public static class CryptoConfig {
+        private final KeyDerivationSpec derivationSpec;
+        private final KeyGenSpec keyGenSpec;
+        private final CipherSpec keyProtectionSpec;
+
+        public CryptoConfig(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec) {
+            this.derivationSpec = derivationSpec;
+            this.keyGenSpec = keyGenSpec;
+            this.keyProtectionSpec = keyProtectionSpec;
+        }
+
+        public KeyDerivationSpec getDerivationSpec() {
+            return derivationSpec;
+        }
+
+        public KeyGenSpec getKeyGenSpec() {
+            return keyGenSpec;
+        }
+
+        public CipherSpec getKeyProtectionSpec() {
+            return keyProtectionSpec;
         }
     }
 }

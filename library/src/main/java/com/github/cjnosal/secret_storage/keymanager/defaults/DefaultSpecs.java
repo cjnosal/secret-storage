@@ -21,6 +21,10 @@ import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
+import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
+import com.github.cjnosal.secret_storage.keymanager.KeyStoreWrapper;
+import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
@@ -41,6 +45,65 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyStoreKeyG
  *
  */
 public class DefaultSpecs {
+
+    @Deprecated
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public static AsymmetricKeyStoreWrapper.CryptoConfig getAsymmetricKeyStoreCryptoConfig() {
+        return new AsymmetricKeyStoreWrapper.CryptoConfig(
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getAes256KeyGenSpec(),
+                DefaultSpecs.getRsaEcbPkcs1Spec(),
+                DefaultSpecs.getRsa2048KeyGenSpec()
+        );
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public static KeyStoreWrapper.CryptoConfig getKeyStoreCryptoConfig() {
+        return new KeyStoreWrapper.CryptoConfig(
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getKeyStoreAes256GcmKeyGenSpec()
+        );
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public static KeyStoreWrapper.CryptoConfig getFingerprintCryptoConfig() {
+        return new KeyStoreWrapper.CryptoConfig(
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getFingerprintKeyStoreAes256GcmKeyGenSpec()
+        );
+    }
+
+    @Deprecated
+    public static PasswordKeyWrapper.CryptoConfig getPasswordCryptoConfig() {
+        return new PasswordKeyWrapper.CryptoConfig(
+                DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes128KeyGenSpec(),
+                DefaultSpecs.getAesWrapSpec()
+        );
+    }
+
+    @Deprecated
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public static SignedPasswordKeyWrapper.CryptoConfig getLegacySignedPasswordCryptoConfig() {
+        return new SignedPasswordKeyWrapper.CryptoConfig(
+                DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes256KeyGenSpec(),
+                DefaultSpecs.getSha256WithRsaSpec(),
+                DefaultSpecs.getAesWrapSpec(),
+                DefaultSpecs.getRsa2048KeyGenSpec()
+        );
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public static SignedPasswordKeyWrapper.CryptoConfig getSignedPasswordCryptoConfig() {
+        return new SignedPasswordKeyWrapper.CryptoConfig(
+                DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1(),
+                DefaultSpecs.getAes256KeyGenSpec(),
+                DefaultSpecs.getSha256WithRsaSpec(),
+                DefaultSpecs.getAesGcmCipherSpec(),
+                DefaultSpecs.getRsa2048KeyGenSpec()
+        );
+    }
 
     public static DataProtectionSpec getDefaultDataProtectionSpec() {
         CipherSpec cipher = getAesGcmCipherSpec();
