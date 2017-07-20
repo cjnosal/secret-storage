@@ -108,6 +108,7 @@ public class DefaultSpecs {
         );
     }
 
+    @TargetApi(Build.VERSION_CODES.M)
     public static CipherSpec getAesGcmCipherSpec() {
         return new CipherSpec(
                 SecurityAlgorithms.Cipher_AES_GCM_NoPadding,

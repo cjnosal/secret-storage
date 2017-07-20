@@ -27,6 +27,7 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
@@ -38,6 +39,7 @@ import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class SecretManager {
 
@@ -55,33 +57,46 @@ public class SecretManager {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
             KeyDerivationSpec keyDerivationSpec = DefaultSpecs.get4096RoundPBKDF2WithHmacSHA1();
             KeyGenSpec keyGenSpec = DefaultSpecs.getAes128KeyGenSpec();
-            CipherSpec keyProtectionSpec = DefaultSpecs.getAesGcmCipherSpec();
+            CipherSpec keyProtectionSpec = DefaultSpecs.getAesWrapSpec();
 
             passwordKeyWrapper = new PasswordKeyWrapper(keyDerivationSpec, keyGenSpec, keyProtectionSpec, configStorage, keyStorage);
         } else {
             KeyDerivationSpec keyDerivationSpec = DefaultSpecs.get8192RoundPBKDF2WithHmacSHA1();
             KeyGenSpec derivedKeyGenSpec = DefaultSpecs.getAes256KeyGenSpec();
             IntegritySpec deviceBindingSpec = DefaultSpecs.getSha256WithRsaSpec();
-            CipherSpec keyProtectionSpec = DefaultSpecs.getAesGcmCipherSpec();
+            CipherSpec keyProtectionSpec;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                keyProtectionSpec = DefaultSpecs.getAesGcmCipherSpec();
+            } else {
+                keyProtectionSpec = DefaultSpecs.getAesWrapSpec();
+            }
             KeyGenSpec deviceBindingKeyGenSpec = DefaultSpecs.getRsa2048KeyGenSpec();
 
             passwordKeyWrapper = new SignedPasswordKeyWrapper(applicationContext, keyDerivationSpec, derivedKeyGenSpec, deviceBindingSpec, keyProtectionSpec, deviceBindingKeyGenSpec, configStorage, keyStorage);
         }
 
-        FingerprintWrapper fingerprintWrapper = new FingerprintWrapper(
-                DefaultSpecs.getAesGcmCipherSpec(),
-                DefaultSpecs.getFingerprintKeyStoreAes256GcmKeyGenSpec(),
-                configStorage,
-                keyStorage
-        );
+        KeyWrapper keyWrapper;
+        DataProtectionSpec dataProtectionSpec;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            FingerprintWrapper fingerprintWrapper = new FingerprintWrapper(
+                    DefaultSpecs.getAesGcmCipherSpec(),
+                    DefaultSpecs.getFingerprintKeyStoreAes256GcmKeyGenSpec(),
+                    configStorage,
+                    keyStorage
+            );
+            keyWrapper = new CompositeKeyWrapper(Arrays.<KeyWrapper>asList(passwordKeyWrapper, fingerprintWrapper));
+            dataProtectionSpec = DefaultSpecs.getDefaultDataProtectionSpec();
+        } else {
+            keyWrapper = new CompositeKeyWrapper(Collections.<KeyWrapper>singletonList(passwordKeyWrapper));
+            dataProtectionSpec = DefaultSpecs.getLegacyDataProtectionSpec();
+        }
 
-        CompositeKeyWrapper keyWrapper = new CompositeKeyWrapper(Arrays.<KeyWrapper>asList(passwordKeyWrapper, fingerprintWrapper));
         DataStorage dataStorage = DefaultStorage.createStorage(applicationContext, "data", DataStorage.TYPE_DATA);
 
         secretStorage = new SecretStorage(
                 "secrets",
                 dataStorage,
-                DefaultSpecs.getDefaultDataProtectionSpec(),
+                dataProtectionSpec,
                 keyWrapper);
     }
 
@@ -141,7 +156,7 @@ public class SecretManager {
     }
 
     public boolean isFingerprintAuthenticationEnabled() {
-        return getFingerprintEditor().isInitialized();
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getFingerprintEditor().isInitialized();
     }
 
     private FingerprintWrapper.FingerprintEditor getFingerprintEditor() {
@@ -183,6 +198,9 @@ public class SecretManager {
     }
 
     public FingerprintWrapper.EnrollmentStatus checkFingerprintStatus(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return FingerprintWrapper.EnrollmentStatus.NOT_SUPPORTED;
+        }
         return getFingerprintEditor().getEnrollmentStatus(context);
     }
 }
