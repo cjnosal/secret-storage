@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.sampleapplication">
+    package="com.github.cjnosal.secret_storage.sampleapplication">
 
     <uses-permission-sdk-23 android:name="android.permission.USE_FINGERPRINT" />
 

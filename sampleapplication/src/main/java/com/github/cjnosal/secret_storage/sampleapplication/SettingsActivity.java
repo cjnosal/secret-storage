@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.example.sampleapplication;
+package com.github.cjnosal.secret_storage.sampleapplication;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static android.hardware.fingerprint.FingerprintManager.FINGERPRINT_ERROR_CANCELED;
-import static com.example.sampleapplication.AuthDialogUtil.showAuthDialog;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -92,7 +91,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (newPassword.isEmpty()) {
             showError(R.string.empty);
         } else if (secretManager.isFingerprintAuthenticationEnabled()) {
-            final Dialog dialog = showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.confirm, R.string.tap_to_confirm, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
+            final Dialog dialog = AuthDialogUtil.showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.confirm, R.string.tap_to_confirm, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
                 @Override
                 public void onSubmit(String password) {
                 }
@@ -154,7 +153,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void onForgotPasswordClicked() {
         if (secretManager.isFingerprintAuthenticationEnabled()) {
 
-            final Dialog dialog = showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.reset_password, R.string.tap_to_reset, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
+            final Dialog dialog = AuthDialogUtil.showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.reset_password, R.string.tap_to_reset, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
                 @Override
                 public void onSubmit(String password) {
                 }
@@ -242,7 +241,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void onEnableFingerprintCheckedChanged(boolean isChecked) {
         if (isChecked) {
             if (secretManager.isPasswordAuthenticationEnabled()) {
-                showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.PASSWORD, R.string.unlock, R.string.verify_credential, R.string.submit, new AuthDialogUtil.AuthDialogListener() {
+                AuthDialogUtil.showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.PASSWORD, R.string.unlock, R.string.verify_credential, R.string.submit, new AuthDialogUtil.AuthDialogListener() {
                     @Override
                     public void onSubmit(String password) {
                         if (password.isEmpty()) {
@@ -283,7 +282,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void confirmFingerprint() {
-        final Dialog dialog = showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.confirm, R.string.tap_to_confirm, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
+        final Dialog dialog = AuthDialogUtil.showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.FINGERPRINT, R.string.confirm, R.string.tap_to_confirm, R.string.cancel, new AuthDialogUtil.AuthDialogListener() {
             @Override
             public void onSubmit(String password) {
             }

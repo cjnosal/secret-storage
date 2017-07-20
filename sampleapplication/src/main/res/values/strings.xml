@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Sample Application</string>
+    <string name="app_name">Secret Storage</string>
     <string name="set_password">Set Password</string>
     <string name="change_password">Change Password</string>
     <string name="forgot_password">Forgot Password</string>

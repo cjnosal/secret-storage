@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.example.sampleapplication;
+package com.github.cjnosal.secret_storage.sampleapplication;
 
 import android.app.Dialog;
 import android.content.Intent;
@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static android.hardware.fingerprint.FingerprintManager.FINGERPRINT_ERROR_CANCELED;
-import static com.example.sampleapplication.AuthDialogUtil.showAuthDialog;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -89,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onUnlockClicked() {
-        final Dialog dialog = showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.AUTO, R.string.unlock, R.string.verify_credential, R.string.submit, new AuthDialogUtil.AuthDialogListener() {
+        final Dialog dialog = AuthDialogUtil.showAuthDialog(this, secretManager, AuthDialogUtil.DialogAuth.AUTO, R.string.unlock, R.string.verify_credential, R.string.submit, new AuthDialogUtil.AuthDialogListener() {
             @Override
             public void onSubmit(String password) {
                 if (password.isEmpty()) {

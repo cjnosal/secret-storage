@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.example.sampleapplication;
+package com.github.cjnosal.secret_storage.sampleapplication;
 
 import android.content.Context;
 import android.os.Build;
