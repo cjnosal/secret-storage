@@ -31,9 +31,11 @@ import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintStatu
 import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintUtil;
 import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
-import com.github.cjnosal.secret_storage.storage.defaults.DefaultStorage;
+import com.github.cjnosal.secret_storage.storage.FileStorage;
+import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
@@ -48,8 +50,9 @@ public class SecretManager {
     public SecretManager(Context applicationContext) {
         this.applicationContext = applicationContext;
         // Because a CompositeKeyWrapper is used, all KeyWrappers must share the same storage and key protection CipherSpec
-        DataStorage configStorage = DefaultStorage.createStorage(applicationContext, "config", DataStorage.TYPE_CONF);
-        DataStorage keyStorage = DefaultStorage.createStorage(applicationContext, "keys", DataStorage.TYPE_KEYS);
+        DataStorage configStorage = new PreferenceStorage(applicationContext, "config");
+        DataStorage keyStorage = new PreferenceStorage(applicationContext, "keys");
+        DataStorage dataStorage = new FileStorage(applicationContext.getFilesDir() + File.separator + "data");
 
         PasswordKeyWrapper passwordKeyWrapper;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -70,8 +73,6 @@ public class SecretManager {
             keyWrapper = new CompositeKeyWrapper(Collections.<KeyWrapper>singletonList(passwordKeyWrapper));
             dataProtectionSpec = DefaultSpecs.getLegacyDataProtectionSpec();
         }
-
-        DataStorage dataStorage = DefaultStorage.createStorage(applicationContext, "data", DataStorage.TYPE_DATA);
 
         secretStorage = new SecretStorage(
                 "secrets",
