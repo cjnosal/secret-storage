@@ -36,6 +36,7 @@ import android.widget.Toast;
 import com.github.cjnosal.secret_storage.keymanager.FingerprintWrapper;
 import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
+import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintStatus;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -322,7 +323,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void updateFingerprintStatus() {
-        FingerprintWrapper.EnrollmentStatus fingerprintStatus = secretManager.checkFingerprintStatus(this);
+        FingerprintStatus fingerprintStatus = secretManager.checkFingerprintStatus(this);
 
         switch (fingerprintStatus) {
             case NOT_SUPPORTED:
@@ -339,9 +340,9 @@ public class SettingsActivity extends AppCompatActivity {
                 break;
         }
 
-        boolean fingerprintSupported = !FingerprintWrapper.EnrollmentStatus.NOT_SUPPORTED.equals(fingerprintStatus);
+        boolean fingerprintSupported = !FingerprintStatus.NOT_SUPPORTED.equals(fingerprintStatus);
         securitySettingsButton.setEnabled(fingerprintSupported);
-        fingerprintEnabledCheckbox.setEnabled(FingerprintWrapper.EnrollmentStatus.ENROLLED.equals(fingerprintStatus));
+        fingerprintEnabledCheckbox.setEnabled(FingerprintStatus.ENROLLED.equals(fingerprintStatus));
         fingerprintEnabledCheckbox.setOnCheckedChangeListener(null);
         fingerprintEnabledCheckbox.setChecked(secretManager.isFingerprintAuthenticationEnabled());
         fingerprintEnabledCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {

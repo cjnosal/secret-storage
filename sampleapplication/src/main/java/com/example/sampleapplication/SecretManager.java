@@ -27,6 +27,8 @@ import com.github.cjnosal.secret_storage.keymanager.KeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintStatus;
+import com.github.cjnosal.secret_storage.keymanager.fingerprint.FingerprintUtil;
 import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
@@ -197,10 +199,7 @@ public class SecretManager {
         return secretStorage.getEditor();
     }
 
-    public FingerprintWrapper.EnrollmentStatus checkFingerprintStatus(Context context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return FingerprintWrapper.EnrollmentStatus.NOT_SUPPORTED;
-        }
-        return getFingerprintEditor().getEnrollmentStatus(context);
+    public FingerprintStatus checkFingerprintStatus(Context context) {
+        return new FingerprintUtil().getFingerprintStatus(context);
     }
 }
