@@ -60,7 +60,7 @@ public class SecretStorage {
         if (dataStorage == null) {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
         }
-        byte[] cipherText = encrypt(plainText);
+        byte[] cipherText = encrypt(id, plainText);
         dataStorage.store(id, cipherText);
     }
 
@@ -82,7 +82,7 @@ public class SecretStorage {
             throw new UnsupportedOperationException("SecretStorage was not configured with data storage");
         }
         byte[] cipherText = dataStorage.load(id);
-        return decrypt(cipherText);
+        return decrypt(id, cipherText);
     }
 
     public @Nullable byte[] loadValue(String id) {
@@ -216,30 +216,30 @@ public class SecretStorage {
         return (E) keyWrapper.getEditor();
     }
 
-    public byte[] encrypt(byte[] plainText) throws GeneralSecurityException, IOException {
+    public byte[] encrypt(String id, byte[] plainText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy SecretKey encryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey signingKey = prepareDataSigningKey();
-        return dataProtectionStrategy.encryptAndSign(encryptionKey, signingKey, dataProtectionSpec, plainText);
+        return dataProtectionStrategy.encryptAndSign(id, encryptionKey, signingKey, dataProtectionSpec, plainText);
     }
 
-    public byte[] decrypt(byte[] cipherText) throws GeneralSecurityException, IOException {
+    public byte[] decrypt(String id, byte[] cipherText) throws GeneralSecurityException, IOException {
         @KeyPurpose.DataSecrecy SecretKey decryptionKey = prepareDataEncryptionKey();
         @KeyPurpose.DataIntegrity SecretKey verificationKey = prepareDataSigningKey();
-        return dataProtectionStrategy.verifyAndDecrypt(decryptionKey, verificationKey, dataProtectionSpec, cipherText);
+        return dataProtectionStrategy.verifyAndDecrypt(id, decryptionKey, verificationKey, dataProtectionSpec, cipherText);
     }
 
-    public @Nullable byte[] encryptValue(byte[] plainText) {
+    public @Nullable byte[] encryptValue(String id, byte[] plainText) {
         try {
-            return encrypt(plainText);
+            return encrypt(id, plainText);
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    public @Nullable byte[] decryptValue(byte[] cipherText) {
+    public @Nullable byte[] decryptValue(String id, byte[] cipherText) {
         try {
-            return decrypt(cipherText);
+            return decrypt(id, cipherText);
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
         }

@@ -39,10 +39,12 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.SignatureException;
 import java.util.Arrays;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.fail;
 
 public class SecretStorageTest {
 
@@ -335,8 +337,41 @@ public class SecretStorageTest {
 
         noDataStorage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
 
-        byte[] cipherText = noDataStorage.encrypt("Hello World".getBytes());
-        assertEquals("Hello World", new String(noDataStorage.decrypt(cipherText)));
+        byte[] cipherText = noDataStorage.encrypt("message", "Hello World".getBytes());
+        assertEquals("Hello World", new String(noDataStorage.decrypt("message", cipherText)));
+    }
+
+    @Test
+    public void idMismatch() throws GeneralSecurityException, IOException {
+        SecretStorage noDataStorage = new SecretStorage.Builder()
+                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
+                .keyWrapper(getObfuscationKeyWrapper())
+                .build();
+
+        noDataStorage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+
+        byte[] cipherText = noDataStorage.encrypt("message", "Hello World".getBytes());
+        try {
+            noDataStorage.decrypt("message2", cipherText);
+            fail("Expected id mismatch");
+        } catch(IOException e) {}
+    }
+
+    @Test
+    public void metadataTampering() throws GeneralSecurityException, IOException {
+        SecretStorage noDataStorage = new SecretStorage.Builder()
+                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
+                .keyWrapper(getObfuscationKeyWrapper())
+                .build();
+
+        noDataStorage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+
+        byte[] cipherText = noDataStorage.encrypt("message", "Hello World".getBytes());
+        cipherText[8] = (byte)(cipherText[2] ^ 0xFF);
+        try {
+            noDataStorage.decrypt("message", cipherText);
+            fail("Expected signature mismatch");
+        } catch(SignatureException e) {}
     }
 
 }

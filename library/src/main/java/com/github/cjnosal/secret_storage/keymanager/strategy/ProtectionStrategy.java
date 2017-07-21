@@ -18,6 +18,7 @@ package com.github.cjnosal.secret_storage.keymanager.strategy;
 
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
+import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
@@ -43,22 +44,28 @@ public class ProtectionStrategy {
         return integrityStrategy;
     }
 
-    // TODO key and/or data ids should be signed by the mac?
-    public byte[] encryptAndSign(Key encryptionKey, Key signingKey, DataProtectionSpec dataProtectionSpec, byte[] plainText) throws GeneralSecurityException, IOException {
+    public byte[] encryptAndSign(String id, Key encryptionKey, Key signingKey, DataProtectionSpec dataProtectionSpec, byte[] plainText) throws GeneralSecurityException, IOException {
         byte[] cipherText = cipherStrategy.encrypt(encryptionKey, dataProtectionSpec.getCipherSpec(), plainText);
-        byte[] signature = integrityStrategy.sign(signingKey, dataProtectionSpec.getIntegritySpec(), cipherText);
+        byte[] meta = Encoding.utf8Decode(id);
+        byte[] cipherTextWithMetadata = ByteArrayUtil.join(meta, cipherText);
+        byte[] signature = integrityStrategy.sign(signingKey, dataProtectionSpec.getIntegritySpec(), cipherTextWithMetadata);
 
-        return ByteArrayUtil.join(cipherText, signature);
+        return ByteArrayUtil.join(cipherTextWithMetadata, signature);
     }
 
-    public byte[] verifyAndDecrypt(Key decryptionKey, Key verificationKey, DataProtectionSpec dataProtectionSpec, byte[] cipherText) throws GeneralSecurityException, IOException {
+    public byte[] verifyAndDecrypt(String id, Key decryptionKey, Key verificationKey, DataProtectionSpec dataProtectionSpec, byte[] cipherText) throws GeneralSecurityException, IOException {
 
-        byte[][] signedData = ByteArrayUtil.split(cipherText);
+        byte[][] signedDataAndSignature = ByteArrayUtil.split(cipherText);
 
-        if (!integrityStrategy.verify(verificationKey, dataProtectionSpec.getIntegritySpec(), signedData[0], signedData[1])) {
+        if (!integrityStrategy.verify(verificationKey, dataProtectionSpec.getIntegritySpec(), signedDataAndSignature[0], signedDataAndSignature[1])) {
             throw new SignatureException("Signature check failed");
         }
 
-        return cipherStrategy.decrypt(decryptionKey, dataProtectionSpec.getCipherSpec(), signedData[0]);
+        byte[][] metadataAndCipherText = ByteArrayUtil.split(signedDataAndSignature[0]);
+        if (!id.equals(new String(metadataAndCipherText[0]))) {
+            throw new IOException("Metadata (id=" + metadataAndCipherText[0] + ") doesn't match requested id (" + id + ")");
+        }
+
+        return cipherStrategy.decrypt(decryptionKey, dataProtectionSpec.getCipherSpec(), metadataAndCipherText[1]);
     }
 }
