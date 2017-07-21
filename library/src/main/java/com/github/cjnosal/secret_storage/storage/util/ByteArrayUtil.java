@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 
 public class ByteArrayUtil {
     public static byte[] join(byte[] first, byte[] second) {
-        int joinedLength = first.length + second.length + Integer.SIZE * 2;
+        int joinedLength = first.length + second.length + Integer.SIZE/Byte.SIZE * 2;
         ByteBuffer buffer = ByteBuffer.allocate(joinedLength);
         buffer.putInt(first.length);
         buffer.put(first);

@@ -34,7 +34,7 @@ public class DataEncoding {
         return value[0];
     }
     public static byte[] encode(char value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Character.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Character.SIZE/Byte.SIZE);
         buffer.putChar(value);
         return buffer.array();
     }
@@ -43,7 +43,7 @@ public class DataEncoding {
         return buffer.get();
     }
     public static byte[] encode(double value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Double.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Double.SIZE/Byte.SIZE);
         buffer.putDouble(value);
         return buffer.array();
     }
@@ -52,7 +52,7 @@ public class DataEncoding {
         return buffer.get();
     }
     public static byte[] encode(float value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Float.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Float.SIZE/Byte.SIZE);
         buffer.putFloat(value);
         return buffer.array();
     }
@@ -61,7 +61,7 @@ public class DataEncoding {
         return buffer.get();
     }
     public static byte[] encode(long value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE/Byte.SIZE);
         buffer.putLong(value);
         return buffer.array();
     }
@@ -70,7 +70,7 @@ public class DataEncoding {
         return buffer.get();
     }
     public static byte[] encode(int value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE/Byte.SIZE);
         buffer.putInt(value);
         return buffer.array();
     }
@@ -79,7 +79,7 @@ public class DataEncoding {
         return buffer.get();
     }
     public static byte[] encode(short value) {
-        ByteBuffer buffer = ByteBuffer.allocate(Short.SIZE/8);
+        ByteBuffer buffer = ByteBuffer.allocate(Short.SIZE/Byte.SIZE);
         buffer.putShort(value);
         return buffer.array();
     }
