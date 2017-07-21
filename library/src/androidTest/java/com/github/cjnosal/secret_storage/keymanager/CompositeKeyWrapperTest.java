@@ -93,12 +93,12 @@ public class CompositeKeyWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey(enc);
-        assertTrue(keyStorage.exists("shared:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(configStorage.exists("kek0:WRAPPED_KEYWRAPPER_KEY"));
-        assertTrue(configStorage.exists("kek1:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(keyStorage.exists("shared:DATA_ENCRYPTION_KEY"));
+        assertTrue(configStorage.exists("kek0:INTERMEDIATE_KEK"));
+        assertTrue(configStorage.exists("kek1:INTERMEDIATE_KEK"));
 
         subject.storeDataSigningKey(sig);
-        assertTrue(keyStorage.exists("shared:WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("shared:DATA_SIGNING_KEY"));
 
         assertTrue(configStorage.exists("kek0:ENC_SALT"));
         assertTrue(configStorage.exists("kek0:VERIFICATION"));
@@ -130,10 +130,10 @@ public class CompositeKeyWrapperTest {
 
         subject.eraseConfig();
 
-        assertTrue(keyStorage.exists("shared:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage.exists("shared:WRAPPED_SIGNING_KEY"));
-        assertFalse(configStorage.exists("kek0:WRAPPED_KEYWRAPPER_KEY"));
-        assertFalse(configStorage.exists("kek1:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(keyStorage.exists("shared:DATA_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("shared:DATA_SIGNING_KEY"));
+        assertFalse(configStorage.exists("kek0:INTERMEDIATE_KEK"));
+        assertFalse(configStorage.exists("kek1:INTERMEDIATE_KEK"));
         assertFalse(configStorage.exists("kek0:ENC_SALT"));
         assertFalse(configStorage.exists("kek0:VERIFICATION"));
         assertFalse(configStorage.exists("kek1:ENC_SALT"));
@@ -145,12 +145,12 @@ public class CompositeKeyWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseKeys();
+        subject.eraseDataKeys();
 
-        assertFalse(keyStorage.exists("shared:WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("shared:WRAPPED_SIGNING_KEY"));
-        assertTrue(configStorage.exists("kek0:WRAPPED_KEYWRAPPER_KEY"));
-        assertTrue(configStorage.exists("kek1:WRAPPED_KEYWRAPPER_KEY"));
+        assertFalse(keyStorage.exists("shared:DATA_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("shared:DATA_SIGNING_KEY"));
+        assertTrue(configStorage.exists("kek0:INTERMEDIATE_KEK"));
+        assertTrue(configStorage.exists("kek1:INTERMEDIATE_KEK"));
         assertTrue(configStorage.exists("kek0:ENC_SALT"));
         assertTrue(configStorage.exists("kek0:VERIFICATION"));
         assertTrue(configStorage.exists("kek1:ENC_SALT"));

@@ -72,11 +72,11 @@ public class PasswordKeyWrapperTest {
         subject.setPassword("password".toCharArray());
 
         subject.storeDataEncryptionKey(enc);
-        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertTrue(configStorage.exists("kek:INTERMEDIATE_KEK"));
 
         subject.storeDataSigningKey(sig);
-        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_SIGNING_KEY"));
 
         assertTrue(configStorage.exists("kek:ENC_SALT"));
         assertTrue(configStorage.exists("kek:VERIFICATION"));
@@ -108,9 +108,9 @@ public class PasswordKeyWrapperTest {
 
         assertFalse(configStorage.exists("kek:ENC_SALT"));
         assertFalse(configStorage.exists("kek:VERIFICATION"));
-        assertFalse(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
-        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertFalse(configStorage.exists("kek:INTERMEDIATE_KEK"));
+        assertTrue(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_SIGNING_KEY"));
     }
 
     @Test
@@ -120,13 +120,13 @@ public class PasswordKeyWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseKeys();
+        subject.eraseDataKeys();
 
-        assertFalse(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertFalse(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("dek:DATA_SIGNING_KEY"));
         assertTrue(configStorage.exists("kek:ENC_SALT"));
         assertTrue(configStorage.exists("kek:VERIFICATION"));
-        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(configStorage.exists("kek:INTERMEDIATE_KEK"));
     }
 
     @Test

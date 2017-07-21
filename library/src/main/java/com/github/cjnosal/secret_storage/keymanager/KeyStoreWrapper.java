@@ -39,10 +39,11 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     // TODO backport KeyProperties
     // TODO map Ciphers to blocks/paddings/digests so KeyGenParameterSpecs can be created from CipherSpec/IntegritySpec
 
-    protected static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
+    protected static final String ROOT_ENCRYPTION_KEY = "ROOT_ENCRYPTION_KEY";
 
     protected final AndroidCrypto androidCrypto;
     protected final KeyGenSpec keyGenSpec;
+    protected final CipherSpec intermediateKekProtectionSpec;
 
     public KeyStoreWrapper(FingerprintWrapper.CryptoConfig cryptoConfig, DataStorage configStorage, DataStorage keyStorage) {
         this(cryptoConfig.getKeyProtectionSpec(), cryptoConfig.getKeyGenSpec(), configStorage, keyStorage);
@@ -50,20 +51,21 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
 
     public KeyStoreWrapper(CipherSpec keyProtectionSpec, KeyGenSpec keyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
+        this.intermediateKekProtectionSpec = keyProtectionSpec;
         this.keyGenSpec = keyGenSpec;
         this.androidCrypto = new AndroidCrypto();
     }
 
     @Override
     void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
-        String storageField = configStorage.getScopedId(ENCRYPTION_KEY);
-        if (!kekExists()) {
-            Key kek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
-            Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+        String storageField = configStorage.getScopedId(ROOT_ENCRYPTION_KEY);
+        if (!intermediateKekExists()) {
+            Key rootKek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
             finishUnlock(null, kekCipher);
         } else {
-            Key kek = androidCrypto.loadSecretKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+            Key rootKek = androidCrypto.loadSecretKey(storageField);
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), intermediateKekProtectionSpec.getCipherTransformation());
             finishUnlock(kekCipher, null);
         }
     }
@@ -71,7 +73,7 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
     @Override
     public void eraseConfig() throws GeneralSecurityException, IOException {
         super.eraseConfig();
-        androidCrypto.deleteEntry(configStorage.getScopedId(ENCRYPTION_KEY));
+        androidCrypto.deleteEntry(configStorage.getScopedId(ROOT_ENCRYPTION_KEY));
     }
 
     protected KeyGenParameterSpec getKeyGenParameterSpec(String keyId) {

@@ -32,9 +32,9 @@ public class CompositeKeyWrapper implements KeyWrapper {
 
     public CompositeKeyWrapper(List<KeyWrapper> keyWrappers) {
         this.keyWrappers = keyWrappers;
-        KekProvider kekProvider = new CompositeKekProvider(new DataKeyGenerator());
+        IntermediateKekProvider intermediateKekProvider = new CompositeIntermediateKekProvider(new DataKeyGenerator());
         for (KeyWrapper kw : keyWrappers) {
-            ((BaseKeyWrapper) kw).setKekProvider(kekProvider);
+            ((BaseKeyWrapper) kw).setIntermediateKekProvider(intermediateKekProvider);
         }
         setStorageScope("shared", "kek");
         // TODO validate all keywrappers use same key storage, same key protection
@@ -93,9 +93,9 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     @Override
-    public void eraseKeys() throws GeneralSecurityException, IOException {
+    public void eraseDataKeys() throws GeneralSecurityException, IOException {
         for (KeyWrapper kw : keyWrappers) {
-            kw.eraseKeys();
+            kw.eraseDataKeys();
         }
     }
 
@@ -109,7 +109,7 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     private KeyWrapper getUnlockedWrapper() throws GeneralSecurityException {
-        boolean kekExists = hasKek();
+        boolean kekExists = hasIntermediateKek();
         for (KeyWrapper kw : keyWrappers) {
             if (kw.isUnlocked() && (!kekExists || ((BaseKeyWrapper)kw).getIntermediateKek() != null)) {
                 return kw;
@@ -118,7 +118,7 @@ public class CompositeKeyWrapper implements KeyWrapper {
         throw new GeneralSecurityException("No key wrappers are unlocked");
     }
 
-    private boolean hasKek() {
+    private boolean hasIntermediateKek() {
         for (KeyWrapper kw : keyWrappers) {
             if (kw.isUnlocked()) {
                 SecretKey key = ((BaseKeyWrapper)kw).getIntermediateKek();
@@ -162,21 +162,21 @@ public class CompositeKeyWrapper implements KeyWrapper {
         }
     }
 
-    private class CompositeKekProvider extends KekProvider {
+    private class CompositeIntermediateKekProvider extends IntermediateKekProvider {
 
-        CompositeKekProvider(DataKeyGenerator generator) {
+        CompositeIntermediateKekProvider(DataKeyGenerator generator) {
             super(generator);
         }
 
         @Override
-        public SecretKey getSecretKey(KeyGenSpec spec) throws GeneralSecurityException {
-            SecretKey secretKey;
-            if (hasKek()) {
-                secretKey = ((BaseKeyWrapper) getUnlockedWrapper()).getIntermediateKek();
+        public SecretKey getIntermediateKek(KeyGenSpec spec) throws GeneralSecurityException {
+            SecretKey intermediateKek;
+            if (hasIntermediateKek()) {
+                intermediateKek = ((BaseKeyWrapper) getUnlockedWrapper()).getIntermediateKek();
             } else {
-                secretKey = super.getSecretKey(spec);
+                intermediateKek = super.getIntermediateKek(spec);
             }
-            return secretKey;
+            return intermediateKek;
         }
     }
 }

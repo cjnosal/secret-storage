@@ -60,14 +60,14 @@ public class FingerprintWrapper extends KeyStoreWrapper {
 
         FingerprintCallback fingerprintCallback;
         Cipher kekCipher;
-        String storageField = configStorage.getScopedId(ENCRYPTION_KEY);
-        if (!kekExists()) {
-            Key kek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
-            kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+        String storageField = configStorage.getScopedId(ROOT_ENCRYPTION_KEY);
+        if (!intermediateKekExists()) {
+            Key rootKek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
+            kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
             fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), true);
         } else {
-            Key kek = androidCrypto.loadSecretKey(storageField);
-            kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+            Key rootKek = androidCrypto.loadSecretKey(storageField);
+            kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), intermediateKekProtectionSpec.getCipherTransformation());
             fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
         }
 
@@ -129,7 +129,7 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         }
 
         public boolean isInitialized() {
-            return kekExists();
+            return intermediateKekExists();
         }
     }
 

@@ -35,12 +35,12 @@ import javax.crypto.Cipher;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
 
-    private static final String ENCRYPTION_KEY = "ENCRYPTION_KEY";
+    private static final String ROOT_ENCRYPTION_KEY = "ROOT_ENCRYPTION_KEY";
 
     private final AndroidCrypto androidCrypto;
-    private final CipherSpec keyProtectionSpec;
+    private final CipherSpec rootKekProtectionSpec;
     private final Context context;
-    private final KeyGenSpec kekSpec;
+    private final KeyGenSpec rootKekSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
 
@@ -51,35 +51,35 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(intermediateKeyProtectionSpec, intermediateKekSpec, configStorage, keyStorage);
         this.context = context;
-        this.kekSpec = keyStoreKekSpec;
+        this.rootKekSpec = keyStoreKekSpec;
         this.androidCrypto = new AndroidCrypto();
-        this.keyProtectionSpec = keyStoreKeyProtectionSpec;
+        this.rootKekProtectionSpec = keyStoreKeyProtectionSpec;
     }
 
     @Override
     public void eraseConfig() throws GeneralSecurityException, IOException {
         super.eraseConfig();
-        androidCrypto.deleteEntry(configStorage.getScopedId(ENCRYPTION_KEY));
+        androidCrypto.deleteEntry(configStorage.getScopedId(ROOT_ENCRYPTION_KEY));
     }
 
     @Override
     void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
-        String storageField = configStorage.getScopedId(ENCRYPTION_KEY);
-        if (!kekExists()) {
+        String storageField = configStorage.getScopedId(ROOT_ENCRYPTION_KEY);
+        if (!intermediateKekExists()) {
             KeyPair encryptionKey = generateKeyPair();
-            Key kek = encryptionKey.getPublic();
-            Cipher kekCipher = keyWrap.initWrapCipher(kek, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+            Key rootKek = encryptionKey.getPublic();
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, rootKekProtectionSpec.getCipherTransformation(), rootKekProtectionSpec.getParamsAlgorithm());
             finishUnlock(null, kekCipher);
         } else {
-            Key kek = androidCrypto.loadPrivateKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(kek, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+            Key rootKek = androidCrypto.loadPrivateKey(storageField);
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), rootKekProtectionSpec.getCipherTransformation());
             finishUnlock(kekCipher, null);
         }
     }
 
     private KeyPair generateKeyPair() throws GeneralSecurityException {
-        return androidCrypto.generateKeyPair(context, configStorage.getScopedId(ENCRYPTION_KEY),
-                kekSpec.getKeygenAlgorithm());
+        return androidCrypto.generateKeyPair(context, configStorage.getScopedId(ROOT_ENCRYPTION_KEY),
+                rootKekSpec.getKeygenAlgorithm());
     }
 
     public static class CryptoConfig {

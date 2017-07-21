@@ -24,16 +24,16 @@ import java.security.GeneralSecurityException;
 
 import javax.crypto.SecretKey;
 
-public class KekProvider {
+public class IntermediateKekProvider {
 
     private DataKeyGenerator generator;
 
-    public KekProvider(DataKeyGenerator generator) {
+    public IntermediateKekProvider(DataKeyGenerator generator) {
         this.generator = generator;
     }
 
     public @KeyPurpose.KeySecrecy
-    SecretKey getSecretKey(KeyGenSpec spec) throws GeneralSecurityException {
+    SecretKey getIntermediateKek(KeyGenSpec spec) throws GeneralSecurityException {
         return generator.generateDataKey(spec.getKeygenAlgorithm(), spec.getKeySize());
     }
 }

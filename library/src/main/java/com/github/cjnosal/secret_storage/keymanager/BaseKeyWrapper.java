@@ -36,33 +36,36 @@ import javax.crypto.SecretKey;
 public abstract class BaseKeyWrapper implements KeyWrapper {
 
     // key storage
-    private static final String WRAPPED_ENCRYPTION_KEY = "WRAPPED_ENCRYPTION_KEY";
-    private static final String WRAPPED_SIGNING_KEY = "WRAPPED_SIGNING_KEY";
-    private static final String WRAPPED_KEYWRAPPER_KEY = "WRAPPED_KEYWRAPPER_KEY";
+    private static final String DATA_ENCRYPTION_KEY = "DATA_ENCRYPTION_KEY";
+    private static final String DATA_SIGNING_KEY = "DATA_SIGNING_KEY";
 
-    protected final KeyWrap keyWrap = new KeyWrap();
-    protected final CipherSpec keyProtectionSpec;
-    protected final KeyGenSpec kekGenSpec;
+    // config storage
+    private static final String INTERMEDIATE_KEK = "INTERMEDIATE_KEK";
+
     protected final ScopedDataStorage configStorage;
-    protected final ScopedDataStorage keyStorage;
+    protected final KeyWrap keyWrap = new KeyWrap();
 
-    private KekProvider kekProvider;
-    private SecretKey keyWrapperKek;
+    private final CipherSpec dataKeyProtectionSpec;
+    private final KeyGenSpec intermediateKekGenSpec;
+    private final ScopedDataStorage keyStorage;
 
-    public BaseKeyWrapper(CipherSpec keyProtectionSpec, KeyGenSpec kekGenSpec, DataStorage configStorage, DataStorage keyStorage) {
-        this.keyProtectionSpec = keyProtectionSpec;
-        this.kekGenSpec = kekGenSpec;
+    private IntermediateKekProvider intermediateKekProvider;
+    private SecretKey intermediateKek;
+
+    public BaseKeyWrapper(CipherSpec dataKeyProtectionSpec, KeyGenSpec intermediateKekGenSpec, DataStorage configStorage, DataStorage keyStorage) {
+        this.dataKeyProtectionSpec = dataKeyProtectionSpec;
+        this.intermediateKekGenSpec = intermediateKekGenSpec;
         this.configStorage = new ScopedDataStorage("kek", configStorage);
         this.keyStorage = new ScopedDataStorage("dek", keyStorage);
-        this.kekProvider = new KekProvider(new DataKeyGenerator());
+        this.intermediateKekProvider = new IntermediateKekProvider(new DataKeyGenerator());
     }
 
     public boolean isUnlocked() {
-        return keyWrapperKek != null;
+        return intermediateKek != null;
     }
 
     void lock() {
-        keyWrapperKek = null;
+        intermediateKek = null;
     }
 
     // must call finishUnlock(String, Cipher, Cipher)
@@ -72,36 +75,36 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(WRAPPED_ENCRYPTION_KEY);
-        return unwrapKey(keyWrapperKek, wrappedKey, keyType);
+        byte[] wrappedKey = keyStorage.load(DATA_ENCRYPTION_KEY);
+        return unwrapKey(intermediateKek, wrappedKey, keyType);
     }
 
     public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = keyStorage.load(WRAPPED_SIGNING_KEY);
-        return unwrapKey(keyWrapperKek, wrappedKey, keyType);
+        byte[] wrappedKey = keyStorage.load(DATA_SIGNING_KEY);
+        return unwrapKey(intermediateKek, wrappedKey, keyType);
     }
 
     public void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(WRAPPED_ENCRYPTION_KEY, wrappedKey);
+        byte[] wrappedKey = wrapKey(intermediateKek, key);
+        keyStorage.store(DATA_ENCRYPTION_KEY, wrappedKey);
     }
 
     public void storeDataSigningKey(@KeyPurpose.DataIntegrity SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = wrapKey(keyWrapperKek, key);
-        keyStorage.store(WRAPPED_SIGNING_KEY, wrappedKey);
+        byte[] wrappedKey = wrapKey(intermediateKek, key);
+        keyStorage.store(DATA_SIGNING_KEY, wrappedKey);
     }
 
     public boolean dataKeysExist() {
-        return keyStorage.exists(WRAPPED_ENCRYPTION_KEY) && keyStorage.exists(WRAPPED_SIGNING_KEY);
+        return keyStorage.exists(DATA_ENCRYPTION_KEY) && keyStorage.exists(DATA_SIGNING_KEY);
     }
 
     public KeyWrapper.Editor getEditor() {
@@ -109,13 +112,13 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     public void eraseConfig() throws GeneralSecurityException, IOException {
-        configStorage.delete(WRAPPED_KEYWRAPPER_KEY);
+        configStorage.delete(INTERMEDIATE_KEK);
         lock();
     }
 
-    public void eraseKeys() throws GeneralSecurityException, IOException {
-        keyStorage.delete(WRAPPED_ENCRYPTION_KEY);
-        keyStorage.delete(WRAPPED_SIGNING_KEY);
+    public void eraseDataKeys() throws GeneralSecurityException, IOException {
+        keyStorage.delete(DATA_ENCRYPTION_KEY);
+        keyStorage.delete(DATA_SIGNING_KEY);
     }
 
     // TODO can this be done on initialization?
@@ -124,17 +127,17 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         configStorage.setScope(configScope);
     }
 
-    protected boolean kekExists() {
-        return configStorage.exists(WRAPPED_KEYWRAPPER_KEY);
+    protected boolean intermediateKekExists() {
+        return configStorage.exists(INTERMEDIATE_KEK);
     }
 
-    protected AlgorithmParameters getKekCipherParams() throws IOException, GeneralSecurityException {
-        byte[] wrappedKey = configStorage.load(WRAPPED_KEYWRAPPER_KEY);
+    protected AlgorithmParameters getCipherParametersForEncryptedIntermediateKek() throws IOException, GeneralSecurityException {
+        byte[] wrappedKey = configStorage.load(INTERMEDIATE_KEK);
         byte[][] splitBytes = ByteArrayUtil.split(wrappedKey);
 
         AlgorithmParameters params = null;
         if (splitBytes[0].length != 0) {
-            params = AlgorithmParameters.getInstance(keyProtectionSpec.getParamsAlgorithm());
+            params = AlgorithmParameters.getInstance(dataKeyProtectionSpec.getParamsAlgorithm());
             params.init(splitBytes[0]);
         }
         return params;
@@ -142,32 +145,32 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
     protected void finishUnlock(Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
         if (unwrapCipher != null) {
-            byte[] wrappedKey = configStorage.load(WRAPPED_KEYWRAPPER_KEY);
-            keyWrapperKek = keyWrap.unwrap(unwrapCipher, wrappedKey, kekGenSpec.getKeygenAlgorithm());
+            byte[] wrappedKey = configStorage.load(INTERMEDIATE_KEK);
+            intermediateKek = keyWrap.unwrap(unwrapCipher, wrappedKey, intermediateKekGenSpec.getKeygenAlgorithm());
         } else {
-            keyWrapperKek = kekProvider.getSecretKey(kekGenSpec);
+            intermediateKek = intermediateKekProvider.getIntermediateKek(intermediateKekGenSpec);
         }
 
         if (wrapCipher != null) {
-            byte[] wrappedKey = keyWrap.wrap(wrapCipher, keyWrapperKek);
-            configStorage.store(WRAPPED_KEYWRAPPER_KEY, wrappedKey);
+            byte[] wrappedKey = keyWrap.wrap(wrapCipher, intermediateKek);
+            configStorage.store(INTERMEDIATE_KEK, wrappedKey);
         }
     }
 
     private byte[] wrapKey(Key kek, SecretKey key) throws GeneralSecurityException, IOException {
-        return keyWrap.wrap(kek, key, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+        return keyWrap.wrap(kek, key, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm());
     }
 
     private SecretKey unwrapKey(Key kek, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
-        return keyWrap.unwrap(kek, wrappedKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm(), keyType);
+        return keyWrap.unwrap(kek, wrappedKey, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm(), keyType);
     }
 
-    void setKekProvider(KekProvider provider) {
-        this.kekProvider = provider;
+    void setIntermediateKekProvider(IntermediateKekProvider provider) {
+        this.intermediateKekProvider = provider;
     }
 
     SecretKey getIntermediateKek() {
-        return keyWrapperKek;
+        return intermediateKek;
     }
 
     abstract class BaseEditor implements KeyWrapper.Editor {

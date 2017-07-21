@@ -41,7 +41,7 @@ public interface KeyWrapper {
 
     void eraseConfig() throws GeneralSecurityException, IOException;
 
-    void eraseKeys() throws GeneralSecurityException, IOException;
+    void eraseDataKeys() throws GeneralSecurityException, IOException;
 
     void setStorageScope(String keyScope, String configScope);
 

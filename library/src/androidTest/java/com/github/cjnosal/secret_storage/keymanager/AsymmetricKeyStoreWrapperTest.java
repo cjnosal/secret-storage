@@ -77,12 +77,12 @@ public class AsymmetricKeyStoreWrapperTest {
     @Test
     public void storeAndLoad() throws Exception {
         subject.storeDataEncryptionKey(enc);
-        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
-        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertTrue(androidCrypto.hasEntry("kek:ROOT_ENCRYPTION_KEY"));
+        assertTrue(configStorage.exists("kek:INTERMEDIATE_KEK"));
 
         subject.storeDataSigningKey(sig);
-        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_SIGNING_KEY"));
 
         subject = new AsymmetricKeyStoreWrapper(
                 context,
@@ -110,10 +110,10 @@ public class AsymmetricKeyStoreWrapperTest {
 
         subject.eraseConfig();
 
-        assertTrue(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertTrue(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
-        assertFalse(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
-        assertFalse(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertTrue(keyStorage.exists("dek:DATA_SIGNING_KEY"));
+        assertFalse(configStorage.exists("kek:INTERMEDIATE_KEK"));
+        assertFalse(androidCrypto.hasEntry("kek:ROOT_ENCRYPTION_KEY"));
     }
 
     @Test
@@ -121,12 +121,12 @@ public class AsymmetricKeyStoreWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseKeys();
+        subject.eraseDataKeys();
 
-        assertFalse(keyStorage.exists("dek:WRAPPED_ENCRYPTION_KEY"));
-        assertFalse(keyStorage.exists("dek:WRAPPED_SIGNING_KEY"));
-        assertTrue(configStorage.exists("kek:WRAPPED_KEYWRAPPER_KEY"));
-        assertTrue(androidCrypto.hasEntry("kek:ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
+        assertFalse(keyStorage.exists("dek:DATA_SIGNING_KEY"));
+        assertTrue(configStorage.exists("kek:INTERMEDIATE_KEK"));
+        assertTrue(androidCrypto.hasEntry("kek:ROOT_ENCRYPTION_KEY"));
     }
 
     @Test

@@ -45,6 +45,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
     final KeyDerivationSpec derivationSpec;
     final KeyGenSpec keyGenSpec;
+    final CipherSpec intermediateKekProtectionSpec;
 
     public PasswordKeyWrapper(CryptoConfig config, DataStorage configStorage, DataStorage keyStorage) {
         this(config.getDerivationSpec(), config.getKeyGenSpec(), config.getKeyProtectionSpec(), configStorage, keyStorage);
@@ -52,6 +53,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
     public PasswordKeyWrapper(KeyDerivationSpec derivationSpec, KeyGenSpec keyGenSpec, CipherSpec keyProtectionSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyProtectionSpec, keyGenSpec, configStorage, keyStorage);
+        this.intermediateKekProtectionSpec = keyProtectionSpec;
         this.derivationSpec = derivationSpec;
         this.keyGenSpec = keyGenSpec;
         this.secureRandom = new SecureRandom();
@@ -71,8 +73,8 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
     void setPassword(@NonNull char[] password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet()) {
-            Key derivedEncKey = getSetPasswordKey(password);
-            Cipher kekCipher = keyWrap.initWrapCipher(derivedEncKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
+            Key rootKek = deriveNewRootKek(password);
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
             finishUnlock(null, kekCipher);
         } else {
             throw new PasswordAlreadySetException("Password already set. Use unlock.");
@@ -80,25 +82,25 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     }
 
     @NonNull
-    private Key getSetPasswordKey(@NonNull char[] password) throws GeneralSecurityException, IOException {
+    private Key deriveNewRootKek(@NonNull char[] password) throws GeneralSecurityException, IOException {
         byte[] salt = generateSalt();
         byte[] generated = derive(password, salt);
         byte[] verification = getVerification(generated);
         configStorage.store(ENC_SALT, salt);
         configStorage.store(VERIFICATION, verification);
 
-        return getDerivedEncKey(generated);
+        return getRootKek(generated);
     }
 
     @Override
     void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
-        Key derivedEncKey = getUnlockKey(((PasswordParams) params).getPassword());
-        Cipher kekCipher = keyWrap.initUnwrapCipher(derivedEncKey, getKekCipherParams(), keyProtectionSpec.getCipherTransformation());
+        Key rootKek = deriveRootKek(((PasswordParams) params).getPassword());
+        Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), intermediateKekProtectionSpec.getCipherTransformation());
         finishUnlock(kekCipher, null);
     }
 
     @NonNull
-    private Key getUnlockKey(char[] password) throws IOException, GeneralSecurityException {
+    private Key deriveRootKek(char[] password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet()) {
             throw new PasswordNotSetException("No password set. Use setPassword.");
         }
@@ -109,7 +111,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
         if (!MessageDigest.isEqual(verification, getVerification(generated))) {
             throw new WrongPasswordException("Wrong password");
         }
-        return getDerivedEncKey(generated);
+        return getRootKek(generated);
     }
 
     boolean isPasswordSet() {
@@ -146,7 +148,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
         return random;
     }
 
-    private Key getDerivedEncKey(byte[] generated) {
+    private Key getRootKek(byte[] generated) {
         return new SecretKeySpec(generated, keyGenSpec.getKeySize()/8, keyGenSpec.getKeySize()/8, keyGenSpec.getKeygenAlgorithm());
     }
 
@@ -190,15 +192,15 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             if (!isPasswordSet()) {
                 throw new PasswordNotSetException("No password set. Use setPassword.");
             }
-            AlgorithmParameters kekCipherParams = getKekCipherParams();
-            Key oldKey = PasswordKeyWrapper.this.getUnlockKey(oldPassword);
+            AlgorithmParameters kekCipherParams = getCipherParametersForEncryptedIntermediateKek();
+            Key oldKey = PasswordKeyWrapper.this.deriveRootKek(oldPassword);
 
             configStorage.delete(VERIFICATION);
             configStorage.delete(ENC_SALT);
 
-            Key newKey = PasswordKeyWrapper.this.getSetPasswordKey(newPassword);
-            Cipher wrapCipher = keyWrap.initWrapCipher(newKey, keyProtectionSpec.getCipherTransformation(), keyProtectionSpec.getParamsAlgorithm());
-            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, kekCipherParams, keyProtectionSpec.getCipherTransformation());
+            Key newKey = PasswordKeyWrapper.this.deriveNewRootKek(newPassword);
+            Cipher wrapCipher = keyWrap.initWrapCipher(newKey, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
+            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, kekCipherParams, intermediateKekProtectionSpec.getCipherTransformation());
             finishUnlock(unwrapCipher, wrapCipher);
         }
 

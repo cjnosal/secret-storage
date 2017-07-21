@@ -106,18 +106,44 @@ String mySecret = Encoding.utf8encode(secretStorage.load("mySecret"));
 byte[] cipherText = secretStorage.encrypt(Encoding.utf8decode("sensitive materials"));
 String mySecret = Encoding.utf8encode(secretStorage.decrypt(cipherText));
 ```
-## Key Protection Strategies
-User data is protected with encrypt-then-mac. The cipher and mac keys are then wrapped with an intermediate key-encryption-key which is held in memory while the KeyWrapper is unlocked. The intermediate key is in turn wrapped using the most secure method available.
+## Root Key Protection Strategies
 ### FingerprintWrapper (API >= 23)
 Generate an AES key in the AndroidKeyStore, requiring fingerprint verification to unlock
-### KeystoreWrapper (API >= 23 when configured without a user password)
+### KeystoreWrapper (API >= 23)
 Generate an AES key in the AndroidKeyStore
-### AsymmetricKeyStoreWrapper (API >= 18 when configured without a user password)
+### AsymmetricKeyStoreWrapper (API >= 18)
 Generate an RSA key pair in the AndroidKeyStore
-### SignedPasswordKeyWrapper (API >= 18 when configured with a user password)
-Derive an encryption key from the password using PBKDF2
+### SignedPasswordKeyWrapper (API >= 18)
+Derive an encryption key from the user's password using PBKDF2
 Bind the derived key to the phone with an RSA key generated in the AndroidKeyStore
-### PasswordKeyWrapper (API < 18 when configured with a user password) 
-Derive an encryption key from the password using PBKDF2
-### ObfuscationKeyWrapper (API < 18 when configured without a user password)
-(INSECURE) Derive an encryption key from a hardcoded password using PBKDF2 
+### PasswordKeyWrapper (API < 18)
+Derive an encryption key from the user's password using PBKDF2
+### ObfuscationKeyWrapper (API < 18)
+(INSECURE) Derive an encryption key from a hardcoded password using PBKDF2
+
+## Key Management
+
+### First Unlock
+- Root Key Encryption Key (KEK) is generated inside AndroidKeyStore or derived from user password
+- Intermediate KEK is generated and retained in memory
+- Intermediate KEK is wrapped by the Root KEK and stored in the KeyWrapper's configuration storage
+- Root KEK is discarded from memory
+
+### First Store
+- Data Encryption Key (DEK) and Data Signing Key (DSK) are generated
+- DEK and DSK are wrapped by the Intermediate KEK and stored in the KeyWrapper's key storage
+- User data is encrypted with DEK, signed with DSK, and stored in the SecretStorage's data storage
+- DEK and DSK are discarded from memory
+
+### Lock
+- Intermediate KEK is discarded from memory
+
+### Unlock
+- Root KEK is derived or AndroidKeyStore reference is loaded
+- Intermediate KEK is unwrapped and retained in memory
+- Root KEK is discarded from memory
+
+### Load/Store
+- DEK and DSK are unwrapped
+- User data is verified and decrypted
+- DEK and DSK are discarded from memory
