@@ -50,20 +50,10 @@ public class ScopedDataStorage implements DataStorage {
         return storage.write(getScopedId(id));
     }
 
-    @Override
-    public void close(@NonNull OutputStream out) throws IOException {
-        storage.close(out);
-    }
-
     @NonNull
     @Override
     public InputStream read(@NonNull String id) throws IOException {
         return storage.read(getScopedId(id));
-    }
-
-    @Override
-    public void close(@NonNull InputStream in) throws IOException {
-        storage.close(in);
     }
 
     @Override
@@ -78,7 +68,10 @@ public class ScopedDataStorage implements DataStorage {
 
     @Override
     public void clear() throws IOException {
-        storage.clear();
+        Set<String> unscopedEntries = entries();
+        for (String entry : unscopedEntries) {
+            delete(entry);
+        }
     }
 
     @Override

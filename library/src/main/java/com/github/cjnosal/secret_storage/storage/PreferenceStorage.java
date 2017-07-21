@@ -61,25 +61,11 @@ public class PreferenceStorage implements DataStorage {
         return new PreferenceOutputStream(preferences, id);
     }
 
-    @Override
-    public void close(@NonNull OutputStream out) throws IOException {
-        try {
-            out.flush();
-        } finally {
-            out.close();
-        }
-    }
-
     @NonNull
     @Override
     public InputStream read(@NonNull String id) throws IOException {
         byte[] bytes = load(id);
         return new ByteArrayInputStream(bytes);
-    }
-
-    @Override
-    public void close(@NonNull InputStream in) throws IOException {
-        in.close();
     }
 
     @Override
@@ -99,7 +85,7 @@ public class PreferenceStorage implements DataStorage {
     public void clear() throws IOException {
         boolean success = preferences.edit().clear().commit();
         if (!success) {
-            throw new IOException("Failed to eraseConfig preferences");
+            throw new IOException("Failed to erase preferences");
         }
     }
 

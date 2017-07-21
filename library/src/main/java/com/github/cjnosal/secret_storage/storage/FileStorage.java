@@ -25,7 +25,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -45,7 +44,11 @@ public class FileStorage implements DataStorage {
             fos.write(bytes);
         } finally {
             if (fos != null) {
-                close(fos);
+                try {
+                    fos.flush();
+                } finally {
+                    fos.close();
+                }
             }
         }
     }
@@ -58,7 +61,7 @@ public class FileStorage implements DataStorage {
             return readAll(fis);
         } finally {
             if (fis != null) {
-                close(fis);
+                fis.close();
             }
         }
     }
@@ -79,24 +82,15 @@ public class FileStorage implements DataStorage {
     @NonNull
     @Override
     public OutputStream write(@NonNull String id) throws IOException {
-        if (!directory.exists() && !directory.mkdirs()) {
+        File file = new File(directory, id);
+        File parentFile = file.getParentFile();
+        if (!parentFile.exists() && !parentFile.mkdirs()) {
             throw new IOException("Unable to create directory " + directory.getPath());
         }
-
-        File file = new File(directory, id);
         if (!file.exists() && !file.createNewFile()) {
             throw new IOException("Unable to create file " + file.getPath());
         }
         return new FileOutputStream(file);
-    }
-
-    @Override
-    public void close(@NonNull OutputStream out) throws IOException {
-        try {
-            out.flush();
-        } finally {
-            out.close();
-        }
     }
 
     @NonNull
@@ -104,11 +98,6 @@ public class FileStorage implements DataStorage {
     public InputStream read(@NonNull String id) throws IOException {
         File file = new File(directory, id);
         return new FileInputStream(file);
-    }
-
-    @Override
-    public void close(@NonNull InputStream in) throws IOException {
-        in.close();
     }
 
     @Override
@@ -120,38 +109,49 @@ public class FileStorage implements DataStorage {
     @Override
     public void delete(@NonNull String id) throws IOException {
         File f = new File(directory, id);
-        if (!f.delete()) {
-            throw new IOException("Failed to delete " + id);
-        }
+        clear(f);
     }
 
     @Override
     public void clear() throws IOException {
-        if (directory.exists()) {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    //noinspection ResultOfMethodCallIgnored - directory deletion will fail if it isn't empty
-                    f.delete();
+        clear(directory);
+    }
+
+    private void clear(File file) throws IOException {
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                File[] files = file.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        clear(f);
+                    }
                 }
             }
-            if (!directory.delete()) {
-                throw new IOException("Failed to eraseConfig " + directory.getName());
+            if (!file.delete()) {
+                throw new IOException("Failed to erase " + file.getName());
             }
         }
     }
 
     @Override
     public Set<String> entries() {
+        HashSet<String> files = new HashSet<>();
         if (directory.exists()) {
-            String[] fileNames = directory.list();
-            if (fileNames != null) {
-                Set<String> fileSet = new HashSet<>(fileNames.length);
-                Collections.addAll(fileSet, fileNames);
-                return fileSet;
+            entries(files, directory);
+        }
+        return files;
+    }
+
+    private void entries(Set<String> entries, File dir) {
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) {
+                entries(entries, f);
+            } else {
+                String relative = directory.toURI().relativize(f.toURI()).getPath();
+                entries.add(relative);
             }
         }
-        return new HashSet<>();
     }
 
     @Override

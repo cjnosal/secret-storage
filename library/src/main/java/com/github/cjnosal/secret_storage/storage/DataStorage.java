@@ -28,10 +28,7 @@ public interface DataStorage {
     @NonNull byte[] load(@NonNull String id) throws IOException;
 
     @NonNull OutputStream write(@NonNull String id) throws IOException;
-    void close(@NonNull OutputStream out) throws IOException;
-
     @NonNull InputStream read(@NonNull String id) throws IOException;
-    void close(@NonNull InputStream in) throws IOException;
 
     boolean exists(@NonNull String id);
     void delete(@NonNull String id) throws IOException;
