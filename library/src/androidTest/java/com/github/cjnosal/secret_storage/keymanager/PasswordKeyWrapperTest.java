@@ -104,7 +104,7 @@ public class PasswordKeyWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseConfig();
+        subject.getEditor().eraseConfig();
 
         assertFalse(configStorage.exists("kek:ENC_SALT"));
         assertFalse(configStorage.exists("kek:VERIFICATION"));

@@ -143,7 +143,7 @@ public class SecretStorage {
     // erase encrypted data, wrapped keys, configuration, keystore values
     public void reset() throws IOException, GeneralSecurityException {
         clear();
-        keyWrapper.eraseConfig();
+        keyWrapper.getEditor().eraseConfig();
         keyWrapper.eraseDataKeys();
     }
 

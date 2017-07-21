@@ -60,7 +60,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         this.intermediateKekProvider = new IntermediateKekProvider(new DataKeyGenerator());
     }
 
-    public boolean isUnlocked() {
+    private boolean isUnlocked() {
         return intermediateKek != null;
     }
 
@@ -111,7 +111,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return new NoParamsEditor();
     }
 
-    public void eraseConfig() throws GeneralSecurityException, IOException {
+    protected void eraseConfig() throws GeneralSecurityException, IOException {
         configStorage.delete(INTERMEDIATE_KEK);
         lock();
     }
@@ -186,6 +186,11 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
 
         public void eraseConfig() throws GeneralSecurityException, IOException {
             BaseKeyWrapper.this.eraseConfig();
+        }
+
+        @Override
+        public void setStorageScope(String keyScope, String configScope) {
+            BaseKeyWrapper.this.setStorageScope(keyScope, configScope);
         }
     }
 

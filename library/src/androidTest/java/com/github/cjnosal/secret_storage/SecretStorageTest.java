@@ -191,7 +191,7 @@ public class SecretStorageTest {
 
                     @Override
                     public KeyWrapper initKeyWrapper() throws IOException, GeneralSecurityException {
-                        k1.eraseConfig();
+                        k1.getEditor().eraseConfig();
                         if (k2 instanceof PasswordKeyWrapper && !(k2 instanceof ObfuscationKeyWrapper)) {
                             PasswordKeyWrapper.PasswordEditor e = (PasswordKeyWrapper.PasswordEditor)k2.getEditor();
                             if (!e.isPasswordSet()) {
@@ -222,52 +222,52 @@ public class SecretStorageTest {
 
         dataStorage = new ScopedDataStorage("data1", storage);
         keyWrapper = getPasswordKeyWrapper();
-        keyWrapper.setStorageScope("k1", "c1");
+        keyWrapper.getEditor().setStorageScope("k1", "c1");
         SecretStorage s1 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data2", storage);
         keyWrapper = getPasswordKeyWrapper();
-        keyWrapper.setStorageScope("k2", "c2");
+        keyWrapper.getEditor().setStorageScope("k2", "c2");
         SecretStorage s2 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data3", storage);
         keyWrapper = getSignedPasswordKeyWrapper();
-        keyWrapper.setStorageScope("k3", "c3");
+        keyWrapper.getEditor().setStorageScope("k3", "c3");
         SecretStorage s3 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data4", storage);
         keyWrapper = getSignedPasswordKeyWrapper();
-        keyWrapper.setStorageScope("k4", "c4");
+        keyWrapper.getEditor().setStorageScope("k4", "c4");
         SecretStorage s4 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data5", storage);
         keyWrapper = getAsymmetricKeyStoreWrapper();
-        keyWrapper.setStorageScope("k5", "c5");
+        keyWrapper.getEditor().setStorageScope("k5", "c5");
         SecretStorage s5 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data6", storage);
         keyWrapper = getAsymmetricKeyStoreWrapper();
-        keyWrapper.setStorageScope("k6", "c6");
+        keyWrapper.getEditor().setStorageScope("k6", "c6");
         SecretStorage s6 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data7", storage);
         keyWrapper = getKeyStoreWrapper();
-        keyWrapper.setStorageScope("k7", "c7");
+        keyWrapper.getEditor().setStorageScope("k7", "c7");
         SecretStorage s7 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data8", storage);
         keyWrapper = getKeyStoreWrapper();
-        keyWrapper.setStorageScope("k8", "c8");
+        keyWrapper.getEditor().setStorageScope("k8", "c8");
         SecretStorage s8 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data9", storage);
         keyWrapper = getObfuscationKeyWrapper();
-        keyWrapper.setStorageScope("k9", "c9");
+        keyWrapper.getEditor().setStorageScope("k9", "c9");
         SecretStorage s9 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         dataStorage = new ScopedDataStorage("data10", storage);
         keyWrapper = getObfuscationKeyWrapper();
-        keyWrapper.setStorageScope("k10", "c10");
+        keyWrapper.getEditor().setStorageScope("k10", "c10");
         SecretStorage s10 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
 
         s1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password".toCharArray());

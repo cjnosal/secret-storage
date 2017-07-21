@@ -60,7 +60,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig() throws GeneralSecurityException, IOException {
+    protected void eraseConfig() throws GeneralSecurityException, IOException {
         super.eraseConfig();
         configStorage.delete(VERIFICATION);
         configStorage.delete(ENC_SALT);

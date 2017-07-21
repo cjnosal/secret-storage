@@ -128,7 +128,7 @@ public class CompositeKeyWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseConfig();
+        subject.getEditor().eraseConfig();
 
         assertTrue(keyStorage.exists("shared:DATA_ENCRYPTION_KEY"));
         assertTrue(keyStorage.exists("shared:DATA_SIGNING_KEY"));

@@ -108,7 +108,7 @@ public class AsymmetricKeyStoreWrapperTest {
         subject.storeDataEncryptionKey(enc);
         subject.storeDataSigningKey(sig);
 
-        subject.eraseConfig();
+        subject.getEditor().eraseConfig();
 
         assertTrue(keyStorage.exists("dek:DATA_ENCRYPTION_KEY"));
         assertTrue(keyStorage.exists("dek:DATA_SIGNING_KEY"));

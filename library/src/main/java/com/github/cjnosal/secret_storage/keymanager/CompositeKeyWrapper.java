@@ -36,14 +36,13 @@ public class CompositeKeyWrapper implements KeyWrapper {
         for (KeyWrapper kw : keyWrappers) {
             ((BaseKeyWrapper) kw).setIntermediateKekProvider(intermediateKekProvider);
         }
-        setStorageScope("shared", "kek");
+        getEditor().setStorageScope("shared", "kek");
         // TODO validate all keywrappers use same key storage, same key protection
     }
 
-    @Override
-    public boolean isUnlocked() {
+    private boolean isUnlocked() {
         for (KeyWrapper kw : keyWrappers) {
-            if (kw.isUnlocked()) {
+            if (kw.getEditor().isUnlocked()) {
                 return true;
             }
         }
@@ -86,24 +85,16 @@ public class CompositeKeyWrapper implements KeyWrapper {
     }
 
     @Override
-    public void eraseConfig() throws GeneralSecurityException, IOException {
-        for (KeyWrapper kw : keyWrappers) {
-            kw.eraseConfig();
-        }
-    }
-
-    @Override
     public void eraseDataKeys() throws GeneralSecurityException, IOException {
         for (KeyWrapper kw : keyWrappers) {
             kw.eraseDataKeys();
         }
     }
 
-    @Override
-    public void setStorageScope(String keyScope, String configScope) {
+    private void setStorageScope(String keyScope, String configScope) {
         int index = 0;
         for (KeyWrapper kw : keyWrappers) {
-            kw.setStorageScope(keyScope, configScope + index);
+            kw.getEditor().setStorageScope(keyScope, configScope + index);
             index++;
         }
     }
@@ -111,7 +102,7 @@ public class CompositeKeyWrapper implements KeyWrapper {
     private KeyWrapper getUnlockedWrapper() throws GeneralSecurityException {
         boolean kekExists = hasIntermediateKek();
         for (KeyWrapper kw : keyWrappers) {
-            if (kw.isUnlocked() && (!kekExists || ((BaseKeyWrapper)kw).getIntermediateKek() != null)) {
+            if (kw.getEditor().isUnlocked() && (!kekExists || ((BaseKeyWrapper)kw).getIntermediateKek() != null)) {
                 return kw;
             }
         }
@@ -120,7 +111,7 @@ public class CompositeKeyWrapper implements KeyWrapper {
 
     private boolean hasIntermediateKek() {
         for (KeyWrapper kw : keyWrappers) {
-            if (kw.isUnlocked()) {
+            if (kw.getEditor().isUnlocked()) {
                 SecretKey key = ((BaseKeyWrapper)kw).getIntermediateKek();
                 if (key != null) {
                     return true;
@@ -159,6 +150,11 @@ public class CompositeKeyWrapper implements KeyWrapper {
             for (int i = 0; i < CompositeKeyWrapper.this.keyWrappers.size(); ++i) {
                 getEditor(i).eraseConfig();
             }
+        }
+
+        @Override
+        public void setStorageScope(String keyScope, String configScope) {
+            CompositeKeyWrapper.this.setStorageScope(keyScope, configScope);
         }
     }
 

@@ -62,7 +62,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     }
 
     @Override
-    public void eraseConfig() throws GeneralSecurityException, IOException {
+    protected void eraseConfig() throws GeneralSecurityException, IOException {
         super.eraseConfig();
         androidCrypto.deleteEntry(configStorage.getScopedId(DEVICE_BINDING));
     }

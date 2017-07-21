@@ -25,8 +25,6 @@ import javax.crypto.SecretKey;
 
 public interface KeyWrapper {
 
-    boolean isUnlocked();
-
     @KeyPurpose.DataSecrecy SecretKey loadDataEncryptionKey(String keyType) throws GeneralSecurityException, IOException;
 
     @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException;
@@ -37,18 +35,15 @@ public interface KeyWrapper {
 
     boolean dataKeysExist();
 
-    KeyWrapper.Editor getEditor();
-
-    void eraseConfig() throws GeneralSecurityException, IOException;
-
     void eraseDataKeys() throws GeneralSecurityException, IOException;
 
-    void setStorageScope(String keyScope, String configScope);
+    KeyWrapper.Editor getEditor();
 
     interface Editor {
         void lock();
         boolean isUnlocked();
         void eraseConfig() throws GeneralSecurityException, IOException;
+        void setStorageScope(String keyScope, String configScope);
     }
 
     interface Listener {

@@ -57,7 +57,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     }
 
     @Override
-    public void eraseConfig() throws GeneralSecurityException, IOException {
+    protected void eraseConfig() throws GeneralSecurityException, IOException {
         super.eraseConfig();
         androidCrypto.deleteEntry(configStorage.getScopedId(ROOT_ENCRYPTION_KEY));
     }
