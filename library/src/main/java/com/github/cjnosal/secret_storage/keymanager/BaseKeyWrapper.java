@@ -23,10 +23,8 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.ScopedDataStorage;
-import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
-import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 
@@ -76,7 +74,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = keyStorage.load(DATA_ENCRYPTION_KEY);
-        return unwrapKey(intermediateKek, wrappedKey, keyType);
+        return unwrapDataKey(intermediateKek, wrappedKey, keyType);
     }
 
     public @KeyPurpose.DataIntegrity SecretKey loadDataSigningKey(String keyType) throws GeneralSecurityException, IOException {
@@ -84,14 +82,14 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
         byte[] wrappedKey = keyStorage.load(DATA_SIGNING_KEY);
-        return unwrapKey(intermediateKek, wrappedKey, keyType);
+        return unwrapDataKey(intermediateKek, wrappedKey, keyType);
     }
 
     public void storeDataEncryptionKey(@KeyPurpose.DataSecrecy SecretKey key) throws GeneralSecurityException, IOException {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = wrapKey(intermediateKek, key);
+        byte[] wrappedKey = wrapDataKey(intermediateKek, key);
         keyStorage.store(DATA_ENCRYPTION_KEY, wrappedKey);
     }
 
@@ -99,7 +97,7 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         if (!isUnlocked()) {
             throw new IllegalStateException("KeyWrapper not unlocked");
         }
-        byte[] wrappedKey = wrapKey(intermediateKek, key);
+        byte[] wrappedKey = wrapDataKey(intermediateKek, key);
         keyStorage.store(DATA_SIGNING_KEY, wrappedKey);
     }
 
@@ -131,18 +129,6 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         return configStorage.exists(INTERMEDIATE_KEK);
     }
 
-    protected AlgorithmParameters getCipherParametersForEncryptedIntermediateKek() throws IOException, GeneralSecurityException {
-        byte[] wrappedKey = configStorage.load(INTERMEDIATE_KEK);
-        byte[][] splitBytes = ByteArrayUtil.split(wrappedKey);
-
-        AlgorithmParameters params = null;
-        if (splitBytes[0].length != 0) {
-            params = AlgorithmParameters.getInstance(dataKeyProtectionSpec.getParamsAlgorithm());
-            params.init(splitBytes[0]);
-        }
-        return params;
-    }
-
     protected void finishUnlock(Cipher unwrapCipher, Cipher wrapCipher) throws GeneralSecurityException, IOException {
         if (unwrapCipher != null) {
             byte[] wrappedKey = configStorage.load(INTERMEDIATE_KEK);
@@ -157,16 +143,20 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
         }
     }
 
-    private byte[] wrapKey(Key kek, SecretKey key) throws GeneralSecurityException, IOException {
+    private byte[] wrapDataKey(Key kek, SecretKey key) throws GeneralSecurityException, IOException {
         return keyWrap.wrap(kek, key, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm());
     }
 
-    private SecretKey unwrapKey(Key kek, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
+    private SecretKey unwrapDataKey(Key kek, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
         return keyWrap.unwrap(kek, wrappedKey, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm(), keyType);
     }
 
     void setIntermediateKekProvider(IntermediateKekProvider provider) {
         this.intermediateKekProvider = provider;
+    }
+
+    protected byte[] getWrappedIntermediateKek() throws IOException {
+        return configStorage.load(INTERMEDIATE_KEK);
     }
 
     SecretKey getIntermediateKek() {

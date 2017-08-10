@@ -24,7 +24,6 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
-import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.MessageDigest;
@@ -95,7 +94,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     @Override
     void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
         Key rootKek = deriveRootKek(((PasswordParams) params).getPassword());
-        Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), intermediateKekProtectionSpec.getCipherTransformation());
+        Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
         finishUnlock(kekCipher, null);
     }
 
@@ -192,7 +191,6 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             if (!isPasswordSet()) {
                 throw new PasswordNotSetException("No password set. Use setPassword.");
             }
-            AlgorithmParameters kekCipherParams = getCipherParametersForEncryptedIntermediateKek();
             Key oldKey = PasswordKeyWrapper.this.deriveRootKek(oldPassword);
 
             configStorage.delete(VERIFICATION);
@@ -200,7 +198,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
 
             Key newKey = PasswordKeyWrapper.this.deriveNewRootKek(newPassword);
             Cipher wrapCipher = keyWrap.initWrapCipher(newKey, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
-            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, kekCipherParams, intermediateKekProtectionSpec.getCipherTransformation());
+            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
             finishUnlock(unwrapCipher, wrapCipher);
         }
 

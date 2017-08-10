@@ -72,7 +72,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
             finishUnlock(null, kekCipher);
         } else {
             Key rootKek = androidCrypto.loadPrivateKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), rootKekProtectionSpec.getCipherTransformation());
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, rootKekProtectionSpec.getParamsAlgorithm(), rootKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
             finishUnlock(kekCipher, null);
         }
     }

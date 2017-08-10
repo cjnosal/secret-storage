@@ -65,7 +65,7 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
             finishUnlock(null, kekCipher);
         } else {
             Key rootKek = androidCrypto.loadSecretKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, getCipherParametersForEncryptedIntermediateKek(), intermediateKekProtectionSpec.getCipherTransformation());
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
             finishUnlock(kekCipher, null);
         }
     }
