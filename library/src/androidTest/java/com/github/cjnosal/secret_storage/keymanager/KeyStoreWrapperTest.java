@@ -17,7 +17,9 @@
 package com.github.cjnosal.secret_storage.keymanager;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.SdkSuppress;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
@@ -35,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.M)
 public class KeyStoreWrapperTest {
 
     private Context context;

@@ -17,6 +17,7 @@
 package com.github.cjnosal.secret_storage;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 
 import com.github.cjnosal.secret_storage.keymanager.AsymmetricKeyStoreWrapper;
@@ -42,16 +43,16 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.SignatureException;
 import java.security.SecureRandom;
-import java.util.Arrays;
+import java.security.SignatureException;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.ArrayList;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
 import javax.crypto.spec.IvParameterSpec;
 
 import static com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms.IV_SIZE_AES_128;
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 
 public class SecretStorageTest {
@@ -65,7 +66,9 @@ public class SecretStorageTest {
     @Before
     public void setup() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        androidCrypto = new AndroidCrypto();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            androidCrypto = new AndroidCrypto();
+        }
         configStorage = new PreferenceStorage(context, "testConfig");
         keyStorage = new PreferenceStorage(context, "testKeys");
         dataStorage = new FileStorage(context.getFilesDir() + "/testData");
@@ -74,9 +77,17 @@ public class SecretStorageTest {
         configStorage.clear();
     }
 
+    private DataProtectionSpec dataProtectionSpec() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return DefaultSpecs.getDefaultDataProtectionSpec();
+        } else {
+            return DefaultSpecs.getLegacyDataProtectionSpec();
+        }
+    }
+
     private SecretStorage.Builder defaultBuilder() {
         return new SecretStorage.Builder()
-                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
+                .dataProtectionSpec(dataProtectionSpec())
                 .dataStorage(dataStorage);
     }
 
@@ -134,6 +145,20 @@ public class SecretStorageTest {
         );
     }
 
+    private List<KeyWrapper> supportedKeyWrappers() {
+        List<KeyWrapper> wrappers = new ArrayList<>();
+        wrappers.add(getObfuscationKeyWrapper());
+        wrappers.add(getPasswordKeyWrapper());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            wrappers.add(getSignedPasswordKeyWrapper());
+            wrappers.add(getAsymmetricKeyStoreWrapper());
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            wrappers.add(getKeyStoreWrapper());
+        }
+        return wrappers;
+    }
+
     @Test
     public void copyTo() throws IOException, GeneralSecurityException {
         SecretStorage secretStorage1 = defaultBuilder()
@@ -161,13 +186,7 @@ public class SecretStorageTest {
 
     @Test
     public void rewrap() throws IOException, GeneralSecurityException {
-        final List<KeyWrapper> keyWrappers = Arrays.<KeyWrapper>asList(
-                getObfuscationKeyWrapper(),
-                getPasswordKeyWrapper(),
-                getSignedPasswordKeyWrapper(),
-                getAsymmetricKeyStoreWrapper(),
-                getKeyStoreWrapper()
-        );
+        final List<KeyWrapper> keyWrappers = supportedKeyWrappers();
 
         for (final KeyWrapper k1 : keyWrappers) {
 
@@ -180,7 +199,9 @@ public class SecretStorageTest {
                 keyStorage.clear();
                 dataStorage.clear();
                 configStorage.clear();
-                androidCrypto.clear();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    androidCrypto.clear();
+                }
 
                 final SecretStorage secretStorage = defaultBuilder()
                         .keyWrapper(k1)
@@ -222,7 +243,9 @@ public class SecretStorageTest {
 
     @Test
     public void sharedResourcesShouldNotInterfere() throws IOException, GeneralSecurityException {
-        androidCrypto.clear();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            androidCrypto.clear();
+        }
 
         KeyWrapper keyWrapper;
         DataStorage storage = new PreferenceStorage(context, "shared");
@@ -230,116 +253,92 @@ public class SecretStorageTest {
         configStorage = storage;
         keyStorage = storage;
 
+        List<SecretStorage> stores = new ArrayList<>();
+
         dataStorage = new ScopedDataStorage("data1", storage);
         keyWrapper = getPasswordKeyWrapper();
         keyWrapper.getEditor().setStorageScope("k1", "c1");
-        SecretStorage s1 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
         dataStorage = new ScopedDataStorage("data2", storage);
         keyWrapper = getPasswordKeyWrapper();
         keyWrapper.getEditor().setStorageScope("k2", "c2");
-        SecretStorage s2 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        dataStorage = new ScopedDataStorage("data3", storage);
-        keyWrapper = getSignedPasswordKeyWrapper();
-        keyWrapper.getEditor().setStorageScope("k3", "c3");
-        SecretStorage s3 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            dataStorage = new ScopedDataStorage("data3", storage);
+            keyWrapper = getSignedPasswordKeyWrapper();
+            keyWrapper.getEditor().setStorageScope("k3", "c3");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        dataStorage = new ScopedDataStorage("data4", storage);
-        keyWrapper = getSignedPasswordKeyWrapper();
-        keyWrapper.getEditor().setStorageScope("k4", "c4");
-        SecretStorage s4 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+            dataStorage = new ScopedDataStorage("data4", storage);
+            keyWrapper = getSignedPasswordKeyWrapper();
+            keyWrapper.getEditor().setStorageScope("k4", "c4");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        dataStorage = new ScopedDataStorage("data5", storage);
-        keyWrapper = getAsymmetricKeyStoreWrapper();
-        keyWrapper.getEditor().setStorageScope("k5", "c5");
-        SecretStorage s5 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+            dataStorage = new ScopedDataStorage("data5", storage);
+            keyWrapper = getAsymmetricKeyStoreWrapper();
+            keyWrapper.getEditor().setStorageScope("k5", "c5");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        dataStorage = new ScopedDataStorage("data6", storage);
-        keyWrapper = getAsymmetricKeyStoreWrapper();
-        keyWrapper.getEditor().setStorageScope("k6", "c6");
-        SecretStorage s6 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+            dataStorage = new ScopedDataStorage("data6", storage);
+            keyWrapper = getAsymmetricKeyStoreWrapper();
+            keyWrapper.getEditor().setStorageScope("k6", "c6");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
+        }
 
-        dataStorage = new ScopedDataStorage("data7", storage);
-        keyWrapper = getKeyStoreWrapper();
-        keyWrapper.getEditor().setStorageScope("k7", "c7");
-        SecretStorage s7 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            dataStorage = new ScopedDataStorage("data7", storage);
+            keyWrapper = getKeyStoreWrapper();
+            keyWrapper.getEditor().setStorageScope("k7", "c7");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        dataStorage = new ScopedDataStorage("data8", storage);
-        keyWrapper = getKeyStoreWrapper();
-        keyWrapper.getEditor().setStorageScope("k8", "c8");
-        SecretStorage s8 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+            dataStorage = new ScopedDataStorage("data8", storage);
+            keyWrapper = getKeyStoreWrapper();
+            keyWrapper.getEditor().setStorageScope("k8", "c8");
+            stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
+        }
 
         dataStorage = new ScopedDataStorage("data9", storage);
         keyWrapper = getObfuscationKeyWrapper();
         keyWrapper.getEditor().setStorageScope("k9", "c9");
-        SecretStorage s9 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        stores.add(defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
         dataStorage = new ScopedDataStorage("data10", storage);
         keyWrapper = getObfuscationKeyWrapper();
         keyWrapper.getEditor().setStorageScope("k10", "c10");
-        SecretStorage s10 = defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build();
+        stores.add( defaultBuilder().keyWrapper(keyWrapper).dataStorage(dataStorage).build());
 
-        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password".toCharArray());
-        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password2".toCharArray());
-        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password3".toCharArray());
-        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword("password4".toCharArray());
-        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        for (int i = 0; i < stores.size(); ++i) {
+            SecretStorage store = stores.get(i);
+            if (store.getEditor() instanceof PasswordKeyWrapper.PasswordEditor) {
+                store.<PasswordKeyWrapper.PasswordEditor>getEditor().setPassword(("password" + i).toCharArray());
+            } else {
+                store.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+            }
+        }
 
-        s1.store("secret1", "message1".getBytes());
-        s2.store("secret1", "message2".getBytes());
-        s3.store("secret1", "message3".getBytes());
-        s4.store("secret1", "message4".getBytes());
-        s5.store("secret1", "message5".getBytes());
-        s6.store("secret1", "message6".getBytes());
-        s7.store("secret1", "message7".getBytes());
-        s8.store("secret1", "message8".getBytes());
-        s9.store("secret1", "message9".getBytes());
-        s10.store("secret1", "message10".getBytes());
+        for (int i = 0; i < stores.size(); ++i) {
+            SecretStorage store = stores.get(i);
+            store.store("secret", ("message" + i).getBytes());
+            store.getEditor().lock();
+        }
 
-        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
-        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
-        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
-        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().lock();
-        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().lock();
-
-        s1.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password".toCharArray());
-        s2.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password2".toCharArray());
-        s3.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password3".toCharArray());
-        s4.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock("password4".toCharArray());
-        s5.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s6.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s7.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s8.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s9.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-        s10.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
-
-        assertEquals("message1", new String(s1.load("secret1")));
-        assertEquals("message2", new String(s2.load("secret1")));
-        assertEquals("message3", new String(s3.load("secret1")));
-        assertEquals("message4", new String(s4.load("secret1")));
-        assertEquals("message5", new String(s5.load("secret1")));
-        assertEquals("message6", new String(s6.load("secret1")));
-        assertEquals("message7", new String(s7.load("secret1")));
-        assertEquals("message8", new String(s8.load("secret1")));
-        assertEquals("message9", new String(s9.load("secret1")));
-        assertEquals("message10", new String(s10.load("secret1")));
+        for (int i = 0; i < stores.size(); ++i) {
+            SecretStorage store = stores.get(i);
+            if (store.getEditor() instanceof PasswordKeyWrapper.PasswordEditor) {
+                store.<PasswordKeyWrapper.PasswordEditor>getEditor().unlock(("password" + i).toCharArray());
+            } else {
+                store.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+            }
+            assertEquals("message" + i, new String(store.load("secret")));
+        }
     }
 
     @Test
     public void encryptWithExternalStorage() throws GeneralSecurityException, IOException {
         SecretStorage noDataStorage = new SecretStorage.Builder()
-                .dataProtectionSpec(DefaultSpecs.getDefaultDataProtectionSpec())
+                .dataProtectionSpec(dataProtectionSpec())
                 .keyWrapper(getObfuscationKeyWrapper())
                 .build();
 
