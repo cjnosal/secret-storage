@@ -61,11 +61,11 @@ public class KeyStoreWrapper extends BaseKeyWrapper {
         String storageField = configStorage.getScopedId(ROOT_ENCRYPTION_KEY);
         if (!intermediateKekExists()) {
             Key rootKek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
-            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec);
             finishUnlock(null, kekCipher);
         } else {
             Key rootKek = androidCrypto.loadSecretKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec, getWrappedIntermediateKek());
             finishUnlock(kekCipher, null);
         }
     }

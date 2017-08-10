@@ -33,7 +33,12 @@ public abstract class CipherStrategy {
 
     public byte[] encrypt(Key key, CipherSpec cipherSpec, byte[] plainBytes) throws GeneralSecurityException, IOException {
         Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
-        AlgorithmParameterSpec algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(cipherSpec.getCipherTransformation());
+        AlgorithmParameterSpec algorithmParameterSpec = null;
+        if (cipherSpec.getParameterSpecFactory() != null) {
+            algorithmParameterSpec = cipherSpec.getParameterSpecFactory().newInstance();
+        } else if (cipherSpec.getParamsAlgorithm() != null) {
+            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(cipherSpec.getCipherTransformation());
+        }
         cipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameterSpec);
         byte[] encryptedBytes = cipher.doFinal(plainBytes);
         byte[] paramBytes;

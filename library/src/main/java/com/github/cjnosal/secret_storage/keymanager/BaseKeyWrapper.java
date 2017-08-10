@@ -144,11 +144,11 @@ public abstract class BaseKeyWrapper implements KeyWrapper {
     }
 
     private byte[] wrapDataKey(Key kek, SecretKey key) throws GeneralSecurityException, IOException {
-        return keyWrap.wrap(kek, key, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm());
+        return keyWrap.wrap(kek, key, dataKeyProtectionSpec);
     }
 
     private SecretKey unwrapDataKey(Key kek, byte[] wrappedKey, String keyType) throws GeneralSecurityException, IOException {
-        return keyWrap.unwrap(kek, wrappedKey, dataKeyProtectionSpec.getCipherTransformation(), dataKeyProtectionSpec.getParamsAlgorithm(), keyType);
+        return keyWrap.unwrap(kek, wrappedKey, dataKeyProtectionSpec, keyType);
     }
 
     void setIntermediateKekProvider(IntermediateKekProvider provider) {

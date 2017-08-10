@@ -73,7 +73,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     void setPassword(@NonNull char[] password) throws IOException, GeneralSecurityException {
         if (!isPasswordSet()) {
             Key rootKek = deriveNewRootKek(password);
-            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec);
             finishUnlock(null, kekCipher);
         } else {
             throw new PasswordAlreadySetException("Password already set. Use unlock.");
@@ -94,7 +94,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     @Override
     void unlock(UnlockParams params) throws IOException, GeneralSecurityException {
         Key rootKek = deriveRootKek(((PasswordParams) params).getPassword());
-        Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
+        Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec, getWrappedIntermediateKek());
         finishUnlock(kekCipher, null);
     }
 
@@ -197,8 +197,8 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
             configStorage.delete(ENC_SALT);
 
             Key newKey = PasswordKeyWrapper.this.deriveNewRootKek(newPassword);
-            Cipher wrapCipher = keyWrap.initWrapCipher(newKey, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
-            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
+            Cipher wrapCipher = keyWrap.initWrapCipher(newKey, intermediateKekProtectionSpec);
+            Cipher unwrapCipher = keyWrap.initUnwrapCipher(oldKey, intermediateKekProtectionSpec, getWrappedIntermediateKek());
             finishUnlock(unwrapCipher, wrapCipher);
         }
 

@@ -63,11 +63,11 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         String storageField = configStorage.getScopedId(ROOT_ENCRYPTION_KEY);
         if (!intermediateKekExists()) {
             Key rootKek = androidCrypto.generateSecretKey(keyGenSpec.getKeygenAlgorithm(), getKeyGenParameterSpec(storageField));
-            kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec.getCipherTransformation(), intermediateKekProtectionSpec.getParamsAlgorithm());
+            kekCipher = keyWrap.initWrapCipher(rootKek, intermediateKekProtectionSpec);
             fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), true);
         } else {
             Key rootKek = androidCrypto.loadSecretKey(storageField);
-            kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec.getParamsAlgorithm(), intermediateKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
+            kekCipher = keyWrap.initUnwrapCipher(rootKek, intermediateKekProtectionSpec, getWrappedIntermediateKek());
             fingerprintCallback = new FingerprintCallback(fingerprintParams.getAuthenticationCallback(), fingerprintParams.getListener(), false);
         }
 

@@ -17,6 +17,7 @@
 package com.github.cjnosal.secret_storage.keymanager.keywrap;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.storage.util.ByteArrayUtil;
 
 import java.io.IOException;
@@ -34,12 +35,14 @@ import javax.crypto.SecretKey;
 
 public class KeyWrap {
 
-    public Cipher initWrapCipher(Key kek, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
-        Cipher cipher = Cipher.getInstance(algorithm);
+    public Cipher initWrapCipher(Key kek, CipherSpec cipherSpec) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
         AlgorithmParameterSpec algorithmParameterSpec = null;
-        if (paramAlgorithm != null) {
-            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(paramAlgorithm);
+        if (cipherSpec.getParameterSpecFactory() != null) {
+            algorithmParameterSpec = cipherSpec.getParameterSpecFactory().newInstance();
+        } else if (cipherSpec.getParamsAlgorithm() != null) {
+            algorithmParameterSpec = Cipher.getMaxAllowedParameterSpec(cipherSpec.getCipherTransformation());
         }
+        Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
         cipher.init(Cipher.WRAP_MODE, kek, algorithmParameterSpec);
         return cipher;
     }
@@ -55,17 +58,17 @@ public class KeyWrap {
         return ByteArrayUtil.join(paramBytes, wrappedKey);
     }
 
-    public byte[] wrap(Key kek, SecretKey secret, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException {
-        Cipher cipher = initWrapCipher(kek, algorithm, paramAlgorithm);
+    public byte[] wrap(Key kek, SecretKey secret, CipherSpec cipherSpec) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException {
+        Cipher cipher = initWrapCipher(kek, cipherSpec);
         return wrap(cipher, secret);
     }
 
-    public Cipher initUnwrapCipher(Key kek, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm, @SecurityAlgorithms.Cipher String cipherAlgorithm, byte[] cipherText) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException, InvalidKeyException {
+    public Cipher initUnwrapCipher(Key kek, CipherSpec cipherSpec, byte[] cipherText) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException, InvalidKeyException {
         byte[][] splitBytes = ByteArrayUtil.split(cipherText);
-        Cipher cipher = Cipher.getInstance(cipherAlgorithm);
+        Cipher cipher = Cipher.getInstance(cipherSpec.getCipherTransformation());
         AlgorithmParameters params = null;
         if (splitBytes[0].length != 0) {
-            params = AlgorithmParameters.getInstance(paramAlgorithm);
+            params = AlgorithmParameters.getInstance(cipherSpec.getParamsAlgorithm());
             params.init(splitBytes[0]);
         }
         cipher.init(Cipher.UNWRAP_MODE, kek, params);
@@ -77,8 +80,8 @@ public class KeyWrap {
         return (SecretKey) cipher.unwrap(splitBytes[1], keyAlgorithm, Cipher.SECRET_KEY);
     }
 
-    public SecretKey unwrap(Key kek, byte[] cipherText, @SecurityAlgorithms.Cipher String algorithm, @SecurityAlgorithms.AlgorithmParameters String paramAlgorithm, @SecurityAlgorithms.KeyGenerator String keyAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {
-        Cipher cipher = initUnwrapCipher(kek, paramAlgorithm, algorithm, cipherText);
+    public SecretKey unwrap(Key kek, byte[] cipherText, CipherSpec cipherSpec, @SecurityAlgorithms.KeyGenerator String keyAlgorithm) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {
+        Cipher cipher = initUnwrapCipher(kek, cipherSpec, cipherText);
         return unwrap(cipher, cipherText, keyAlgorithm);
     }
 }

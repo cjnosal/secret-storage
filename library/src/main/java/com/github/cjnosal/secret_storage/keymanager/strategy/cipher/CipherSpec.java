@@ -21,10 +21,20 @@ import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 public class CipherSpec {
     private final @SecurityAlgorithms.Cipher String cipherTransformation;
     private final @SecurityAlgorithms.AlgorithmParameters String paramsAlgorithm;
+    private final AlgorithmParameterSpecFactory parameterSpecFactory;
 
+    // underlying Cipher will create randomized AlgorithmParameterSpecs
     public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String paramsAlgorithm) {
         this.cipherTransformation = cipherTransformation;
         this.paramsAlgorithm = paramsAlgorithm;
+        this.parameterSpecFactory = null;
+    }
+
+    // provided Factory will generate AlgorithmParameterSpecs
+    public CipherSpec(@SecurityAlgorithms.Cipher String cipherTransformation, @SecurityAlgorithms.AlgorithmParameters String paramsAlgorithm, AlgorithmParameterSpecFactory parameterSpecFactory) {
+        this.cipherTransformation = cipherTransformation;
+        this.paramsAlgorithm = paramsAlgorithm;
+        this.parameterSpecFactory = parameterSpecFactory;
     }
 
     public @SecurityAlgorithms.Cipher String getCipherTransformation() {
@@ -33,6 +43,10 @@ public class CipherSpec {
 
     public @SecurityAlgorithms.AlgorithmParameters String getParamsAlgorithm() {
         return paramsAlgorithm;
+    }
+
+    public AlgorithmParameterSpecFactory getParameterSpecFactory() {
+        return parameterSpecFactory;
     }
 
     @Override
@@ -44,7 +58,9 @@ public class CipherSpec {
 
         if (cipherTransformation != null ? !cipherTransformation.equals(that.cipherTransformation) : that.cipherTransformation != null)
             return false;
-        return paramsAlgorithm != null ? paramsAlgorithm.equals(that.paramsAlgorithm) : that.paramsAlgorithm == null;
+        if (paramsAlgorithm != null ? !paramsAlgorithm.equals(that.paramsAlgorithm) : that.paramsAlgorithm != null)
+            return false;
+        return parameterSpecFactory != null ? parameterSpecFactory.equals(that.parameterSpecFactory) : that.parameterSpecFactory == null;
 
     }
 
@@ -52,6 +68,7 @@ public class CipherSpec {
     public int hashCode() {
         int result = cipherTransformation != null ? cipherTransformation.hashCode() : 0;
         result = 31 * result + (paramsAlgorithm != null ? paramsAlgorithm.hashCode() : 0);
+        result = 31 * result + (parameterSpecFactory != null ? parameterSpecFactory.hashCode() : 0);
         return result;
     }
 

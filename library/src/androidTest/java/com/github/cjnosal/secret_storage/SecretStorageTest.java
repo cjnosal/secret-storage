@@ -29,6 +29,9 @@ import com.github.cjnosal.secret_storage.keymanager.PasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.SignedPasswordKeyWrapper;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.defaults.DefaultSpecs;
+import com.github.cjnosal.secret_storage.keymanager.strategy.DataProtectionSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.AlgorithmParameterSpecFactory;
+import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.FileStorage;
 import com.github.cjnosal.secret_storage.storage.PreferenceStorage;
@@ -40,10 +43,15 @@ import org.junit.Test;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.SignatureException;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
+import javax.crypto.spec.IvParameterSpec;
+
+import static com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms.IV_SIZE_AES_128;
 import static junit.framework.Assert.fail;
 
 public class SecretStorageTest {
@@ -374,4 +382,35 @@ public class SecretStorageTest {
         } catch(SignatureException e) {}
     }
 
+    @Test
+    public void cipherParameterFactory() throws Exception {
+        ObfuscationKeyWrapper.CryptoConfig defaultConfig = DefaultSpecs.getPasswordCryptoConfig();
+        DataProtectionSpec defaultSpec = DefaultSpecs.getLegacyDataProtectionSpec();
+
+        CipherSpec cipherSpec = new CipherSpec(defaultSpec.getCipherSpec().getCipherTransformation(),
+                defaultSpec.getCipherSpec().getParamsAlgorithm(),
+                new AlgorithmParameterSpecFactory() {
+                    @Override
+                    public AlgorithmParameterSpec newInstance() {
+                        byte[] iv = new byte[IV_SIZE_AES_128/Byte.SIZE];
+                        new SecureRandom().nextBytes(iv);
+                        return new IvParameterSpec(iv);
+                    }
+                });
+
+        ObfuscationKeyWrapper keyWrapper = new ObfuscationKeyWrapper(defaultConfig.getDerivationSpec(), defaultConfig.getKeyGenSpec(), cipherSpec, configStorage, keyStorage);
+        DataProtectionSpec dataSpec = new DataProtectionSpec(cipherSpec, defaultSpec.getIntegritySpec(), defaultSpec.getCipherKeyGenSpec(), defaultSpec.getIntegrityKeyGenSpec());
+        SecretStorage storage = new SecretStorage.Builder()
+                .dataStorage(dataStorage)
+                .dataProtectionSpec(dataSpec)
+                .keyWrapper(keyWrapper)
+                .build();
+
+        storage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        storage.store("secret", "message".getBytes());
+        storage.getEditor().lock();
+
+        storage.<BaseKeyWrapper.NoParamsEditor>getEditor().unlock();
+        assertEquals("message", new String(storage.load("secret")));
+    }
 }

@@ -68,11 +68,11 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
         if (!intermediateKekExists()) {
             KeyPair encryptionKey = generateKeyPair();
             Key rootKek = encryptionKey.getPublic();
-            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, rootKekProtectionSpec.getCipherTransformation(), rootKekProtectionSpec.getParamsAlgorithm());
+            Cipher kekCipher = keyWrap.initWrapCipher(rootKek, rootKekProtectionSpec);
             finishUnlock(null, kekCipher);
         } else {
             Key rootKek = androidCrypto.loadPrivateKey(storageField);
-            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, rootKekProtectionSpec.getParamsAlgorithm(), rootKekProtectionSpec.getCipherTransformation(), getWrappedIntermediateKek());
+            Cipher kekCipher = keyWrap.initUnwrapCipher(rootKek, rootKekProtectionSpec, getWrappedIntermediateKek());
             finishUnlock(kekCipher, null);
         }
     }
