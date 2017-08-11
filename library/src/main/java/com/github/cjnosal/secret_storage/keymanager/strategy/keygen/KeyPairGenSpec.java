@@ -18,11 +18,11 @@ package com.github.cjnosal.secret_storage.keymanager.strategy.keygen;
 
 import com.github.cjnosal.secret_storage.keymanager.crypto.SecurityAlgorithms;
 
-public class KeyGenSpec {
+public class KeyPairGenSpec {
     private final @SecurityAlgorithms.KeySize int keySize;
-    private final @SecurityAlgorithms.KeyGenerator String keygenAlgorithm;
+    private final @SecurityAlgorithms.KeyPairGenerator String keygenAlgorithm;
 
-    public KeyGenSpec(int keySize, @SecurityAlgorithms.KeyGenerator String keygenAlgorithm) {
+    public KeyPairGenSpec(int keySize, @SecurityAlgorithms.KeyPairGenerator String keygenAlgorithm) {
         this.keySize = keySize;
         this.keygenAlgorithm = keygenAlgorithm;
     }
@@ -31,7 +31,7 @@ public class KeyGenSpec {
         return keySize;
     }
 
-    public @SecurityAlgorithms.KeyGenerator String getKeygenAlgorithm() {
+    public @SecurityAlgorithms.KeyPairGenerator String getKeygenAlgorithm() {
         return keygenAlgorithm;
     }
 
@@ -40,7 +40,7 @@ public class KeyGenSpec {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        KeyGenSpec that = (KeyGenSpec) o;
+        KeyPairGenSpec that = (KeyPairGenSpec) o;
 
         if (keySize != that.keySize) return false;
         return keygenAlgorithm != null ? keygenAlgorithm.equals(that.keygenAlgorithm) : that.keygenAlgorithm == null;

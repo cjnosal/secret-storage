@@ -26,7 +26,7 @@ import javax.crypto.SecretKey;
 
 public class IntermediateKekProvider {
 
-    private DataKeyGenerator generator;
+    private final DataKeyGenerator generator;
 
     public IntermediateKekProvider(DataKeyGenerator generator) {
         this.generator = generator;

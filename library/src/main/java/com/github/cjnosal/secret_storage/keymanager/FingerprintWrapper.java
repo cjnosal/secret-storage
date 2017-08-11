@@ -74,7 +74,7 @@ public class FingerprintWrapper extends KeyStoreWrapper {
         fingerprintManagerCompat.authenticate(new FingerprintManagerCompat.CryptoObject(kekCipher), 0, fingerprintParams.getCancellationSignal(), fingerprintCallback, fingerprintParams.getHandler());
     }
 
-    void verify(UnlockParams params) throws IOException, GeneralSecurityException {
+    void verify(UnlockParams params) throws GeneralSecurityException {
         FingerprintParams fingerprintParams = (FingerprintParams) params;
         FingerprintManagerCompat fingerprintManagerCompat = FingerprintManagerCompat.from(fingerprintParams.getContext());
         checkFingerprintStatus(fingerprintParams, fingerprintManagerCompat);
@@ -116,14 +116,14 @@ public class FingerprintWrapper extends KeyStoreWrapper {
             }
         }
 
-        public void verify(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull FingerprintManagerCompat.AuthenticationCallback authenticationCallback, @Nullable Handler handler) throws IOException, GeneralSecurityException {
+        public void verify(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull FingerprintManagerCompat.AuthenticationCallback authenticationCallback, @Nullable Handler handler) throws GeneralSecurityException {
             FingerprintWrapper.this.verify(new FingerprintParams(context, null, cancellationSignal, authenticationCallback, handler));
         }
 
         public void verify(@NonNull Context context, @NonNull CancellationSignal cancellationSignal, @NonNull Listener listener, @Nullable Handler handler) {
             try {
                 FingerprintWrapper.this.verify(new FingerprintParams(context, listener, cancellationSignal, null, handler));
-            } catch (GeneralSecurityException | IOException e) {
+            } catch (GeneralSecurityException e) {
                 listener.onError(e);
             }
         }
@@ -136,7 +136,7 @@ public class FingerprintWrapper extends KeyStoreWrapper {
     class FingerprintCallback extends FingerprintManagerCompat.AuthenticationCallback {
 
         private final FingerprintManagerCompat.AuthenticationCallback wrappedCallback;
-        private Listener listener;
+        private final Listener listener;
         private final boolean firstUnlock;
 
         public FingerprintCallback(@Nullable FingerprintManagerCompat.AuthenticationCallback wrappedCallback, @Nullable Listener listener, boolean firstUnlock) {
@@ -253,8 +253,8 @@ public class FingerprintWrapper extends KeyStoreWrapper {
     }
 
     public class FingerprintException extends GeneralSecurityException {
-        private int messageId;
-        private Type type;
+        private final int messageId;
+        private final Type type;
 
         public FingerprintException(Type type) {
             super("Can't use fingerprint");

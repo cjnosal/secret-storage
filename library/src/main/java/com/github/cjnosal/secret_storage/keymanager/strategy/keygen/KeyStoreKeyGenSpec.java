@@ -23,7 +23,7 @@ import android.security.keystore.KeyGenParameterSpec;
 @TargetApi(Build.VERSION_CODES.M)
 public class KeyStoreKeyGenSpec extends KeyGenSpec {
 
-    private KeyGenParameterSpec keyGenParameterSpec;
+    private final KeyGenParameterSpec keyGenParameterSpec;
 
     public KeyStoreKeyGenSpec(KeyGenParameterSpec keyGenParameterSpec, String keyGenAlgorithm) {
         super(keyGenParameterSpec.getKeySize(), keyGenAlgorithm);

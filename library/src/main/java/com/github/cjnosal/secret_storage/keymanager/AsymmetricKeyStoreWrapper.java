@@ -23,6 +23,7 @@ import android.os.Build;
 import com.github.cjnosal.secret_storage.keymanager.crypto.AndroidCrypto;
 import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyPairGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
     private final AndroidCrypto androidCrypto;
     private final CipherSpec rootKekProtectionSpec;
     private final Context context;
-    private final KeyGenSpec rootKekSpec;
+    private final KeyPairGenSpec rootKekSpec;
 
     // TODO refactor to extend KeyStoreWrapper to override symmetric key generation?
 
@@ -48,7 +49,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
         this(context, cryptoConfig.getIntermediateKeyProtectionSpec(), cryptoConfig.getIntermediateKekSpec(), cryptoConfig.getKeyStoreKeyProtectionSpec(), cryptoConfig.getKeyStoreKekSpec(), configStorage, keyStorage);
     }
 
-    public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
+    public AsymmetricKeyStoreWrapper(Context context, CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyPairGenSpec keyStoreKekSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(intermediateKeyProtectionSpec, intermediateKekSpec, configStorage, keyStorage);
         this.context = context;
         this.rootKekSpec = keyStoreKekSpec;
@@ -86,9 +87,9 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
         private final CipherSpec intermediateKeyProtectionSpec;
         private final KeyGenSpec intermediateKekSpec;
         private final CipherSpec keyStoreKeyProtectionSpec;
-        private final KeyGenSpec keyStoreKekSpec;
+        private final KeyPairGenSpec keyStoreKekSpec;
 
-        public CryptoConfig(CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyGenSpec keyStoreKekSpec) {
+        public CryptoConfig(CipherSpec intermediateKeyProtectionSpec, KeyGenSpec intermediateKekSpec, CipherSpec keyStoreKeyProtectionSpec, KeyPairGenSpec keyStoreKekSpec) {
             this.intermediateKeyProtectionSpec = intermediateKeyProtectionSpec;
             this.intermediateKekSpec = intermediateKekSpec;
             this.keyStoreKeyProtectionSpec = keyStoreKeyProtectionSpec;
@@ -107,7 +108,7 @@ public class AsymmetricKeyStoreWrapper extends BaseKeyWrapper {
             return keyStoreKeyProtectionSpec;
         }
 
-        public KeyGenSpec getKeyStoreKekSpec() {
+        public KeyPairGenSpec getKeyStoreKekSpec() {
             return keyStoreKekSpec;
         }
     }

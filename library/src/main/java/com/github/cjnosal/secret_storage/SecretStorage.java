@@ -95,10 +95,7 @@ public class SecretStorage {
     }
 
     public boolean exists(String id) {
-        if (dataStorage == null) {
-            return false;
-        }
-        return dataStorage.exists(id);
+        return dataStorage != null && dataStorage.exists(id);
     }
 
     public void delete(String id) throws IOException {

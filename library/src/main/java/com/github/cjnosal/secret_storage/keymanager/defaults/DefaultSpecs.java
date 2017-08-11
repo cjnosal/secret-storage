@@ -31,6 +31,7 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.cipher.CipherSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.derivation.KeyDerivationSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegritySpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyPairGenSpec;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyStoreKeyGenSpec;
 
 /**
@@ -128,12 +129,12 @@ public class DefaultSpecs {
         return new KeyGenSpec(SecurityAlgorithms.KEY_SIZE_AES_256, SecurityAlgorithms.KeyGenerator_AES);
     }
 
-    public static KeyGenSpec getRsa2048KeyGenSpec() {
-        return new KeyGenSpec(SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA);
+    public static KeyPairGenSpec getRsa2048KeyGenSpec() {
+        return new KeyPairGenSpec(SecurityAlgorithms.KEY_SIZE_RSA_2048, SecurityAlgorithms.KeyPairGenerator_RSA);
     }
 
-    public static KeyGenSpec getEc384KeyGenSpec() {
-        return new KeyGenSpec(SecurityAlgorithms.KEY_SIZE_EC_384, SecurityAlgorithms.KeyPairGenerator_EC);
+    public static KeyPairGenSpec getEc384KeyGenSpec() {
+        return new KeyPairGenSpec(SecurityAlgorithms.KEY_SIZE_EC_384, SecurityAlgorithms.KeyPairGenerator_EC);
     }
 
     @TargetApi(Build.VERSION_CODES.M)

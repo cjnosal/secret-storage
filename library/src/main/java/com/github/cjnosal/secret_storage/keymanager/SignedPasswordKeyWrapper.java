@@ -27,6 +27,7 @@ import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.Integrity
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.IntegrityStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.integrity.signature.SignatureStrategy;
 import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyGenSpec;
+import com.github.cjnosal.secret_storage.keymanager.strategy.keygen.KeyPairGenSpec;
 import com.github.cjnosal.secret_storage.storage.DataStorage;
 import com.github.cjnosal.secret_storage.storage.encoding.Encoding;
 
@@ -43,7 +44,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
     private static final String DEVICE_BINDING = "DEVICE_BINDING";
 
     private final Context context;
-    private final KeyGenSpec integrityKeyGenSpec;
+    private final KeyPairGenSpec integrityKeyGenSpec;
     private final AndroidCrypto androidCrypto;
     private final IntegritySpec derivationIntegritySpec;
     private final IntegrityStrategy derivationIntegrityStrategy;
@@ -52,7 +53,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
         this(context, cryptoConfig.getDerivationSpec(), cryptoConfig.getKeyGenSpec(), cryptoConfig.getDerivationIntegritySpec(), cryptoConfig.getKeyProtectionSpec(), cryptoConfig.getIntegrityKeyGenSpec(), configStorage, keyStorage);
     }
 
-    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyGenSpec integrityKeyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
+    public SignedPasswordKeyWrapper(Context context, KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyPairGenSpec integrityKeyGenSpec, DataStorage configStorage, DataStorage keyStorage) {
         super(keyDerivationSpec, derivedKeyGenSpec, keyProtectionSpec, configStorage, keyStorage);
         this.context = context;
         this.integrityKeyGenSpec = integrityKeyGenSpec;
@@ -111,9 +112,9 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
 
     public static class CryptoConfig extends PasswordKeyWrapper.CryptoConfig {
         private final IntegritySpec derivationIntegritySpec;
-        private final KeyGenSpec integrityKeyGenSpec;
+        private final KeyPairGenSpec integrityKeyGenSpec;
 
-        public CryptoConfig(KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyGenSpec integrityKeyGenSpec) {
+        public CryptoConfig(KeyDerivationSpec keyDerivationSpec, KeyGenSpec derivedKeyGenSpec, IntegritySpec derivationIntegritySpec, CipherSpec keyProtectionSpec, KeyPairGenSpec integrityKeyGenSpec) {
             super(keyDerivationSpec, derivedKeyGenSpec, keyProtectionSpec);
             this.derivationIntegritySpec = derivationIntegritySpec;
             this.integrityKeyGenSpec = integrityKeyGenSpec;
@@ -123,7 +124,7 @@ public class SignedPasswordKeyWrapper extends PasswordKeyWrapper {
             return derivationIntegritySpec;
         }
 
-        public KeyGenSpec getIntegrityKeyGenSpec() {
+        public KeyPairGenSpec getIntegrityKeyGenSpec() {
             return integrityKeyGenSpec;
         }
     }

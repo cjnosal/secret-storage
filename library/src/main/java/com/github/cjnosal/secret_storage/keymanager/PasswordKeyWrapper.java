@@ -233,7 +233,7 @@ public class PasswordKeyWrapper extends BaseKeyWrapper {
     }
 
     class PasswordParams extends UnlockParams {
-        private char[] password;
+        private final char[] password;
 
         public PasswordParams(char[] password) {
             this.password = password;
